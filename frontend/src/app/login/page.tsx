@@ -24,8 +24,7 @@ export default function LoginPage() {
     const router = useRouter();
     const { isAuthenticated, authLoading } = useAuth();
     const [email, setEmail] = useState("");
-    const [otp, setOtp] = useState("");
-    const [otpSent, setOtpSent] = useState(false);
+    const [password, setPassword] = useState("");
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
@@ -35,39 +34,15 @@ export default function LoginPage() {
         }
     }, [authLoading, isAuthenticated, router]);
 
-    const handleSendOtp = async (e: React.FormEvent) => {
+    const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
         setError(null);
 
         try {
-            const { error } = await supabase.auth.signInWithOtp({
+            const { error } = await supabase.auth.signInWithPassword({
                 email,
-            });
-
-            if (error) throw error;
-            setOtpSent(true);
-        } catch (error: unknown) {
-            setError(
-                error instanceof Error
-                    ? error.message
-                    : "An error occurred while sending OTP",
-            );
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const handleVerifyOtp = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setLoading(true);
-        setError(null);
-
-        try {
-            const { error } = await supabase.auth.verifyOtp({
-                email,
-                token: otp,
-                type: "email",
+                password,
             });
 
             if (error) throw error;
@@ -77,7 +52,7 @@ export default function LoginPage() {
             setError(
                 error instanceof Error
                     ? error.message
-                    : "Invalid OTP code",
+                    : "Invalid email or password",
             );
         } finally {
             setLoading(false);
@@ -108,60 +83,42 @@ export default function LoginPage() {
                             </Link>
                         </div>
                     </div>
-                    <form onSubmit={otpSent ? handleVerifyOtp : handleSendOtp} className="space-y-4">
-                        {!otpSent && (
-                            <div>
-                                <label
-                                    htmlFor="email"
-                                    className="block text-sm font-medium text-gray-700 mb-2"
-                                >
-                                    Email
-                                </label>
-                                <Input
-                                    id="email"
-                                    type="email"
-                                    value={email}
-                                    onChange={(e) => setEmail(e.target.value)}
-                                    placeholder="Enter your email"
-                                    required
+                    <form onSubmit={handleLogin} className="space-y-4">
+                        <div>
+                            <label
+                                htmlFor="email"
+                                className="block text-sm font-medium text-gray-700 mb-2"
+                            >
+                                Email
+                            </label>
+                            <Input
+                                id="email"
+                                type="email"
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
+                                placeholder="Enter your email"
+                                required
                                 className={`w-full ${authInputClassName}`}
                             />
                         </div>
-                        )}
 
-                        {otpSent && (
-                            <div>
-                                <label
-                                    htmlFor="otp"
-                                    className="block text-sm font-medium text-gray-700 mb-2"
-                                >
-                                    Enter OTP Code
-                                </label>
-                                <p className="text-sm text-gray-600 mb-3">
-                                    We sent a code to {email}
-                                </p>
-                                <Input
-                                    id="otp"
-                                    type="text"
-                                    value={otp}
-                                    onChange={(e) => setOtp(e.target.value)}
-                                    placeholder="000000"
-                                    required
-                                    className={`w-full ${authInputClassName}`}
-                                />
-                                <button
-                                    type="button"
-                                    onClick={() => {
-                                        setOtpSent(false);
-                                        setOtp("");
-                                        setError(null);
-                                    }}
-                                    className="text-sm text-blue-600 hover:text-blue-700 mt-2"
-                                >
-                                    Use a different email
-                                </button>
-                            </div>
-                        )}
+                        <div>
+                            <label
+                                htmlFor="password"
+                                className="block text-sm font-medium text-gray-700 mb-2"
+                            >
+                                Password
+                            </label>
+                            <Input
+                                id="password"
+                                type="password"
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                placeholder="Enter your password"
+                                required
+                                className={`w-full ${authInputClassName}`}
+                            />
+                        </div>
 
                         {error && (
                             <div className="text-red-600 text-sm bg-red-50 p-3 rounded">
@@ -174,7 +131,7 @@ export default function LoginPage() {
                             disabled={loading}
                             className="w-full mt-5 bg-black hover:bg-gray-900 text-white"
                         >
-                            {loading ? (otpSent ? "Verifying..." : "Sending code...") : (otpSent ? "Verify & Log in" : "Send OTP Code")}
+                            {loading ? "Logging in..." : "Log in"}
                         </Button>
                     </form>
                 </div>

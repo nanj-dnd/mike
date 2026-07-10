@@ -26,8 +26,8 @@ export default function SignupPage() {
     const router = useRouter();
     const { isAuthenticated, authLoading } = useAuth();
     const [email, setEmail] = useState("");
-    const [otp, setOtp] = useState("");
-    const [otpSent, setOtpSent] = useState(false);
+    const [password, setPassword] = useState("");
+    const [confirmPassword, setConfirmPassword] = useState("");
     const [name, setName] = useState("");
     const [organisation, setOrganisation] = useState("");
     const [loading, setLoading] = useState(false);
@@ -40,39 +40,29 @@ export default function SignupPage() {
         }
     }, [authLoading, isAuthenticated, router, success]);
 
-    const handleSendOtp = async (e: React.FormEvent) => {
+    const handleSignup = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
         setError(null);
 
-        try {
-            const { error } = await supabase.auth.signInWithOtp({
-                email,
-            });
-
-            if (error) throw error;
-            setOtpSent(true);
-        } catch (error: unknown) {
-            setError(
-                error instanceof Error
-                    ? error.message
-                    : "An error occurred while sending OTP",
-            );
-        } finally {
+        // Validate passwords match
+        if (password !== confirmPassword) {
+            setError("Passwords do not match");
             setLoading(false);
+            return;
         }
-    };
 
-    const handleVerifyOtp = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setLoading(true);
-        setError(null);
+        // Validate password length
+        if (password.length < 6) {
+            setError("Password must be at least 6 characters");
+            setLoading(false);
+            return;
+        }
 
         try {
-            const { data, error } = await supabase.auth.verifyOtp({
+            const { data, error } = await supabase.auth.signUp({
                 email,
-                token: otp,
-                type: "email",
+                password,
             });
 
             if (error) throw error;
@@ -102,7 +92,7 @@ export default function SignupPage() {
             setError(
                 error instanceof Error
                     ? error.message
-                    : "Invalid OTP code",
+                    : "An error occurred during signup",
             );
         } finally {
             setLoading(false);
@@ -160,104 +150,104 @@ export default function SignupPage() {
                         </div>
                     </div>
 
-                    <form onSubmit={otpSent ? handleVerifyOtp : handleSendOtp} className="space-y-4">
-                        {!otpSent && (
-                            <>
-                                <div>
-                                    <label
-                                        htmlFor="name"
-                                        className="block text-sm font-medium text-gray-700 mb-2"
-                                    >
-                                        Name{" "}
-                                        <span className="text-gray-400 font-normal">
-                                            (optional)
-                                        </span>
-                                    </label>
-                                    <Input
-                                        id="name"
-                                        type="text"
-                                        value={name}
-                                        onChange={(e) => setName(e.target.value)}
-                                        placeholder="Your name"
-                                        className={`w-full ${authInputClassName}`}
-                                    />
-                                </div>
+                    <form onSubmit={handleSignup} className="space-y-4">
+                        <div>
+                            <label
+                                htmlFor="name"
+                                className="block text-sm font-medium text-gray-700 mb-2"
+                            >
+                                Name{" "}
+                                <span className="text-gray-400 font-normal">
+                                    (optional)
+                                </span>
+                            </label>
+                            <Input
+                                id="name"
+                                type="text"
+                                value={name}
+                                onChange={(e) => setName(e.target.value)}
+                                placeholder="Your name"
+                                className={`w-full ${authInputClassName}`}
+                            />
+                        </div>
 
-                                <div>
-                                    <label
-                                        htmlFor="organisation"
-                                        className="block text-sm font-medium text-gray-700 mb-2"
-                                    >
-                                        Organisation{" "}
-                                        <span className="text-gray-400 font-normal">
-                                            (optional)
-                                        </span>
-                                    </label>
-                                    <Input
-                                        id="organisation"
-                                        type="text"
-                                        value={organisation}
-                                        onChange={(e) =>
-                                            setOrganisation(e.target.value)
-                                        }
-                                        placeholder="Your organisation"
-                                        className={`w-full ${authInputClassName}`}
-                                    />
-                                </div>
+                        <div>
+                            <label
+                                htmlFor="organisation"
+                                className="block text-sm font-medium text-gray-700 mb-2"
+                            >
+                                Organisation{" "}
+                                <span className="text-gray-400 font-normal">
+                                    (optional)
+                                </span>
+                            </label>
+                            <Input
+                                id="organisation"
+                                type="text"
+                                value={organisation}
+                                onChange={(e) =>
+                                    setOrganisation(e.target.value)
+                                }
+                                placeholder="Your organisation"
+                                className={`w-full ${authInputClassName}`}
+                            />
+                        </div>
 
-                                <div>
-                                    <label
-                                        htmlFor="email"
-                                        className="block text-sm font-medium text-gray-700 mb-2"
-                                    >
-                                        Email
-                                    </label>
-                                    <Input
-                                        id="email"
-                                        type="email"
-                                        value={email}
-                                        onChange={(e) => setEmail(e.target.value)}
-                                        placeholder="Enter your email"
-                                        required
-                                        className={`w-full ${authInputClassName}`}
-                                    />
-                                </div>
-                            </>
-                        )}
+                        <div>
+                            <label
+                                htmlFor="email"
+                                className="block text-sm font-medium text-gray-700 mb-2"
+                            >
+                                Email
+                            </label>
+                            <Input
+                                id="email"
+                                type="email"
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
+                                placeholder="Enter your email"
+                                required
+                                className={`w-full ${authInputClassName}`}
+                            />
+                        </div>
 
-                        {otpSent && (
-                            <div>
-                                <label
-                                    htmlFor="otp"
-                                    className="block text-sm font-medium text-gray-700 mb-2"
-                                >
-                                    Enter OTP Code
-                                </label>
-                                <p className="text-sm text-gray-600 mb-3">
-                                    We sent a code to {email}
-                                </p>
-                                <Input
-                                    id="otp"
-                                    type="text"
-                                    value={otp}
-                                    onChange={(e) => setOtp(e.target.value)}
-                                    placeholder="000000"
-                                    required
-                                    className={`w-full ${authInputClassName}`}
-                                />
-                                <button
-                                    type="button"
-                                    onClick={() => {
-                                        setOtpSent(false);
-                                        setOtp("");
-                                        setError(null);
-                                    }}
-                                    className="text-sm text-blue-600 hover:text-blue-700 mt-2"
-                                >
-                                    Use a different email
-                                </button>
-                            </div>
-                        )}
+                        <div>
+                            <label
+                                htmlFor="password"
+                                className="block text-sm font-medium text-gray-700 mb-2"
+                            >
+                                Password
+                            </label>
+                            <Input
+                                id="password"
+                                type="password"
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                placeholder="Create a password (min. 6 characters)"
+                                required
+                                className={`w-full ${authInputClassName}`}
+                            />
+                        </div>
+
+                        <div>
+                            <label
+                                htmlFor="confirmPassword"
+                                className="block text-sm font-medium text-gray-700 mb-2"
+                            >
+                                Confirm Password
+                            </label>
+                            <Input
+                                id="confirmPassword"
+                                type="password"
+                                value={confirmPassword}
+                                onChange={(e) =>
+                                    setConfirmPassword(e.target.value)
+                                }
+                                placeholder="Confirm your password"
+                                required
+                                className={`w-full ${authInputClassName}`}
+                            />
+                        </div>
 
                         {error && (
                             <div className="text-red-600 text-sm bg-red-50 p-3 rounded">
@@ -270,7 +260,7 @@ export default function SignupPage() {
                             disabled={loading}
                             className="w-full bg-black hover:bg-gray-900 text-white"
                         >
-                            {loading ? (otpSent ? "Creating account..." : "Send OTP Code") : (otpSent ? "Verify & Sign up" : "Send OTP Code")}
+                            {loading ? "Creating account..." : "Sign up"}
                         </Button>
                     </form>
 
