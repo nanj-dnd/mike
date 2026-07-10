@@ -155,7 +155,7 @@ async function removeEmailFromSharedWith(
 
 export async function deleteAllUserChats(db: Db, userId: string) {
     const [assistantChats, tabularChats] = await Promise.all([
-        db.from("chats").delete().eq("user_id", userId),
+        db.from("mike_chats").delete().eq("user_id", userId),
         db.from("tabular_review_chats").delete().eq("user_id", userId),
     ]);
 
@@ -222,7 +222,7 @@ export async function deleteUserProjects(
     const [projectDocs, projectChats, projectReviews, projectFolders] =
         await Promise.all([
             db.from("documents").select("id").in("project_id", ownedProjectIds),
-            db.from("chats").select("id").in("project_id", ownedProjectIds),
+            db.from("mike_chats").select("id").in("project_id", ownedProjectIds),
             db
                 .from("tabular_reviews")
                 .select("id")
@@ -285,8 +285,8 @@ export async function deleteUserProjects(
     await deleteWhereIn(db, "tabular_review_chats", "review_id", reviewIds);
     await deleteWhereIn(db, "tabular_cells", "review_id", reviewIds);
     await deleteByIds(db, "tabular_reviews", reviewIds);
-    await deleteWhereIn(db, "chat_messages", "chat_id", chatIds);
-    await deleteByIds(db, "chats", chatIds);
+    await deleteWhereIn(db, "mike_chat_messages", "chat_id", chatIds);
+    await deleteByIds(db, "mike_chats", chatIds);
     await deleteByIds(db, "documents", documentIds);
     await deleteByIds(db, "project_subfolders", folderIds);
     await deleteByIds(db, "projects", ownedProjectIds);
@@ -318,7 +318,7 @@ export async function deleteUserAccountData(
     const deletions = [
         db.from("tabular_review_chats").delete().eq("user_id", userId),
         db.from("tabular_reviews").delete().eq("user_id", userId),
-        db.from("chats").delete().eq("user_id", userId),
+        db.from("mike_chats").delete().eq("user_id", userId),
         db.from("project_subfolders").delete().eq("user_id", userId),
         db.from("hidden_workflows").delete().eq("user_id", userId),
         db

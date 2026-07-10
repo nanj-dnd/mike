@@ -76,7 +76,7 @@ projectChatRouter.post("/", requireAuth, async (req, res) => {
 
     if (chatId) {
         const { data: existing } = await db
-            .from("chats")
+            .from("mike_chats")
             .select("id, title, project_id")
             .eq("id", chatId)
             .single();
@@ -87,7 +87,7 @@ projectChatRouter.post("/", requireAuth, async (req, res) => {
 
     if (!chatId) {
         const { data: newChat, error } = await db
-            .from("chats")
+            .from("mike_chats")
             .insert({ user_id: userId, project_id: projectId })
             .select("id, title")
             .single();
@@ -107,7 +107,7 @@ projectChatRouter.post("/", requireAuth, async (req, res) => {
             askInputsResponse,
         );
     } else if (lastUser) {
-        await db.from("chat_messages").insert({
+        await db.from("mike_chat_messages").insert({
             chat_id: chatId,
             role: "user",
             content: lastUser.content,
@@ -218,7 +218,7 @@ projectChatRouter.post("/", requireAuth, async (req, res) => {
                 citations,
             );
         } else {
-            await db.from("chat_messages").insert({
+            await db.from("mike_chat_messages").insert({
                 chat_id: chatId,
                 role: "assistant",
                 content: persistedEvents.length ? persistedEvents : null,
@@ -228,7 +228,7 @@ projectChatRouter.post("/", requireAuth, async (req, res) => {
 
         if (!chatTitle && lastUser?.content) {
             await db
-                .from("chats")
+                .from("mike_chats")
                 .update({ title: lastUser.content.slice(0, 120) })
                 .eq("id", chatId);
         }
@@ -247,7 +247,7 @@ projectChatRouter.post("/", requireAuth, async (req, res) => {
                 const saveError = askInputsResponse
                     ? null
                     : (
-                          await db.from("chat_messages").insert({
+                          await db.from("mike_chat_messages").insert({
                               chat_id: chatId,
                               role: "assistant",
                               content: partial.events.length
@@ -291,7 +291,7 @@ projectChatRouter.post("/", requireAuth, async (req, res) => {
             const saveError = askInputsResponse
                 ? null
                 : (
-                      await db.from("chat_messages").insert({
+                      await db.from("mike_chat_messages").insert({
                           chat_id: chatId,
                           role: "assistant",
                           content: errorEvents.length ? errorEvents : null,

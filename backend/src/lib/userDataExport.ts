@@ -9,7 +9,7 @@ function nowStamp() {
 }
 
 export function userExportFilename(
-    kind: "account" | "chats" | "tabular-reviews",
+    kind: "account" | "mike_chats" | "tabular-reviews",
     userId: string,
 ) {
     return `mike-${kind}-export-${userId.slice(0, 8)}-${nowStamp()}.json`;
@@ -71,11 +71,11 @@ function idsFrom(rows: Record<string, unknown>[], column = "id"): string[] {
 }
 
 async function loadUserChats(db: Db, userId: string) {
-    const chats = await selectAll(db, "chats", (query) =>
+    const chats = await selectAll(db, "mike_chats", (query) =>
         query.eq("user_id", userId).order("created_at", { ascending: true }),
     );
     const chatIds = idsFrom(chats);
-    const messages = await selectByIds(db, "chat_messages", "chat_id", chatIds);
+    const messages = await selectByIds(db, "mike_chat_messages", "chat_id", chatIds);
     return { chats, messages };
 }
 

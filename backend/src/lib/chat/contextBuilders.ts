@@ -24,7 +24,7 @@ export async function enrichWithPriorEvents(
 ): Promise<ChatMessage[]> {
   if (!chatId) return messages;
   const { data: rows } = await db
-    .from("chat_messages")
+    .from("mike_chat_messages")
     .select("content, created_at")
     .eq("chat_id", chatId)
     .eq("role", "assistant")
@@ -276,7 +276,7 @@ export async function appendAssistantEventsToLastAssistantMessage(
     return;
   }
   const { data: rows, error: selectError } = await db
-    .from("chat_messages")
+    .from("mike_chat_messages")
     .select("id, content, citations")
     .eq("chat_id", chatId)
     .eq("role", "assistant")
@@ -309,7 +309,7 @@ export async function appendAssistantEventsToLastAssistantMessage(
       ? [...existingCitations, ...citations]
       : existingCitations;
   const { error: updateError } = await db
-    .from("chat_messages")
+    .from("mike_chat_messages")
     .update({
       content: next.length ? next : null,
       citations: nextCitations.length ? nextCitations : null,
@@ -369,7 +369,7 @@ export async function buildDocContext(
   // them, and can't call edit_document / read_document on them.
   if (chatId) {
     const { data: rows } = await db
-      .from("chat_messages")
+      .from("mike_chat_messages")
       .select("content")
       .eq("chat_id", chatId)
       .eq("role", "assistant");

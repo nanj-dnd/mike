@@ -692,7 +692,7 @@ projectsRouter.get("/:projectId/chats", requireAuth, async (req, res) => {
     return void res.status(404).json({ detail: "Project not found" });
 
   const { data, error } = await db
-    .from("chats")
+    .from("mike_chats")
     .select("*")
     .eq("project_id", projectId)
     .order("created_at", { ascending: false });

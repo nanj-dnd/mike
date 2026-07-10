@@ -128,7 +128,7 @@ async function getAccessibleChat(
     db: Db,
 ): Promise<AccessibleChat | null> {
     const { data: chat, error } = await db
-        .from("chats")
+        .from("mike_chats")
         .select("*")
         .eq("id", chatId)
         .maybeSingle();
@@ -194,7 +194,7 @@ chatRouter.post("/create", requireAuth, async (req, res) => {
             .json({ detail: projectAccess.detail });
 
     const { data, error } = await db
-        .from("chats")
+        .from("mike_chats")
         .insert({ user_id: userId, project_id: projectId ?? null })
         .select("id")
         .single();
@@ -215,7 +215,7 @@ chatRouter.get("/:chatId", requireAuth, async (req, res) => {
         return void res.status(404).json({ detail: "Chat not found" });
 
     const { data: messages } = await db
-        .from("chat_messages")
+        .from("mike_chat_messages")
         .select("*")
         .eq("chat_id", chatId)
         .order("created_at", { ascending: true });
@@ -348,7 +348,7 @@ chatRouter.patch("/:chatId", requireAuth, async (req, res) => {
 
     const db = createServerSupabase();
     const { data, error } = await db
-        .from("chats")
+        .from("mike_chats")
         .update({ title })
         .eq("id", chatId)
         .eq("user_id", userId)
@@ -366,7 +366,7 @@ chatRouter.delete("/:chatId", requireAuth, async (req, res) => {
     const { chatId } = req.params;
     const db = createServerSupabase();
     const { error } = await db
-        .from("chats")
+        .from("mike_chats")
         .delete()
         .eq("id", chatId)
         .eq("user_id", userId);
@@ -404,7 +404,7 @@ chatRouter.post("/:chatId/generate-title", requireAuth, async (req, res) => {
         const title = normalizeGeneratedTitle(titleText);
 
         await db
-            .from("chats")
+            .from("mike_chats")
             .update({ title })
             .eq("id", chatId);
 
@@ -494,7 +494,7 @@ chatRouter.post("/", requireAuth, async (req, res) => {
                 .json({ detail: projectAccess.detail });
 
         const { data: newChat, error } = await db
-            .from("chats")
+            .from("mike_chats")
             .insert({ user_id: userId, project_id: resolvedProjectId })
             .select("id, title")
             .single();
@@ -518,7 +518,7 @@ chatRouter.post("/", requireAuth, async (req, res) => {
             askInputsResponse,
         );
     } else if (lastUser) {
-        await db.from("chat_messages").insert({
+        await db.from("mike_chat_messages").insert({
             chat_id: chatId,
             role: "user",
             content: lastUser.content,
@@ -608,7 +608,7 @@ chatRouter.post("/", requireAuth, async (req, res) => {
                 citations,
             );
         } else {
-            await db.from("chat_messages").insert({
+            await db.from("mike_chat_messages").insert({
                 chat_id: chatId,
                 role: "assistant",
                 content: persistedEvents.length ? persistedEvents : null,
@@ -618,7 +618,7 @@ chatRouter.post("/", requireAuth, async (req, res) => {
 
         if (!chatTitle && lastUser?.content) {
             await db
-                .from("chats")
+                .from("mike_chats")
                 .update({ title: lastUser.content.slice(0, 120) })
                 .eq("id", chatId);
         }
@@ -635,7 +635,7 @@ chatRouter.post("/", requireAuth, async (req, res) => {
                 const saveError = askInputsResponse
                     ? null
                     : (
-                          await db.from("chat_messages").insert({
+                          await db.from("mike_chat_messages").insert({
                               chat_id: chatId,
                               role: "assistant",
                               content: partial.events.length
@@ -679,7 +679,7 @@ chatRouter.post("/", requireAuth, async (req, res) => {
             const saveError = askInputsResponse
                 ? null
                 : (
-                      await db.from("chat_messages").insert({
+                      await db.from("mike_chat_messages").insert({
                           chat_id: chatId,
                           role: "assistant",
                           content: errorEvents.length ? errorEvents : null,

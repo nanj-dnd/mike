@@ -1085,7 +1085,7 @@ userRouter.get(
             res.setHeader("Content-Type", "application/json; charset=utf-8");
             res.setHeader(
                 "Content-Disposition",
-                `attachment; filename="${userExportFilename("chats", userId)}"`,
+                `attachment; filename="${userExportFilename("mike_chats", userId)}"`,
             );
             res.json(data);
         } catch (err) {
