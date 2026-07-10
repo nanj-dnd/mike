@@ -13,13 +13,13 @@ export const PROMPT_PRESETS: ColumnPreset[] = [
         name: "Parties",
         matches: /\bpart(y|ies)\b/i,
         format: "bulleted_list",
-        prompt: 'List all parties to this agreement. For each party, state their full legal name, entity type, and defined role, e.g.:\n• ABC Corp, a Delaware corporation ("Company")\n• John Smith ("Shareholder")\nOne party per bullet. No additional commentary.',
+        prompt: 'List all parties to this agreement. For each party, state their full legal name, entity type, and defined role, e.g.:\n• ABC Private Limited, a company incorporated under the Companies Act, 2013 ("Company")\n• Rajesh Kumar ("Shareholder")\nOne party per bullet. No additional commentary.',
     },
     {
         name: "Governing Law",
         matches: /\bgoverning law\b|\bjurisdiction\b/i,
         format: "text",
-        prompt: 'State only the governing law of this agreement using the short-form jurisdiction name, e.g. "New York Law", "English Law", "Indian Law", "PRC Law". No other text.',
+        prompt: 'State only the governing law of this agreement using the short-form jurisdiction name, e.g. "Indian Law", "English Law", "New York Law". If Indian, also name the courts given exclusive jurisdiction (e.g. "Indian Law — courts at Mumbai"). No other text.',
     },
     {
         name: "Effective Date",
@@ -61,7 +61,7 @@ export const PROMPT_PRESETS: ColumnPreset[] = [
         name: "Payment & Fees",
         matches: /\bpayment\b|\bfees?\b/i,
         format: "text",
-        prompt: 'State the key payment obligations concisely: amount, timing, and currency, e.g. "USD 10,000 payable within 30 days of invoice". Note any late payment consequences.',
+        prompt: 'State the key payment obligations concisely: amount, timing, and currency, e.g. "₹10,00,000 (Rupees Ten Lakh) payable within 30 days of invoice". Note any late payment consequences and whether amounts are inclusive or exclusive of GST.',
     },
     {
         name: "Amendment",
@@ -86,6 +86,30 @@ export const PROMPT_PRESETS: ColumnPreset[] = [
         matches: /\bforce majeure\b/i,
         format: "yes_no",
         prompt: "Does this agreement contain a force majeure clause?",
+    },
+    {
+        name: "Arbitration",
+        matches: /\barbitrat(e|ion|or)\b|\bdispute resolution\b/i,
+        format: "text",
+        prompt: "Summarize the dispute resolution / arbitration clause: seat and venue of arbitration, number of arbitrators and appointment mechanism, governing rules (e.g. Arbitration and Conciliation Act, 1996; institutional rules such as MCIA/DIAC/SIAC), language, and any pre-arbitration steps (negotiation, mediation). If there is no arbitration clause, state the forum for disputes.",
+    },
+    {
+        name: "Stamp Duty & Registration",
+        matches: /\bstamp\b|\bregistration\b|\bregistered\b/i,
+        format: "text",
+        prompt: "Identify any provisions on stamp duty and registration: who bears stamp duty, the state whose stamp law applies, whether the document is required or stated to be registered (e.g. under the Registration Act, 1908), and any recitals of stamp paper value. If the document type ordinarily requires stamping or registration in India but the document is silent, flag this.",
+    },
+    {
+        name: "GST",
+        matches: /\bGST\b|\bgoods and services tax\b/i,
+        format: "text",
+        prompt: "Summarize the GST treatment: whether prices are inclusive or exclusive of GST, who bears GST, invoicing and input tax credit obligations, and any GST indemnity or gross-up provisions.",
+    },
+    {
+        name: "Notice Details",
+        matches: /\bnotices?\b/i,
+        format: "text",
+        prompt: "Summarize the notice provisions: permitted modes of service (post, courier, email), addresses, deemed-delivery timelines, and any requirement of notice before legal action.",
     },
 ];
 

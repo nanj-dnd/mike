@@ -13,150 +13,64 @@ import { ModalTextInput } from "../modals/ModalTextInput";
 
 const DEFAULT_LANGUAGE = "English";
 const DEFAULT_PRACTICE = "General Corporate";
-const DEFAULT_JURISDICTION = "General";
+const DEFAULT_JURISDICTION = "India";
 const LANGUAGE_OPTIONS = [
     "English",
-    "Chinese",
-    "Spanish",
-    "French",
-    "German",
-    "Japanese",
-    "Korean",
-    "Portuguese",
-    "Italian",
-    "Dutch",
-    "Arabic",
-    "Hebrew",
-    "Persian",
-    "Urdu",
     "Hindi",
+    "Marathi",
+    "Gujarati",
     "Bengali",
     "Tamil",
     "Telugu",
-    "Indonesian",
-    "Malay",
-    "Filipino",
-    "Vietnamese",
-    "Thai",
-    "Burmese",
-    "Khmer",
-    "Lao",
-    "Russian",
-    "Ukrainian",
-    "Turkish",
-    "Polish",
-    "Czech",
-    "Romanian",
-    "Greek",
-    "Danish",
-    "Finnish",
-    "Norwegian",
-    "Swedish",
-    "Afrikaans",
-    "Swahili",
+    "Kannada",
+    "Malayalam",
+    "Punjabi",
+    "Odia",
+    "Assamese",
+    "Urdu",
     "Other",
 ] as const;
 const JURISDICTION_OPTIONS = [
-    "General",
-    "United States",
-    "England and Wales",
-    "European Union",
-    "Singapore",
-    "Hong Kong",
-    "Australia",
-    "Canada",
     "India",
-    "Malaysia",
-    "Indonesia",
-    "Philippines",
-    "Thailand",
-    "Vietnam",
-    "Japan",
-    "South Korea",
-    "China",
-    "Taiwan",
-    "Germany",
-    "France",
-    "Netherlands",
-    "Ireland",
-    "Scotland",
-    "Luxembourg",
-    "Switzerland",
-    "Cayman Islands",
-    "British Virgin Islands",
-    "United Arab Emirates",
-    "Saudi Arabia",
-    "Brazil",
-    "Mexico",
     "Other",
 ] as const;
-const US_STATE_OPTIONS = [
-    "Alabama",
-    "Alaska",
-    "Arizona",
-    "Arkansas",
-    "California",
-    "Colorado",
-    "Connecticut",
-    "Delaware",
-    "Florida",
-    "Georgia",
-    "Hawaii",
-    "Idaho",
-    "Illinois",
-    "Indiana",
-    "Iowa",
-    "Kansas",
-    "Kentucky",
-    "Louisiana",
-    "Maine",
-    "Maryland",
-    "Massachusetts",
-    "Michigan",
-    "Minnesota",
-    "Mississippi",
-    "Missouri",
-    "Montana",
-    "Nebraska",
-    "Nevada",
-    "New Hampshire",
-    "New Jersey",
-    "New Mexico",
-    "New York",
-    "North Carolina",
-    "North Dakota",
-    "Ohio",
-    "Oklahoma",
-    "Oregon",
-    "Pennsylvania",
-    "Rhode Island",
-    "South Carolina",
-    "South Dakota",
-    "Tennessee",
-    "Texas",
-    "Utah",
-    "Vermont",
-    "Virginia",
-    "Washington",
-    "West Virginia",
-    "Wisconsin",
-    "Wyoming",
-    "District of Columbia",
-] as const;
-const CANADA_PROVINCE_OPTIONS = [
-    "Alberta",
-    "British Columbia",
-    "Manitoba",
-    "New Brunswick",
-    "Newfoundland and Labrador",
-    "Northwest Territories",
-    "Nova Scotia",
-    "Nunavut",
-    "Ontario",
-    "Prince Edward Island",
-    "Quebec",
-    "Saskatchewan",
-    "Yukon",
+const INDIA_STATE_OPTIONS = [
+    "Andhra Pradesh",
+    "Arunachal Pradesh",
+    "Assam",
+    "Bihar",
+    "Chhattisgarh",
+    "Goa",
+    "Gujarat",
+    "Haryana",
+    "Himachal Pradesh",
+    "Jharkhand",
+    "Karnataka",
+    "Kerala",
+    "Madhya Pradesh",
+    "Maharashtra",
+    "Manipur",
+    "Meghalaya",
+    "Mizoram",
+    "Nagaland",
+    "Odisha",
+    "Punjab",
+    "Rajasthan",
+    "Sikkim",
+    "Tamil Nadu",
+    "Telangana",
+    "Tripura",
+    "Uttar Pradesh",
+    "Uttarakhand",
+    "West Bengal",
+    "Delhi (NCT)",
+    "Jammu and Kashmir",
+    "Ladakh",
+    "Chandigarh",
+    "Puducherry",
+    "Andaman and Nicobar Islands",
+    "Dadra and Nagar Haveli and Daman and Diu",
+    "Lakshadweep",
 ] as const;
 
 interface Props {
@@ -220,11 +134,7 @@ export function NewWorkflowModal({
             : [jurisdiction, ...JURISDICTION_OPTIONS];
     const jurisdictionOptions = baseJurisdictionOptions.filter(Boolean);
     const jurisdictionRegionOptions =
-        jurisdiction === "United States"
-            ? US_STATE_OPTIONS
-            : jurisdiction === "Canada"
-              ? CANADA_PROVINCE_OPTIONS
-              : [];
+        jurisdiction === "India" ? INDIA_STATE_OPTIONS : [];
     const effectiveJurisdictions = effectiveJurisdiction
         .split(",")
         .map((item) => item.trim())
@@ -270,19 +180,12 @@ export function NewWorkflowModal({
                 : DEFAULT_JURISDICTION;
             const isKnownJurisdiction =
                 (JURISDICTION_OPTIONS as readonly string[]).includes(savedJurisdiction);
-            const isUsState = (US_STATE_OPTIONS as readonly string[]).includes(
-                savedJurisdiction,
-            );
-            const isCanadaProvince = (
-                CANADA_PROVINCE_OPTIONS as readonly string[]
+            const isIndianState = (
+                INDIA_STATE_OPTIONS as readonly string[]
             ).includes(savedJurisdiction);
             if (!isKnownJurisdiction && savedJurisdiction) {
-                if (isUsState) {
-                    setJurisdiction("United States");
-                    setJurisdictionRegion(savedJurisdiction);
-                    setCustomJurisdiction("");
-                } else if (isCanadaProvince) {
-                    setJurisdiction("Canada");
+                if (isIndianState) {
+                    setJurisdiction("India");
                     setJurisdictionRegion(savedJurisdiction);
                     setCustomJurisdiction("");
                 } else {
@@ -600,11 +503,7 @@ export function NewWorkflowModal({
                                 className="mt-2"
                                 value={jurisdictionRegion}
                                 options={jurisdictionRegionOptions}
-                                placeholder={
-                                    jurisdiction === "United States"
-                                        ? "Select state..."
-                                        : "Select province..."
-                                }
+                                placeholder="Select state / UT (optional)..."
                                 open={openDropdown === "jurisdictionRegion"}
                                 onOpenChange={(nextOpen) =>
                                     setOpenDropdown((current) =>
