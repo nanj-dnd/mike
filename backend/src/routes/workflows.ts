@@ -82,7 +82,7 @@ const DEFAULT_WORKFLOW_CONTRIBUTOR: WorkflowContributor = {
   linkedin: null,
 };
 const DEFAULT_WORKFLOW_LANGUAGE = "English";
-const DEFAULT_WORKFLOW_PRACTICE = "General Transactions";
+const DEFAULT_WORKFLOW_PRACTICE = "General Corporate";
 const DEFAULT_WORKFLOW_JURISDICTIONS = ["General"];
 const WORKFLOW_CONTRIBUTIONS_ENABLED =
   process.env.WORKFLOW_CONTRIBUTIONS_ENABLED === "true";

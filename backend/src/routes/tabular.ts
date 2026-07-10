@@ -1093,7 +1093,7 @@ function buildTabularMessages(
         .map((c, i) => `- COL:${i} "${c.name}"`)
         .join("\n");
 
-    const systemContent = `You are Mike, an AI legal assistant. You are helping with the tabular review titled "${reviewTitle}".
+    const systemContent = `You are Mike, an AI legal assistant for Indian lawyers and law firms. Analyze documents under Indian law unless told otherwise. You are helping with the tabular review titled "${reviewTitle}".
 
 The review extracts specific fields from multiple legal documents into a structured table.
 You do NOT have the cell content yet — call read_table_cells to fetch the cells you need before answering.
@@ -1487,7 +1487,7 @@ async function queryTabularCell(
     const suffix = formatPromptSuffix(format as never, tags);
     const fullPrompt = `${columnPrompt}${suffix} If not found, state "Not Found". Leave all reasoning and explanation in the "reasoning" field only.`;
 
-    const EXTRACTION_SYSTEM = `You are a legal document analyst. Return ONLY valid JSON:
+    const EXTRACTION_SYSTEM = `You are a legal document analyst working for an Indian law firm; interpret documents under Indian law and conventions (INR amounts in lakh/crore, DD.MM.YYYY dates, Indian statutes) unless the document indicates otherwise. Return ONLY valid JSON:
 {"summary": string, "flag": "green"|"grey"|"yellow"|"red", "reasoning": string}
 
 The "summary" and "reasoning" field values may use markdown formatting (bullets, bold, italics, etc.) — the values are still plain JSON strings (escape newlines as \\n), but the text inside will be rendered as markdown in the UI.
@@ -1646,7 +1646,7 @@ async function queryTabularAllColumns(
         })
         .join("\n");
 
-    const SYSTEM = `You are a legal document analyst. Extract information for each column listed below.
+    const SYSTEM = `You are a legal document analyst working for an Indian law firm; interpret documents under Indian law and conventions (INR amounts in lakh/crore, DD.MM.YYYY dates, Indian statutes) unless the document indicates otherwise. Extract information for each column listed below.
 
 For each column, output exactly one minified JSON object on its own line (no line breaks inside the JSON), then a newline. Process columns in order and output each result as soon as you finish it.
 

@@ -15,10 +15,10 @@ const ebGaramond = EB_Garamond({
 });
 
 export const metadata: Metadata = {
-    metadataBase: new URL("https://app.mikeoss.com"),
-    title: "Mike - AI Legal Platform",
+    metadataBase: new URL("https://mikeross.primafacie.in"),
+    title: "Mike - AI Legal Platform for Indian Law Firms",
     description:
-        "AI-powered legal document analysis and contract review platform.",
+        "AI-powered legal document analysis, drafting, and contract review built for Indian law — Indian statutes, courts, and drafting conventions.",
     icons: {
         icon: [
             { url: "/icon.svg", type: "image/svg+xml" },
@@ -28,11 +28,11 @@ export const metadata: Metadata = {
     },
     openGraph: {
         type: "website",
-        url: "https://app.mikeoss.com",
+        url: "https://mikeross.primafacie.in",
         siteName: "Mike",
-        title: "Mike - AI Legal Platform",
+        title: "Mike - AI Legal Platform for Indian Law Firms",
         description:
-            "AI-powered legal document analysis and contract review platform.",
+            "AI-powered legal document analysis, drafting, and contract review built for Indian law — Indian statutes, courts, and drafting conventions.",
         images: [
             {
                 url: "/link-image.jpg",
@@ -44,9 +44,9 @@ export const metadata: Metadata = {
     },
     twitter: {
         card: "summary_large_image",
-        title: "Mike - AI Legal Platform",
+        title: "Mike - AI Legal Platform for Indian Law Firms",
         description:
-            "AI-powered legal document analysis and contract review platform.",
+            "AI-powered legal document analysis, drafting, and contract review built for Indian law — Indian statutes, courts, and drafting conventions.",
         images: ["/link-image.jpg"],
     },
 };

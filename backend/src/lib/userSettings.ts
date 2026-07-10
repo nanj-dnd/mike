@@ -41,9 +41,11 @@ export async function getUserModelSettings(
     return {
         title_model: resolveModel(data?.title_model, resolveTitleModel(api_keys)),
         tabular_model: resolveModel(data?.tabular_model, DEFAULT_TABULAR_MODEL),
+        // Indian deployment: US case-law research (CourtListener) is opt-in,
+        // off unless the user explicitly enables it.
         legal_research_us:
             (data as { legal_research_us?: boolean | null } | null)
-                ?.legal_research_us !== false,
+                ?.legal_research_us === true,
         api_keys,
     };
 }

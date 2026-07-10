@@ -48,7 +48,7 @@ export const SYSTEM_WORKFLOWS: SystemWorkflow[] = [
             ],
             "language": "English",
             "version": "1.0.0",
-            "practice": "Corporate",
+            "practice": "General Corporate",
             "jurisdictions": [
                 "General"
             ]
@@ -119,7 +119,7 @@ export const SYSTEM_WORKFLOWS: SystemWorkflow[] = [
             ],
             "language": "English",
             "version": "1.0.0",
-            "practice": "General Transactions",
+            "practice": "General Corporate",
             "jurisdictions": [
                 "General"
             ]
@@ -255,7 +255,7 @@ export const SYSTEM_WORKFLOWS: SystemWorkflow[] = [
             ],
             "language": "English",
             "version": "1.0.0",
-            "practice": "Real Estate",
+            "practice": "Real Estate & RERA",
             "jurisdictions": [
                 "General"
             ]
@@ -282,7 +282,7 @@ export const SYSTEM_WORKFLOWS: SystemWorkflow[] = [
             ],
             "language": "English",
             "version": "1.0.0",
-            "practice": "Real Estate",
+            "practice": "Real Estate & RERA",
             "jurisdictions": [
                 "General"
             ]
@@ -430,7 +430,7 @@ export const SYSTEM_WORKFLOWS: SystemWorkflow[] = [
             ],
             "language": "English",
             "version": "1.0.0",
-            "practice": "Corporate",
+            "practice": "General Corporate",
             "jurisdictions": [
                 "General"
             ]
@@ -457,7 +457,7 @@ export const SYSTEM_WORKFLOWS: SystemWorkflow[] = [
             ],
             "language": "English",
             "version": "1.0.0",
-            "practice": "General Transactions",
+            "practice": "General Corporate",
             "jurisdictions": [
                 "General"
             ]
@@ -484,7 +484,7 @@ export const SYSTEM_WORKFLOWS: SystemWorkflow[] = [
             ],
             "language": "English",
             "version": "1.0.0",
-            "practice": "Finance",
+            "practice": "Banking & Finance",
             "jurisdictions": [
                 "General"
             ]
@@ -638,7 +638,7 @@ export const SYSTEM_WORKFLOWS: SystemWorkflow[] = [
             ],
             "language": "English",
             "version": "1.0.0",
-            "practice": "Finance",
+            "practice": "Banking & Finance",
             "jurisdictions": [
                 "General"
             ]
@@ -665,7 +665,7 @@ export const SYSTEM_WORKFLOWS: SystemWorkflow[] = [
             ],
             "language": "English",
             "version": "1.0.0",
-            "practice": "General Transactions",
+            "practice": "General Corporate",
             "jurisdictions": [
                 "General"
             ]
@@ -692,7 +692,7 @@ export const SYSTEM_WORKFLOWS: SystemWorkflow[] = [
             ],
             "language": "English",
             "version": "1.0.0",
-            "practice": "Litigation",
+            "practice": "Litigation & Disputes",
             "jurisdictions": [
                 "General"
             ]
@@ -762,7 +762,7 @@ export const SYSTEM_WORKFLOWS: SystemWorkflow[] = [
             ],
             "language": "English",
             "version": "1.0.0",
-            "practice": "Employment",
+            "practice": "Employment & Labour",
             "jurisdictions": [
                 "General"
             ]
@@ -789,7 +789,7 @@ export const SYSTEM_WORKFLOWS: SystemWorkflow[] = [
             ],
             "language": "English",
             "version": "1.0.0",
-            "practice": "Employment",
+            "practice": "Employment & Labour",
             "jurisdictions": [
                 "General"
             ]
@@ -917,7 +917,7 @@ export const SYSTEM_WORKFLOWS: SystemWorkflow[] = [
             ],
             "language": "English",
             "version": "1.0.0",
-            "practice": "Finance",
+            "practice": "Banking & Finance",
             "jurisdictions": [
                 "General"
             ]
@@ -944,7 +944,7 @@ export const SYSTEM_WORKFLOWS: SystemWorkflow[] = [
             ],
             "language": "English",
             "version": "1.0.0",
-            "practice": "Private Equity",
+            "practice": "Private Equity / VC",
             "jurisdictions": [
                 "General"
             ]
@@ -1092,7 +1092,7 @@ export const SYSTEM_WORKFLOWS: SystemWorkflow[] = [
             ],
             "language": "English",
             "version": "1.0.0",
-            "practice": "General Transactions",
+            "practice": "General Corporate",
             "jurisdictions": [
                 "General"
             ]
@@ -1119,7 +1119,7 @@ export const SYSTEM_WORKFLOWS: SystemWorkflow[] = [
             ],
             "language": "English",
             "version": "1.0.0",
-            "practice": "General Transactions",
+            "practice": "General Corporate",
             "jurisdictions": [
                 "General"
             ]
@@ -1205,7 +1205,7 @@ export const SYSTEM_WORKFLOWS: SystemWorkflow[] = [
             ],
             "language": "English",
             "version": "1.0.0",
-            "practice": "General Transactions",
+            "practice": "General Corporate",
             "jurisdictions": [
                 "General"
             ]
@@ -1232,7 +1232,7 @@ export const SYSTEM_WORKFLOWS: SystemWorkflow[] = [
             ],
             "language": "English",
             "version": "1.0.0",
-            "practice": "Corporate",
+            "practice": "General Corporate",
             "jurisdictions": [
                 "General"
             ]
@@ -1259,7 +1259,7 @@ export const SYSTEM_WORKFLOWS: SystemWorkflow[] = [
             ],
             "language": "English",
             "version": "1.0.0",
-            "practice": "Corporate",
+            "practice": "General Corporate",
             "jurisdictions": [
                 "General"
             ]
@@ -1407,7 +1407,7 @@ export const SYSTEM_WORKFLOWS: SystemWorkflow[] = [
             ],
             "language": "English",
             "version": "1.0.0",
-            "practice": "Corporate",
+            "practice": "General Corporate",
             "jurisdictions": [
                 "General"
             ]
@@ -1513,7 +1513,7 @@ export const SYSTEM_WORKFLOWS: SystemWorkflow[] = [
             ],
             "language": "English",
             "version": "1.0.0",
-            "practice": "General Transactions",
+            "practice": "General Corporate",
             "jurisdictions": [
                 "General"
             ]

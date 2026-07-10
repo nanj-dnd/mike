@@ -21,7 +21,7 @@ export default function FeaturesPage() {
         };
     }, []);
 
-    const persistedLegalResearchUs = profile?.legalResearchUs ?? true;
+    const persistedLegalResearchUs = profile?.legalResearchUs ?? false;
     const usEnabled = draftLegalResearchUs ?? persistedLegalResearchUs;
     const hasChanges =
         draftLegalResearchUs !== null &&
@@ -69,10 +69,13 @@ export default function FeaturesPage() {
                                 htmlFor="jurisdiction-us"
                                 className="min-w-0 cursor-pointer select-none"
                             >
-                                <p className="text-sm text-gray-900">US</p>
+                                <p className="text-sm text-gray-900">
+                                    US (foreign jurisdiction)
+                                </p>
                                 <p className="text-sm text-gray-500">
-                                    Enable US case law research (CourtListener)
-                                    in chat.
+                                    Optional: enable US case law research
+                                    (CourtListener) in chat. The assistant
+                                    works under Indian law by default.
                                 </p>
                             </label>
                             <button

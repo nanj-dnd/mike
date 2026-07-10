@@ -120,7 +120,7 @@ export function UserProfileProvider({ children }: { children: ReactNode }) {
                 titleModel: "gemini-3.1-flash-lite-preview",
                 tabularModel: "gemini-3-flash-preview",
                 mfaOnLogin: false,
-                legalResearchUs: true,
+                legalResearchUs: false,
                 apiKeys: emptyApiKeys(),
             });
         } finally {

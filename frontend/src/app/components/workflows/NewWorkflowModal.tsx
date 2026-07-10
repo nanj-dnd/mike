@@ -12,7 +12,7 @@ import { ModalSelect } from "../modals/ModalSelect";
 import { ModalTextInput } from "../modals/ModalTextInput";
 
 const DEFAULT_LANGUAGE = "English";
-const DEFAULT_PRACTICE = "General Transactions";
+const DEFAULT_PRACTICE = "General Corporate";
 const DEFAULT_JURISDICTION = "General";
 const LANGUAGE_OPTIONS = [
     "English",

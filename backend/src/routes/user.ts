@@ -201,7 +201,7 @@ async function selectProfile(
     if (legacy.data && typeof legacy.data === "object") {
         const row = legacy.data as Record<string, unknown>;
         if (!("legal_research_us" in row)) {
-            Object.assign(row, { legal_research_us: true });
+            Object.assign(row, { legal_research_us: false });
         }
     }
     return legacy;
@@ -293,7 +293,7 @@ function serializeProfile(row: UserProfileRow, apiKeyStatus?: ApiKeyStatus) {
         titleModel: resolveModel(row.title_model, titleFallback),
         tabularModel: resolveModel(row.tabular_model, DEFAULT_TABULAR_MODEL),
         mfaOnLogin: row.mfa_on_login === true,
-        legalResearchUs: row.legal_research_us !== false,
+        legalResearchUs: row.legal_research_us === true,
         ...(apiKeyStatus ? { apiKeyStatus } : {}),
     };
 }
