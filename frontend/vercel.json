@@ -1,0 +1,8 @@
+{
+  "env": {
+    "NEXT_PUBLIC_SUPABASE_URL": "https://ftsirtnrxgcxawxancjc.supabase.co",
+    "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ0c2lydG5yeGdjeGF3eGFuY2pjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA2NzY1MjEsImV4cCI6MjA5NjI1MjUyMX0.xGd5I5QY5BTuow9A5bMi_y75j9nuUERNkmBwteQaLUg"
+  },
+  "buildCommand": "next build",
+  "outputDirectory": ".next"
+}
