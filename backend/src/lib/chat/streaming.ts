@@ -17,6 +17,11 @@ import {
   type CourtlistenerToolEvent,
 } from "./tools/courtlistenerTools";
 import {
+  INDIANKANOON_TOOLS,
+  type IndianKanoonToolEvent,
+} from "./tools/indianKanoonTools";
+import { isIndianKanoonEnabled } from "../indiankanoon";
+import {
   type DocStore,
   type DocIndex,
   type TabularCellStore,
@@ -97,6 +102,7 @@ export type AssistantEvent =
     }
   | CaseCitationEvent
   | CourtlistenerToolEvent
+  | IndianKanoonToolEvent
   | McpToolEvent
   | { type: "case_opinions"; cluster_id: number; case: unknown }
   | { type: "content"; text: string }
@@ -187,8 +193,16 @@ export async function runLLMStream(params: {
     projectId,
   } = params;
   const researchTools = includeResearchTools ? COURTLISTENER_TOOLS : [];
+  // Indian case-law research is on by default whenever the Indian Kanoon
+  // API token is configured; it is not gated by the US research toggle.
+  const indiaResearchTools = isIndianKanoonEnabled() ? INDIANKANOON_TOOLS : [];
   const mcpTools = await buildUserMcpTools(userId, db);
-  const baseTools = [...TOOLS, ...researchTools, ...WORKFLOW_TOOLS];
+  const baseTools = [
+    ...TOOLS,
+    ...indiaResearchTools,
+    ...researchTools,
+    ...WORKFLOW_TOOLS,
+  ];
   const activeTools = extraTools?.length
     ? [...baseTools, ...mcpTools, ...extraTools]
     : [...baseTools, ...mcpTools];
@@ -398,6 +412,7 @@ export async function runLLMStream(params: {
           docsEdited,
           askInputsEvents,
           courtlistenerEvents,
+          indianKanoonEvents,
           caseCitationEvents,
           mcpEvents,
         } = await runToolCalls(
@@ -472,6 +487,9 @@ export async function runLLMStream(params: {
           events.push(askInputsEvent);
         }
         for (const event of courtlistenerEvents) {
+          events.push(event);
+        }
+        for (const event of indianKanoonEvents) {
           events.push(event);
         }
         for (const event of mcpEvents) {

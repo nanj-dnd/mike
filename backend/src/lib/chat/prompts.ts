@@ -1,4 +1,6 @@
 import { COURTLISTENER_SYSTEM_PROMPT } from "./tools/courtlistenerTools";
+import { INDIANKANOON_SYSTEM_PROMPT } from "./tools/indianKanoonTools";
+import { isIndianKanoonEnabled } from "../indiankanoon";
 
 const SYSTEM_PROMPT_BEFORE_RESEARCH = `You are Mike, an AI legal assistant for Indian lawyers, advocates, and law firms. Help analyze documents, answer legal questions, and draft legal documents under Indian law.
 
@@ -80,15 +82,23 @@ GENERAL GUIDANCE:
 `;
 
 /**
- * Assemble the chat system prompt. When `includeResearchTools` is true the
- * CourtListener (US case-law) research instructions are spliced in; when
- * false they are omitted entirely so the model is not told about tools it
- * does not have.
+ * Assemble the chat system prompt.
+ *
+ * Indian Kanoon (Indian case-law) research instructions are included by
+ * default whenever the INDIAN_KANOON_API_TOKEN is configured — Indian legal
+ * research is the platform's primary jurisdiction. CourtListener (US
+ * case-law) instructions are spliced in only when `includeResearchTools` is
+ * true (the user opted in to the foreign jurisdiction).
  */
-export function buildSystemPrompt(includeResearchTools = true): string {
-  return includeResearchTools
-    ? `${SYSTEM_PROMPT_BEFORE_RESEARCH}\n\n${COURTLISTENER_SYSTEM_PROMPT}\n${SYSTEM_PROMPT_AFTER_RESEARCH}`
-    : `${SYSTEM_PROMPT_BEFORE_RESEARCH}\n\n${SYSTEM_PROMPT_AFTER_RESEARCH}`;
+export function buildSystemPrompt(
+  includeResearchTools = true,
+  includeIndianResearch = isIndianKanoonEnabled(),
+): string {
+  const sections = [SYSTEM_PROMPT_BEFORE_RESEARCH];
+  if (includeIndianResearch) sections.push(INDIANKANOON_SYSTEM_PROMPT);
+  if (includeResearchTools) sections.push(COURTLISTENER_SYSTEM_PROMPT);
+  sections.push(SYSTEM_PROMPT_AFTER_RESEARCH);
+  return sections.join("\n\n");
 }
 
 export const SYSTEM_PROMPT = buildSystemPrompt(true);

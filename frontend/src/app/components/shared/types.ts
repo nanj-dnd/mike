@@ -200,6 +200,29 @@ export type AssistantEvent =
       isStreaming?: boolean;
     }
   | {
+      type: "indiankanoon_search";
+      query: string;
+      result_count?: number;
+      results?: {
+        doc_id: number;
+        title: string;
+        court: string | null;
+        date: string | null;
+        url: string;
+      }[];
+      error?: string;
+      isStreaming?: boolean;
+    }
+  | {
+      type: "indiankanoon_read_doc";
+      doc_id: number | null;
+      title?: string | null;
+      court?: string | null;
+      url?: string | null;
+      error?: string;
+      isStreaming?: boolean;
+    }
+  | {
       type: "courtlistener_search_case_law";
       query: string;
       result_count?: number;

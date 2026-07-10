@@ -4,6 +4,14 @@ import {
   verifyCourtlistenerCitations,
 } from "../../courtlistener";
 import {
+  searchIndianKanoon,
+  readIndianKanoonDoc,
+} from "../../indiankanoon";
+import {
+  INDIANKANOON_TOOL_NAMES,
+  type IndianKanoonToolEvent,
+} from "./indianKanoonTools";
+import {
   COURTLISTENER_TOOL_NAMES,
   type CaseCitationEvent,
   type CourtlistenerToolEvent,
@@ -456,6 +464,7 @@ export async function runToolCalls(
   docsEdited: DocEditedResult[];
   askInputsEvents: AskInputsEvent[];
   courtlistenerEvents: CourtlistenerToolEvent[];
+  indianKanoonEvents: IndianKanoonToolEvent[];
   caseCitationEvents: CaseCitationEvent[];
   mcpEvents: McpToolEvent[];
 }> {
@@ -472,6 +481,7 @@ export async function runToolCalls(
   const docsEdited: DocEditedResult[] = [];
   const askInputsEvents: AskInputsEvent[] = [];
   const courtlistenerEvents: CourtlistenerToolEvent[] = [];
+  const indianKanoonEvents: IndianKanoonToolEvent[] = [];
   const caseCitationEvents: CaseCitationEvent[] = [];
   const mcpEvents: McpToolEvent[] = [];
   const courtState: CourtlistenerTurnState =
@@ -828,6 +838,99 @@ export async function runToolCalls(
         tool_call_id: tc.id,
         content: lines.join("\n") || "No cells found.",
       });
+    } else if (tc.function.name === INDIANKANOON_TOOL_NAMES.search) {
+      const query = typeof args.query === "string" ? args.query : "";
+      write(
+        `data: ${JSON.stringify({ type: "indiankanoon_search_start", query })}\n\n`,
+      );
+      try {
+        const result = await searchIndianKanoon({
+          query,
+          pagenum: typeof args.pagenum === "number" ? args.pagenum : undefined,
+        });
+        const event: IndianKanoonToolEvent = {
+          type: "indiankanoon_search",
+          query,
+          result_count: result.results.length,
+          results: result.results.map((r) => ({
+            doc_id: r.doc_id,
+            title: r.title,
+            court: r.court,
+            date: r.date,
+            url: r.url,
+          })),
+        };
+        write(`data: ${JSON.stringify(event)}\n\n`);
+        indianKanoonEvents.push(event);
+        toolResults.push({
+          role: "tool",
+          tool_call_id: tc.id,
+          content: JSON.stringify(result),
+        });
+      } catch (err) {
+        const message =
+          err instanceof Error ? err.message : "Indian Kanoon search failed.";
+        const event: IndianKanoonToolEvent = {
+          type: "indiankanoon_search",
+          query,
+          result_count: 0,
+          error: message,
+        };
+        write(`data: ${JSON.stringify(event)}\n\n`);
+        indianKanoonEvents.push(event);
+        toolResults.push({
+          role: "tool",
+          tool_call_id: tc.id,
+          content: JSON.stringify({ error: message }),
+        });
+      }
+    } else if (tc.function.name === INDIANKANOON_TOOL_NAMES.readDoc) {
+      const docId =
+        typeof args.docId === "number"
+          ? args.docId
+          : typeof args.doc_id === "number"
+            ? args.doc_id
+            : null;
+      write(
+        `data: ${JSON.stringify({ type: "indiankanoon_read_doc_start", doc_id: docId })}\n\n`,
+      );
+      try {
+        if (docId === null) {
+          throw new Error("docId is required.");
+        }
+        const doc = await readIndianKanoonDoc({ docId });
+        const event: IndianKanoonToolEvent = {
+          type: "indiankanoon_read_doc",
+          doc_id: doc.doc_id,
+          title: doc.title,
+          court: doc.court,
+          url: doc.url,
+        };
+        write(`data: ${JSON.stringify(event)}\n\n`);
+        indianKanoonEvents.push(event);
+        toolResults.push({
+          role: "tool",
+          tool_call_id: tc.id,
+          content: JSON.stringify(doc),
+        });
+      } catch (err) {
+        const message =
+          err instanceof Error
+            ? err.message
+            : "Indian Kanoon document fetch failed.";
+        const event: IndianKanoonToolEvent = {
+          type: "indiankanoon_read_doc",
+          doc_id: docId,
+          error: message,
+        };
+        write(`data: ${JSON.stringify(event)}\n\n`);
+        indianKanoonEvents.push(event);
+        toolResults.push({
+          role: "tool",
+          tool_call_id: tc.id,
+          content: JSON.stringify({ error: message }),
+        });
+      }
     } else if (tc.function.name === COURTLISTENER_TOOL_NAMES.searchCaseLaw) {
       const query = typeof args.query === "string" ? args.query : "";
       write(
@@ -1890,6 +1993,7 @@ export async function runToolCalls(
     docsEdited,
     askInputsEvents,
     courtlistenerEvents,
+    indianKanoonEvents,
     caseCitationEvents,
     mcpEvents,
   };

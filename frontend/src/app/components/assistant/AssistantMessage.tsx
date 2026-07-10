@@ -503,6 +503,67 @@ export function AssistantMessage({
                 />
             );
         }
+        if (event.type === "indiankanoon_search") {
+            const count = event.result_count ?? 0;
+            const detail = event.isStreaming
+                ? event.query
+                    ? `for "${event.query}"`
+                    : undefined
+                : event.error
+                  ? event.error
+                  : `${count} ${count === 1 ? "result" : "results"}${event.query ? ` for "${event.query}"` : ""}`;
+            const items: CourtListenerBlockItem[] | undefined =
+                event.results?.map((r) => ({
+                    caseName: r.title,
+                    citation: [r.court, r.date].filter(Boolean).join(", ") || null,
+                    url: r.url,
+                }));
+            return (
+                <CourtListenerBlock
+                    key={globalIdx}
+                    label={
+                        event.isStreaming
+                            ? "Searching Indian case law"
+                            : event.error
+                              ? "Indian case law search failed"
+                              : "Searched Indian case law"
+                    }
+                    detail={detail}
+                    isStreaming={!!event.isStreaming}
+                    hasError={!!event.error}
+                    showConnector={showConnector}
+                    items={items && items.length > 0 ? items : undefined}
+                />
+            );
+        }
+        if (event.type === "indiankanoon_read_doc") {
+            const items: CourtListenerBlockItem[] | undefined = event.title
+                ? [
+                      {
+                          caseName: event.title,
+                          citation: event.court ?? null,
+                          url: event.url ?? null,
+                      },
+                  ]
+                : undefined;
+            return (
+                <CourtListenerBlock
+                    key={globalIdx}
+                    label={
+                        event.isStreaming
+                            ? "Reading judgment"
+                            : event.error
+                              ? "Judgment fetch failed"
+                              : "Read judgment"
+                    }
+                    detail={event.error ? event.error : undefined}
+                    isStreaming={!!event.isStreaming}
+                    hasError={!!event.error}
+                    showConnector={showConnector}
+                    items={items}
+                />
+            );
+        }
         if (event.type === "courtlistener_search_case_law") {
             const count = event.result_count ?? 0;
             const detail = event.isStreaming

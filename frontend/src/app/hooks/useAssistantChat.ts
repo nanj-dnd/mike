@@ -642,6 +642,92 @@ export function useAssistantChat({
               continue;
             }
 
+            if (data.type === "indiankanoon_search_start") {
+              pushEvent({
+                type: "indiankanoon_search",
+                query: (data.query as string) ?? "",
+                isStreaming: true,
+              });
+              continue;
+            }
+
+            if (data.type === "indiankanoon_search") {
+              updateMatchingEvent(
+                (e) =>
+                  e.type === "indiankanoon_search" &&
+                  e.query === (data.query as string) &&
+                  !!e.isStreaming,
+                () => ({
+                  type: "indiankanoon_search",
+                  query: (data.query as string) ?? "",
+                  result_count:
+                    typeof data.result_count === "number"
+                      ? (data.result_count as number)
+                      : 0,
+                  results: Array.isArray(data.results)
+                    ? (data.results as {
+                        doc_id: number;
+                        title: string;
+                        court: string | null;
+                        date: string | null;
+                        url: string;
+                      }[])
+                    : undefined,
+                  error:
+                    typeof data.error === "string"
+                      ? (data.error as string)
+                      : undefined,
+                  isStreaming: false,
+                }),
+              );
+              pushThinkingPlaceholder();
+              continue;
+            }
+
+            if (data.type === "indiankanoon_read_doc_start") {
+              pushEvent({
+                type: "indiankanoon_read_doc",
+                doc_id:
+                  typeof data.doc_id === "number"
+                    ? (data.doc_id as number)
+                    : null,
+                isStreaming: true,
+              });
+              continue;
+            }
+
+            if (data.type === "indiankanoon_read_doc") {
+              updateMatchingEvent(
+                (e) => e.type === "indiankanoon_read_doc" && !!e.isStreaming,
+                () => ({
+                  type: "indiankanoon_read_doc",
+                  doc_id:
+                    typeof data.doc_id === "number"
+                      ? (data.doc_id as number)
+                      : null,
+                  title:
+                    typeof data.title === "string"
+                      ? (data.title as string)
+                      : undefined,
+                  court:
+                    typeof data.court === "string"
+                      ? (data.court as string)
+                      : undefined,
+                  url:
+                    typeof data.url === "string"
+                      ? (data.url as string)
+                      : undefined,
+                  error:
+                    typeof data.error === "string"
+                      ? (data.error as string)
+                      : undefined,
+                  isStreaming: false,
+                }),
+              );
+              pushThinkingPlaceholder();
+              continue;
+            }
+
             if (data.type === "courtlistener_search_case_law_start") {
               pushEvent({
                 type: "courtlistener_search_case_law",

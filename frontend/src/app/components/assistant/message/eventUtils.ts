@@ -21,6 +21,9 @@ export function toolCallLabel(name: string): string {
     if (name === "read_workflow") return "Loading workflow...";
     if (name === "list_workflows") return "Loading workflows...";
     if (name === "list_documents") return "Loading documents...";
+    if (name === "indiankanoon_search")
+        return "Searching Indian case law...";
+    if (name === "indiankanoon_read_doc") return "Reading judgment...";
     if (name === "courtlistener_search_case_law")
         return "Searching case law...";
     if (name === "courtlistener_get_cases") return "Fetching cases...";
