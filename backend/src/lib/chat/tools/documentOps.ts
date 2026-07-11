@@ -13,6 +13,10 @@ import {
 import { buildDownloadUrl } from "../../downloadTokens";
 import { loadActiveVersion } from "../../documentVersions";
 import {
+  extractDocxReviewMarkup,
+  extractPdfAnnotationsMarkup,
+} from "../../documentReviewMarkup";
+import {
   type DocStore,
   type DocIndex,
   type EditAnnotation,
@@ -1498,6 +1502,10 @@ export async function readDocumentContent(
       devLog(
         `[read_document] pdf extracted length=${text.length} for filename="${docInfo.filename}"`,
       );
+      // Surface annotation comments (sticky notes etc.) — the text layer
+      // alone drops what a reviewer asks about.
+      const annotations = await extractPdfAnnotationsMarkup(raw);
+      if (annotations) text = `${text}\n\n${annotations}`;
     } else if (fileType === "docx") {
       // Use the same flattening as the edit_document matcher so the
       // LLM sees exactly the characters it can anchor against.
@@ -1518,6 +1526,10 @@ export async function readDocumentContent(
           `[read_document] docx mammoth fallback length=${text.length} for filename="${docInfo.filename}"`,
         );
       }
+      // The accepted view hides tracked changes and comment bubbles;
+      // append them so redline questions are answerable.
+      const markup = await extractDocxReviewMarkup(Buffer.from(raw));
+      if (markup) text = `${text}\n\n${markup}`;
     } else if (isSpreadsheetDocumentType(fileType)) {
       // SheetJS reads .xlsx/.xlsm/.xls directly (no PDF detour), emitting a
       // cell-addressed markdown view with Excel-formatted values.

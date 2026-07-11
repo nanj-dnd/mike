@@ -4,6 +4,10 @@ import {
     isSpreadsheetDocumentType,
     isWordDocumentType,
 } from "./documentTypes";
+import {
+    extractDocxReviewMarkup,
+    extractPdfAnnotationsMarkup,
+} from "./documentReviewMarkup";
 import { extractPresentationText } from "./officeText";
 import { spreadsheetToLLMText } from "./spreadsheet";
 
@@ -17,8 +21,20 @@ export async function extractDocumentMarkdown(
     fileType: string | null | undefined,
 ): Promise<string> {
     const normalizedType = (fileType ?? "").toLowerCase();
-    if (normalizedType === "pdf") return extractPdfMarkdown(buf);
-    if (normalizedType === "docx") return extractDocxMarkdown(buf);
+    if (normalizedType === "pdf") {
+        const [text, annotations] = await Promise.all([
+            extractPdfMarkdown(buf),
+            extractPdfAnnotationsMarkup(buf),
+        ]);
+        return annotations ? `${text}\n\n${annotations}` : text;
+    }
+    if (normalizedType === "docx") {
+        const [text, markup] = await Promise.all([
+            extractDocxMarkdown(buf),
+            extractDocxReviewMarkup(Buffer.from(buf)),
+        ]);
+        return markup ? `${text}\n\n${markup}` : text;
+    }
     if (isSpreadsheetDocumentType(normalizedType)) {
         // SheetJS handles .xlsx/.xlsm/.xls directly, no PDF detour.
         return spreadsheetToLLMText(Buffer.from(buf));
