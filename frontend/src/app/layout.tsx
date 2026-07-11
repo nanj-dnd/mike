@@ -57,10 +57,20 @@ export default function RootLayout({
     children: React.ReactNode;
 }>) {
     return (
-        <html lang="en">
+        // suppressHydrationWarning: the inline script below may add the
+        // "dark" class to <html> before React hydrates.
+        <html lang="en" suppressHydrationWarning>
             <body
                 className={`${inter.variable} ${ebGaramond.variable} font-sans antialiased`}
             >
+                {/* Apply the saved theme before first paint to avoid a
+                    light-mode flash. Key must match THEME_STORAGE_KEY in
+                    contexts/ThemeContext.tsx. */}
+                <script
+                    dangerouslySetInnerHTML={{
+                        __html: `(function(){try{var t=localStorage.getItem("gavel-theme");if(t==="dark"||(t==="system"&&window.matchMedia("(prefers-color-scheme: dark)").matches)){document.documentElement.classList.add("dark")}}catch(e){}})()`,
+                    }}
+                />
                 <Providers>{children}</Providers>
             </body>
         </html>

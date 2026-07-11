@@ -117,6 +117,120 @@
     --sidebar-accent-foreground: oklch(0.985 0 0);
     --sidebar-border: oklch(1 0 0 / 10%);
     --sidebar-ring: oklch(0.556 0 0);
+
+    /* Native form controls, scrollbars, etc. render dark. */
+    color-scheme: dark;
+
+    /* ── Inverted neutral palette ────────────────────────────────────
+       Most of the app is styled with literal Tailwind neutrals
+       (bg-white, text-gray-700, …). Tailwind v4 utilities resolve
+       through these variables, so remapping them here flips the whole
+       app without touching each component. The scale is a mirror:
+       white ↔ near-black surfaces, gray-900 text ↔ near-white text,
+       so dark-filled buttons (bg-gray-950 text-white) become
+       light-filled buttons with dark text. */
+    --color-white: oklch(0.205 0 0);
+    --color-black: oklch(1 0 0);
+    --color-gray-50: oklch(0.16 0 0);
+    --color-gray-100: oklch(0.25 0 0);
+    --color-gray-200: oklch(0.3 0 0);
+    --color-gray-300: oklch(0.37 0 0);
+    --color-gray-400: oklch(0.55 0 0);
+    --color-gray-500: oklch(0.65 0 0);
+    --color-gray-600: oklch(0.72 0 0);
+    --color-gray-700: oklch(0.8 0 0);
+    --color-gray-800: oklch(0.87 0 0);
+    --color-gray-900: oklch(0.93 0 0);
+    --color-gray-950: oklch(0.97 0 0);
+    --color-slate-50: oklch(0.17 0.005 260);
+    --color-slate-100: oklch(0.25 0.01 260);
+    --color-slate-200: oklch(0.3 0.01 260);
+    --color-slate-300: oklch(0.37 0.015 260);
+    --color-slate-400: oklch(0.55 0.02 260);
+    --color-slate-500: oklch(0.65 0.02 260);
+    --color-slate-600: oklch(0.72 0.02 260);
+    --color-slate-700: oklch(0.8 0.02 260);
+    --color-slate-800: oklch(0.87 0.015 260);
+    --color-slate-900: oklch(0.93 0.01 260);
+
+    /* Pale status tints used as backgrounds (bg-red-50 & co.) become
+       dark tinted surfaces; their 600–800 text shades are lifted so
+       text stays readable on them. blue-50/100 are already translucent
+       (see @theme inline) and need no remap. */
+    --color-red-50: oklch(0.24 0.055 25);
+    --color-red-100: oklch(0.29 0.075 25);
+    --color-red-600: oklch(0.7 0.19 25);
+    --color-red-700: oklch(0.76 0.16 25);
+    --color-red-800: oklch(0.82 0.13 25);
+    --color-green-50: oklch(0.24 0.045 150);
+    --color-green-100: oklch(0.29 0.06 150);
+    --color-green-600: oklch(0.75 0.17 150);
+    --color-green-700: oklch(0.8 0.15 150);
+    --color-green-800: oklch(0.85 0.12 150);
+    --color-emerald-50: oklch(0.24 0.045 165);
+    --color-emerald-100: oklch(0.29 0.06 165);
+    --color-emerald-600: oklch(0.75 0.15 165);
+    --color-emerald-700: oklch(0.8 0.13 165);
+    --color-emerald-800: oklch(0.85 0.11 165);
+    --color-amber-50: oklch(0.25 0.05 80);
+    --color-amber-100: oklch(0.3 0.065 80);
+    --color-amber-700: oklch(0.82 0.14 80);
+    --color-amber-800: oklch(0.86 0.12 80);
+    --color-yellow-50: oklch(0.25 0.05 95);
+    --color-yellow-100: oklch(0.3 0.065 95);
+    --color-yellow-700: oklch(0.82 0.14 95);
+    --color-yellow-800: oklch(0.86 0.12 95);
+}
+
+/* ── Dark overrides for hardcoded colors below ─────────────────────── */
+.dark .cfr-section th,
+.dark .cfr-section td {
+    border-color: #3a3a3a;
+}
+
+.dark .cfr-section th {
+    background: #262626;
+}
+
+.dark .cfr-section .authority-section,
+.dark .cfr-section .source-section {
+    color: #94a3b8;
+    border-left-color: #3a3a3a;
+}
+
+.dark .workflow-editor-content {
+    color: #d1d5db;
+}
+
+.dark .workflow-editor-content h1,
+.dark .workflow-editor-content h2,
+.dark .workflow-editor-content h3 {
+    color: #f3f4f6;
+}
+
+.dark .workflow-editor-content strong {
+    color: #e5e7eb;
+}
+
+.dark .workflow-editor-content .tableWrapper {
+    border-color: #3a3a3a;
+}
+
+.dark .workflow-editor-content thead {
+    background: #262626;
+}
+
+.dark .workflow-editor-content th,
+.dark .workflow-editor-content td {
+    border-color: #333333;
+}
+
+.dark .workflow-editor-content th {
+    color: #e5e7eb;
+}
+
+.dark .workflow-editor-content td {
+    color: #d1d5db;
 }
 
 @layer base {

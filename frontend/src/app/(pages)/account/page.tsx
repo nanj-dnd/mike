@@ -20,6 +20,7 @@ import {
     accountGlassPrimaryButtonClassName,
 } from "./accountStyles";
 import { AccountSection } from "./AccountSection";
+import { ThemePicker } from "./ThemePicker";
 
 const isDev = process.env.NODE_ENV !== "production";
 const devLog = (...args: Parameters<typeof console.log>) => {
@@ -308,6 +309,25 @@ export default function AccountPage() {
                             </button>
                         </div>
                     </div>
+                </AccountSection>
+            </section>
+
+            {/* Appearance */}
+            <section className="space-y-3">
+                <h2 className="text-2xl font-medium font-serif text-gray-900">
+                    Appearance
+                </h2>
+                <AccountSection className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="space-y-1">
+                        <p className="text-sm font-medium text-gray-900">
+                            Theme
+                        </p>
+                        <p className="text-sm text-gray-500">
+                            Choose light or dark, or follow your system
+                            setting. Applies on this device.
+                        </p>
+                    </div>
+                    <ThemePicker />
                 </AccountSection>
             </section>
 
