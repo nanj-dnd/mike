@@ -311,20 +311,6 @@ export default function AccountPage() {
                 </AccountSection>
             </section>
 
-            {/* Plan */}
-            <section className="space-y-3">
-                <h2 className="text-2xl font-medium font-serif text-gray-900">
-                    Usage Plan
-                </h2>
-                <AccountSection className="p-4">
-                    <div>
-                        <p className="text-base font-medium text-gray-500 capitalize">
-                            {profile?.tier || "Free"}
-                        </p>
-                    </div>
-                </AccountSection>
-            </section>
-
             {/* Actions */}
             <section className="space-y-3">
                 <h2 className="text-2xl font-medium font-serif text-gray-900">

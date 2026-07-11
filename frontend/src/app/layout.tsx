@@ -16,7 +16,7 @@ const ebGaramond = EB_Garamond({
 
 export const metadata: Metadata = {
     metadataBase: new URL("https://mikeross.primafacie.in"),
-    title: "Mike - AI Legal Platform for Indian Law Firms",
+    title: "Gavel - AI Legal Platform for Indian Law Firms",
     description:
         "AI-powered legal document analysis, drafting, and contract review built for Indian law — Indian statutes, courts, and drafting conventions.",
     icons: {
@@ -29,8 +29,8 @@ export const metadata: Metadata = {
     openGraph: {
         type: "website",
         url: "https://mikeross.primafacie.in",
-        siteName: "Mike",
-        title: "Mike - AI Legal Platform for Indian Law Firms",
+        siteName: "Gavel",
+        title: "Gavel - AI Legal Platform for Indian Law Firms",
         description:
             "AI-powered legal document analysis, drafting, and contract review built for Indian law — Indian statutes, courts, and drafting conventions.",
         images: [
@@ -38,13 +38,13 @@ export const metadata: Metadata = {
                 url: "/link-image.jpg",
                 width: 1200,
                 height: 651,
-                alt: "Mike",
+                alt: "Gavel",
             },
         ],
     },
     twitter: {
         card: "summary_large_image",
-        title: "Mike - AI Legal Platform for Indian Law Firms",
+        title: "Gavel - AI Legal Platform for Indian Law Firms",
         description:
             "AI-powered legal document analysis, drafting, and contract review built for Indian law — Indian statutes, courts, and drafting conventions.",
         images: ["/link-image.jpg"],

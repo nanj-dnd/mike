@@ -894,7 +894,7 @@ ${slides
   zip.file(
     "ppt/theme/theme1.xml",
     `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<a:theme xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" name="Mike">
+<a:theme xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" name="Gavel">
   <a:themeElements>
     <a:clrScheme name="Office"><a:dk1><a:srgbClr val="111111"/></a:dk1><a:lt1><a:srgbClr val="FFFFFF"/></a:lt1><a:dk2><a:srgbClr val="1F2937"/></a:dk2><a:lt2><a:srgbClr val="F8FAFC"/></a:lt2><a:accent1><a:srgbClr val="2563EB"/></a:accent1><a:accent2><a:srgbClr val="059669"/></a:accent2><a:accent3><a:srgbClr val="D97706"/></a:accent3><a:accent4><a:srgbClr val="7C3AED"/></a:accent4><a:accent5><a:srgbClr val="DC2626"/></a:accent5><a:accent6><a:srgbClr val="0891B2"/></a:accent6><a:hlink><a:srgbClr val="2563EB"/></a:hlink><a:folHlink><a:srgbClr val="7C3AED"/></a:folHlink></a:clrScheme>
     <a:fontScheme name="Office"><a:majorFont><a:latin typeface="Aptos Display"/></a:majorFont><a:minorFont><a:latin typeface="Aptos"/></a:minorFont></a:fontScheme>
@@ -1152,7 +1152,7 @@ export async function runEditDocument(params: {
     bytes: editedBytes,
     changes,
     errors,
-  } = await applyTrackedEdits(current.bytes, edits, { author: "Mike" });
+  } = await applyTrackedEdits(current.bytes, edits, { author: "Gavel" });
 
   if (changes.length === 0) {
     return {

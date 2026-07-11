@@ -40,10 +40,10 @@ export const SYSTEM_WORKFLOWS: SystemWorkflow[] = [
             "type": "tabular",
             "contributors": [
                 {
-                    "name": "Mike",
-                    "organisation": "Open Legal Products",
+                    "name": "Gavel",
+                    "organisation": "Gavel",
                     "role": null,
-                    "linkedin": "https://www.linkedin.com/company/mike-oss/"
+                    "linkedin": null
                 }
             ],
             "language": "English",
@@ -111,10 +111,10 @@ export const SYSTEM_WORKFLOWS: SystemWorkflow[] = [
             "type": "tabular",
             "contributors": [
                 {
-                    "name": "Mike",
-                    "organisation": "Open Legal Products",
+                    "name": "Gavel",
+                    "organisation": "Gavel",
                     "role": null,
-                    "linkedin": "https://www.linkedin.com/company/mike-oss/"
+                    "linkedin": null
                 }
             ],
             "language": "English",
@@ -247,10 +247,10 @@ export const SYSTEM_WORKFLOWS: SystemWorkflow[] = [
             "type": "assistant",
             "contributors": [
                 {
-                    "name": "Mike",
-                    "organisation": "Open Legal Products",
+                    "name": "Gavel",
+                    "organisation": "Gavel",
                     "role": null,
-                    "linkedin": "https://www.linkedin.com/company/mike-oss/"
+                    "linkedin": null
                 }
             ],
             "language": "English",
@@ -274,10 +274,10 @@ export const SYSTEM_WORKFLOWS: SystemWorkflow[] = [
             "type": "tabular",
             "contributors": [
                 {
-                    "name": "Mike",
-                    "organisation": "Open Legal Products",
+                    "name": "Gavel",
+                    "organisation": "Gavel",
                     "role": null,
-                    "linkedin": "https://www.linkedin.com/company/mike-oss/"
+                    "linkedin": null
                 }
             ],
             "language": "English",
@@ -422,10 +422,10 @@ export const SYSTEM_WORKFLOWS: SystemWorkflow[] = [
             "type": "assistant",
             "contributors": [
                 {
-                    "name": "Mike",
-                    "organisation": "Open Legal Products",
+                    "name": "Gavel",
+                    "organisation": "Gavel",
                     "role": null,
-                    "linkedin": "https://www.linkedin.com/company/mike-oss/"
+                    "linkedin": null
                 }
             ],
             "language": "English",
@@ -449,10 +449,10 @@ export const SYSTEM_WORKFLOWS: SystemWorkflow[] = [
             "type": "assistant",
             "contributors": [
                 {
-                    "name": "Mike",
-                    "organisation": "Open Legal Products",
+                    "name": "Gavel",
+                    "organisation": "Gavel",
                     "role": null,
-                    "linkedin": "https://www.linkedin.com/company/mike-oss/"
+                    "linkedin": null
                 }
             ],
             "language": "English",
@@ -476,10 +476,10 @@ export const SYSTEM_WORKFLOWS: SystemWorkflow[] = [
             "type": "tabular",
             "contributors": [
                 {
-                    "name": "Mike",
-                    "organisation": "Open Legal Products",
+                    "name": "Gavel",
+                    "organisation": "Gavel",
                     "role": null,
-                    "linkedin": "https://www.linkedin.com/company/mike-oss/"
+                    "linkedin": null
                 }
             ],
             "language": "English",
@@ -630,10 +630,10 @@ export const SYSTEM_WORKFLOWS: SystemWorkflow[] = [
             "type": "assistant",
             "contributors": [
                 {
-                    "name": "Mike",
-                    "organisation": "Open Legal Products",
+                    "name": "Gavel",
+                    "organisation": "Gavel",
                     "role": null,
-                    "linkedin": "https://www.linkedin.com/company/mike-oss/"
+                    "linkedin": null
                 }
             ],
             "language": "English",
@@ -657,10 +657,10 @@ export const SYSTEM_WORKFLOWS: SystemWorkflow[] = [
             "type": "assistant",
             "contributors": [
                 {
-                    "name": "Mike",
-                    "organisation": "Open Legal Products",
+                    "name": "Gavel",
+                    "organisation": "Gavel",
                     "role": null,
-                    "linkedin": "https://www.linkedin.com/company/mike-oss/"
+                    "linkedin": null
                 }
             ],
             "language": "English",
@@ -684,10 +684,10 @@ export const SYSTEM_WORKFLOWS: SystemWorkflow[] = [
             "type": "tabular",
             "contributors": [
                 {
-                    "name": "Mike",
-                    "organisation": "Open Legal Products",
+                    "name": "Gavel",
+                    "organisation": "Gavel",
                     "role": null,
-                    "linkedin": "https://www.linkedin.com/company/mike-oss/"
+                    "linkedin": null
                 }
             ],
             "language": "English",
@@ -754,10 +754,10 @@ export const SYSTEM_WORKFLOWS: SystemWorkflow[] = [
             "type": "assistant",
             "contributors": [
                 {
-                    "name": "Mike",
-                    "organisation": "Open Legal Products",
+                    "name": "Gavel",
+                    "organisation": "Gavel",
                     "role": null,
-                    "linkedin": "https://www.linkedin.com/company/mike-oss/"
+                    "linkedin": null
                 }
             ],
             "language": "English",
@@ -781,10 +781,10 @@ export const SYSTEM_WORKFLOWS: SystemWorkflow[] = [
             "type": "tabular",
             "contributors": [
                 {
-                    "name": "Mike",
-                    "organisation": "Open Legal Products",
+                    "name": "Gavel",
+                    "organisation": "Gavel",
                     "role": null,
-                    "linkedin": "https://www.linkedin.com/company/mike-oss/"
+                    "linkedin": null
                 }
             ],
             "language": "English",
@@ -909,10 +909,10 @@ export const SYSTEM_WORKFLOWS: SystemWorkflow[] = [
             "type": "assistant",
             "contributors": [
                 {
-                    "name": "Mike",
-                    "organisation": "Open Legal Products",
+                    "name": "Gavel",
+                    "organisation": "Gavel",
                     "role": null,
-                    "linkedin": "https://www.linkedin.com/company/mike-oss/"
+                    "linkedin": null
                 }
             ],
             "language": "English",
@@ -936,10 +936,10 @@ export const SYSTEM_WORKFLOWS: SystemWorkflow[] = [
             "type": "tabular",
             "contributors": [
                 {
-                    "name": "Mike",
-                    "organisation": "Open Legal Products",
+                    "name": "Gavel",
+                    "organisation": "Gavel",
                     "role": null,
-                    "linkedin": "https://www.linkedin.com/company/mike-oss/"
+                    "linkedin": null
                 }
             ],
             "language": "English",
@@ -1084,10 +1084,10 @@ export const SYSTEM_WORKFLOWS: SystemWorkflow[] = [
             "type": "assistant",
             "contributors": [
                 {
-                    "name": "Mike",
-                    "organisation": "Open Legal Products",
+                    "name": "Gavel",
+                    "organisation": "Gavel",
                     "role": null,
-                    "linkedin": "https://www.linkedin.com/company/mike-oss/"
+                    "linkedin": null
                 }
             ],
             "language": "English",
@@ -1111,10 +1111,10 @@ export const SYSTEM_WORKFLOWS: SystemWorkflow[] = [
             "type": "tabular",
             "contributors": [
                 {
-                    "name": "Mike",
-                    "organisation": "Open Legal Products",
+                    "name": "Gavel",
+                    "organisation": "Gavel",
                     "role": null,
-                    "linkedin": "https://www.linkedin.com/company/mike-oss/"
+                    "linkedin": null
                 }
             ],
             "language": "English",
@@ -1197,10 +1197,10 @@ export const SYSTEM_WORKFLOWS: SystemWorkflow[] = [
             "type": "assistant",
             "contributors": [
                 {
-                    "name": "Mike",
-                    "organisation": "Open Legal Products",
+                    "name": "Gavel",
+                    "organisation": "Gavel",
                     "role": null,
-                    "linkedin": "https://www.linkedin.com/company/mike-oss/"
+                    "linkedin": null
                 }
             ],
             "language": "English",
@@ -1224,10 +1224,10 @@ export const SYSTEM_WORKFLOWS: SystemWorkflow[] = [
             "type": "assistant",
             "contributors": [
                 {
-                    "name": "Mike",
-                    "organisation": "Open Legal Products",
+                    "name": "Gavel",
+                    "organisation": "Gavel",
                     "role": null,
-                    "linkedin": "https://www.linkedin.com/company/mike-oss/"
+                    "linkedin": null
                 }
             ],
             "language": "English",
@@ -1251,10 +1251,10 @@ export const SYSTEM_WORKFLOWS: SystemWorkflow[] = [
             "type": "tabular",
             "contributors": [
                 {
-                    "name": "Mike",
-                    "organisation": "Open Legal Products",
+                    "name": "Gavel",
+                    "organisation": "Gavel",
                     "role": null,
-                    "linkedin": "https://www.linkedin.com/company/mike-oss/"
+                    "linkedin": null
                 }
             ],
             "language": "English",
@@ -1399,10 +1399,10 @@ export const SYSTEM_WORKFLOWS: SystemWorkflow[] = [
             "type": "tabular",
             "contributors": [
                 {
-                    "name": "Mike",
-                    "organisation": "Open Legal Products",
+                    "name": "Gavel",
+                    "organisation": "Gavel",
                     "role": null,
-                    "linkedin": "https://www.linkedin.com/company/mike-oss/"
+                    "linkedin": null
                 }
             ],
             "language": "English",
@@ -1505,10 +1505,10 @@ export const SYSTEM_WORKFLOWS: SystemWorkflow[] = [
             "type": "tabular",
             "contributors": [
                 {
-                    "name": "Mike",
-                    "organisation": "Open Legal Products",
+                    "name": "Gavel",
+                    "organisation": "Gavel",
                     "role": null,
-                    "linkedin": "https://www.linkedin.com/company/mike-oss/"
+                    "linkedin": null
                 }
             ],
             "language": "English",

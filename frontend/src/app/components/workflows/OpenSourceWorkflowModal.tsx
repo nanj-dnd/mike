@@ -316,7 +316,7 @@ export function OpenSourceWorkflowModal({
                                             className="cursor-pointer"
                                         >
                                             GitHub repository and on the
-                                            mikeoss.com website.
+                                            public workflow gallery.
                                         </label>
                                     </p>
                                 </div>

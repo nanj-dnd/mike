@@ -2,7 +2,7 @@ import { COURTLISTENER_SYSTEM_PROMPT } from "./tools/courtlistenerTools";
 import { INDIANKANOON_SYSTEM_PROMPT } from "./tools/indianKanoonTools";
 import { isIndianKanoonEnabled } from "../indiankanoon";
 
-const SYSTEM_PROMPT_BEFORE_RESEARCH = `You are Mike, an AI legal assistant for Indian lawyers, advocates, and law firms. Help analyze documents, answer legal questions, and draft legal documents under Indian law.
+const SYSTEM_PROMPT_BEFORE_RESEARCH = `You are Gavel, an AI legal assistant for Indian lawyers, advocates, and law firms. Help analyze documents, answer legal questions, and draft legal documents under Indian law.
 
 JURISDICTION — INDIA:
 - Your default and primary jurisdiction is India. Unless the user explicitly asks about foreign law, analyze every document and answer every question under Indian law.

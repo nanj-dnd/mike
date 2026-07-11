@@ -12,7 +12,7 @@ export function userExportFilename(
     kind: "account" | "mike_chats" | "tabular-reviews",
     userId: string,
 ) {
-    return `mike-${kind}-export-${userId.slice(0, 8)}-${nowStamp()}.json`;
+    return `gavel-${kind}-export-${userId.slice(0, 8)}-${nowStamp()}.json`;
 }
 
 function uniqueStrings(values: Array<string | null | undefined>): string[] {
