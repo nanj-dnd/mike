@@ -281,6 +281,63 @@ export async function getOrganizationAuditLog(
     return entries;
 }
 
+// ---------------------------------------------------------------------------
+// Clause library
+// ---------------------------------------------------------------------------
+
+export interface Clause {
+    id: string;
+    title: string;
+    category: string | null;
+    body: string;
+    guidance: string | null;
+    created_at: string;
+    updated_at: string;
+}
+
+export async function listClauses(q?: string): Promise<Clause[]> {
+    const query = q?.trim() ? `?q=${encodeURIComponent(q.trim())}` : "";
+    const { clauses } = await apiRequest<{ clauses: Clause[] }>(
+        `/clauses${query}`,
+    );
+    return clauses;
+}
+
+export async function createClause(input: {
+    title: string;
+    category?: string;
+    body: string;
+    guidance?: string;
+}): Promise<Clause> {
+    return apiRequest<Clause>("/clauses", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(input),
+    });
+}
+
+export async function updateClause(
+    clauseId: string,
+    input: Partial<{
+        title: string;
+        category: string;
+        body: string;
+        guidance: string;
+    }>,
+): Promise<Clause> {
+    return apiRequest<Clause>(`/clauses/${clauseId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(input),
+    });
+}
+
+export async function deleteClause(clauseId: string): Promise<void> {
+    await apiRequest<{ ok: boolean }>(`/clauses/${clauseId}`, {
+        method: "DELETE",
+    });
+}
+
 export async function deleteAccount(): Promise<void> {
     return apiRequest<void>("/user/account", { method: "DELETE" });
 }

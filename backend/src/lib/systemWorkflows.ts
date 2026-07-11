@@ -1605,6 +1605,320 @@ export const SYSTEM_WORKFLOWS: SystemWorkflow[] = [
                 "prompt": "How are disputes resolved under this agreement? Identify whether disputes go to litigation or arbitration, the chosen forum or seat, and any mandatory escalation steps (e.g. negotiation, mediation) before formal proceedings."
             }
         ]
+    },
+    {
+        "user_id": null,
+        "is_system": true,
+        "created_at": "",
+        "id": "builtin-legal-notice-cheque-dishonour",
+        "metadata": {
+            "title": "Draft Legal Notice — Cheque Dishonour (S.138 NI Act)",
+            "description": "Drafts a statutory demand notice for dishonour of cheque under Section 138 of the Negotiable Instruments Act, 1881, with the mandatory timeline checks.",
+            "type": "assistant",
+            "contributors": [
+                {
+                    "name": "Gavel",
+                    "organisation": "Gavel",
+                    "role": null,
+                    "linkedin": null
+                }
+            ],
+            "language": "English",
+            "version": "1.0.0",
+            "practice": "Litigation & Disputes",
+            "jurisdictions": [
+                "India"
+            ]
+        },
+        "skill_md": "# Draft Legal Notice — Cheque Dishonour (S.138 NI Act)\n\n## Purpose\n\nDraft a statutory demand notice under Section 138 read with Section 142 of the Negotiable Instruments Act, 1881 on behalf of the payee/holder in due course.\n\n## Instructions\n\n1. If the facts are not already provided, call ask_inputs to collect in one call: (a) name and address of the drawer (addressee); (b) name and address of the payee/client; (c) cheque number, date, and amount; (d) drawee bank and branch; (e) the underlying debt or liability the cheque discharged (invoice, loan, agreement); (f) date of presentation and date of the bank's return memo; (g) reason stated in the return memo (e.g. \"funds insufficient\", \"payment stopped\"); (h) whether any earlier notice was sent. Also ask the user to upload the cheque and return memo if available.\n2. Verify the limitation timeline before drafting and state it explicitly: the notice must be issued within 30 days of receipt of the return memo, the drawer then has 15 days from receipt of the notice to pay, and a complaint must be filed within one month after that 15-day period expires. If the 30-day window appears to have lapsed, warn the user prominently and note that presentation may be repeated within the cheque's validity to restart the cycle, where available.\n3. Draft the notice with: sender advocate block; addressee block; subject line quoting cheque number and amount in ₹ with words; numbered paragraphs setting out the transaction, the cheque particulars, the dishonour, and the statutory demand for payment within 15 days of receipt; a statement that failing payment, criminal proceedings under Section 138 NI Act and civil recovery will follow without further reference; mode of service (registered post A.D. and email); and an advocate signature block.\n4. Call generate_docx to produce the notice as a downloadable Word document. Do not invent facts — leave clearly marked [BLANKS] for anything not provided.\n\n## Jurisdiction\n\nDraft and review under Indian law. Apply Indian statutes and conventions. Use INR lakh/crore notation, DD.MM.YYYY dates, and Indian court terminology. Where a point turns on state-specific law, note that it varies by state and ask which state applies if material.",
+        "columns_config": null
+    },
+    {
+        "user_id": null,
+        "is_system": true,
+        "created_at": "",
+        "id": "builtin-bail-application",
+        "metadata": {
+            "title": "Draft Bail Application (BNSS)",
+            "description": "Drafts a regular or anticipatory bail application under the Bharatiya Nagarik Suraksha Sanhita, 2023, with grounds tailored to the case facts.",
+            "type": "assistant",
+            "contributors": [
+                {
+                    "name": "Gavel",
+                    "organisation": "Gavel",
+                    "role": null,
+                    "linkedin": null
+                }
+            ],
+            "language": "English",
+            "version": "1.0.0",
+            "practice": "Criminal",
+            "jurisdictions": [
+                "India"
+            ]
+        },
+        "skill_md": "# Draft Bail Application (BNSS)\n\n## Purpose\n\nDraft a bail application under the Bharatiya Nagarik Suraksha Sanhita, 2023 — anticipatory bail under Section 482 BNSS or regular bail under Sections 480/483 BNSS — before the appropriate Sessions Court or High Court.\n\n## Instructions\n\n1. If not already provided, call ask_inputs to collect in one call: (a) whether anticipatory or regular bail is sought; (b) the court (Sessions Court or High Court, and which); (c) applicant's name, age, address, and occupation; (d) FIR number, police station, date, and the offences alleged (with sections — use BNS sections for offences after 01.07.2024, IPC for earlier); (e) date of arrest if in custody, and custody status; (f) brief prosecution allegations; (g) the applicant's version and key grounds; (h) prior criminal antecedents, if any. Ask the user to upload the FIR and any remand orders.\n2. Draft with the correct cause title and format: court name; application number placeholder; parties (Applicant versus State); the provision invoked; numbered grounds. Build grounds from the facts, drawing on recognised considerations: false implication, no prima facie case, cooperation with investigation, no custodial interrogation required (for anticipatory), period already spent in custody and chargesheet status (for regular), parity with co-accused, medical grounds, deep roots in society and no flight risk, and the triple test (flight risk, tampering with evidence, influencing witnesses).\n3. Include an undertakings paragraph (appear before the IO/court as required, not leave India without permission, not contact witnesses) and a prayer clause. End with the advocate block and a supporting affidavit skeleton.\n4. Do not cite case law from memory without verification: where a precedent materially strengthens a ground, search Indian Kanoon, read the judgment, and cite it with a link; otherwise state the ground on principle.\n5. Call generate_docx for the final application. Leave [BLANKS] for facts not provided; never invent FIR details.\n\n## Jurisdiction\n\nDraft and review under Indian law. Apply Indian statutes and conventions. Use INR lakh/crore notation, DD.MM.YYYY dates, and Indian court terminology. Where a point turns on state-specific law, note that it varies by state and ask which state applies if material.",
+        "columns_config": null
+    },
+    {
+        "user_id": null,
+        "is_system": true,
+        "created_at": "",
+        "id": "builtin-writ-petition",
+        "metadata": {
+            "title": "Draft Writ Petition (Article 226)",
+            "description": "Drafts a writ petition before a High Court under Article 226 of the Constitution, with grounds, interim relief, and affidavit skeleton.",
+            "type": "assistant",
+            "contributors": [
+                {
+                    "name": "Gavel",
+                    "organisation": "Gavel",
+                    "role": null,
+                    "linkedin": null
+                }
+            ],
+            "language": "English",
+            "version": "1.0.0",
+            "practice": "Litigation & Disputes",
+            "jurisdictions": [
+                "India"
+            ]
+        },
+        "skill_md": "# Draft Writ Petition (Article 226)\n\n## Purpose\n\nDraft a writ petition under Article 226 of the Constitution of India before the appropriate High Court (certiorari, mandamus, prohibition, quo warranto, or habeas corpus as the facts require).\n\n## Instructions\n\n1. If not already provided, call ask_inputs to collect in one call: (a) the High Court and bench; (b) petitioner details; (c) each respondent with official designation (State/authority first, then subordinate officers); (d) the impugned action or order (date, authority, reference number) or the inaction complained of; (e) the fundamental or legal right violated; (f) the relief sought, including interim relief; (g) whether any alternative remedy exists and why it is not efficacious; (h) whether there is delay and its explanation. Ask for the impugned order and key correspondence as uploads.\n2. Structure per High Court practice: cause title with territorial jurisdiction statement; synopsis and list of dates (chronological table of events); memo of parties; the petition body with numbered facts; GROUNDS in the alternative, each starting \"BECAUSE...\"; a paragraph on maintainability addressing alternative remedy and delay; prayer clause (main and interim); and a supporting affidavit skeleton. Include an annexure index for documents referred to.\n3. For grounds involving settled doctrine (natural justice, proportionality, arbitrariness under Article 14, legitimate expectation), verify supporting authority via Indian Kanoon before citing; cite with links and never from memory.\n4. Call generate_docx for the petition. Leave [BLANKS] where facts were not provided.\n\n## Jurisdiction\n\nDraft and review under Indian law. Apply Indian statutes and conventions. Use INR lakh/crore notation, DD.MM.YYYY dates, and Indian court terminology. Where a point turns on state-specific law, note that it varies by state and ask which state applies if material.",
+        "columns_config": null
+    },
+    {
+        "user_id": null,
+        "is_system": true,
+        "created_at": "",
+        "id": "builtin-legal-research-memo",
+        "metadata": {
+            "title": "Legal Research Memo (India)",
+            "description": "Produces a structured research memorandum on an Indian law question with verified Indian Kanoon citations — question presented, statutory framework, case law, and conclusion.",
+            "type": "assistant",
+            "contributors": [
+                {
+                    "name": "Gavel",
+                    "organisation": "Gavel",
+                    "role": null,
+                    "linkedin": null
+                }
+            ],
+            "language": "English",
+            "version": "1.0.0",
+            "practice": "General Corporate",
+            "jurisdictions": [
+                "India"
+            ]
+        },
+        "skill_md": "# Legal Research Memo (India)\n\n## Purpose\n\nProduce a citation-grounded research memorandum on a question of Indian law, suitable as an internal first-draft memo for a partner's review.\n\n## Instructions\n\n1. If the research question is vague, call ask_inputs to pin down: the precise legal question, the relevant state (where state law matters), the client's position/interest, and any deadline or forum context.\n2. Research before writing. Use indiankanoon_search with focused queries (statute sections, doctrine names, doctypes:supremecourt / doctypes:highcourts filters) and read the most relevant judgments with indiankanoon_read_doc before relying on them. Prefer Supreme Court authority; use High Court authority where the question is state-specific or the Supreme Court has not spoken. Note conflicting High Court positions where they exist.\n3. Structure the memo exactly as: **Question Presented** (one sentence); **Short Answer** (one paragraph, direct); **Statutory Framework** (the governing provisions, quoted where short); **Case Law** (each authority with full citation, Indian Kanoon link, and a one-paragraph statement of what it holds and how it applies); **Analysis** (apply law to the client's facts, address counter-arguments); **Conclusion and Recommended Next Steps**; **Caveats** (unsettled points, pending matters, state variations).\n4. Every case cited must have been read via Indian Kanoon in this conversation — never cite from memory. If authority on point cannot be found, say so expressly and reason from statute and principle.\n5. Deliver the memo inline. Offer generate_docx only if the user wants a Word version.\n\n## Jurisdiction\n\nDraft and review under Indian law. Apply Indian statutes and conventions. Use INR lakh/crore notation, DD.MM.YYYY dates, and Indian court terminology. Where a point turns on state-specific law, note that it varies by state and ask which state applies if material.",
+        "columns_config": null
+    },
+    {
+        "user_id": null,
+        "is_system": true,
+        "created_at": "",
+        "id": "builtin-case-chronology",
+        "metadata": {
+            "title": "Case Chronology Builder",
+            "description": "Extracts every dated event from the uploaded case files into a single verified chronology table with source citations — the list of dates for a brief or petition.",
+            "type": "assistant",
+            "contributors": [
+                {
+                    "name": "Gavel",
+                    "organisation": "Gavel",
+                    "role": null,
+                    "linkedin": null
+                }
+            ],
+            "language": "English",
+            "version": "1.0.0",
+            "practice": "Litigation & Disputes",
+            "jurisdictions": [
+                "India"
+            ]
+        },
+        "skill_md": "# Case Chronology Builder\n\n## Purpose\n\nBuild a complete, source-cited chronology (list of dates and events) from the uploaded case files — pleadings, correspondence, orders, agreements, invoices — of the kind filed with a writ petition or used to brief senior counsel.\n\n## Instructions\n\n1. Read or search every available document. For large sets, use search_documents to locate dated events, then read the specific documents; for small sets, read each document in full.\n2. Extract every dated event: agreements signed, payments made or missed, notices issued and received, filings, hearings, orders, and key correspondence. Capture the date (DD.MM.YYYY), a one-line description of the event, and the source document with page.\n3. Output one Markdown table sorted strictly chronologically with columns: Date | Event | Source. Cite the source document for every row using citation markers. Where two documents give conflicting dates for the same event, include both and flag the conflict prominently below the table.\n4. After the table, list: (a) undated but material events; (b) apparent gaps in the record (e.g. a reply referred to but not on file); and (c) limitation-relevant dates with a note on any limitation risk visible from the chronology.\n5. If the user asks for an exportable version, call generate_excel with the same columns.\n\n## Jurisdiction\n\nDraft and review under Indian law. Apply Indian statutes and conventions. Use INR lakh/crore notation, DD.MM.YYYY dates, and Indian court terminology. Where a point turns on state-specific law, note that it varies by state and ask which state applies if material.",
+        "columns_config": null
+    },
+    {
+        "user_id": null,
+        "is_system": true,
+        "created_at": "",
+        "id": "builtin-deviation-analysis",
+        "metadata": {
+            "title": "Deviation Analysis vs Standard Draft",
+            "description": "Compares a counterparty's draft against your firm's standard template clause by clause, flagging every deviation with risk and recommended fallback.",
+            "type": "assistant",
+            "contributors": [
+                {
+                    "name": "Gavel",
+                    "organisation": "Gavel",
+                    "role": null,
+                    "linkedin": null
+                }
+            ],
+            "language": "English",
+            "version": "1.0.0",
+            "practice": "General Corporate",
+            "jurisdictions": [
+                "India"
+            ]
+        },
+        "skill_md": "# Deviation Analysis vs Standard Draft\n\n## Purpose\n\nCompare a counterparty draft against the firm's standard form (or a prior signed precedent) and produce a clause-by-clause deviation report — the review done before a markup call.\n\n## Instructions\n\n1. Two documents are required: the standard/template and the counterparty draft. If either is missing, call ask_inputs requesting the uploads and asking which party the user represents.\n2. Read both documents. Align them clause by clause (by subject matter, not clause number, since numbering will differ).\n3. Produce exactly one Markdown table with columns: Clause / Subject | Standard Position | Draft Position | Deviation Risk | Recommended Response. Rate Deviation Risk as Low / Medium / High / Critical from the represented party's perspective. Include rows for: (a) clauses materially changed; (b) protective clauses present in the standard but deleted or missing in the draft; and (c) new clauses added by the counterparty that do not appear in the standard. Skip clauses that are substantively identical.\n4. In Recommended Response, give the concrete negotiation position: accept, reject and restore the standard wording, or a specific compromise fallback with suggested language.\n5. Cite the relevant passages of both documents. End with an Overall Risk Rating row and a short list of the three points to hold firmest on in negotiation.\n6. Deliver inline; offer generate_docx or generate_excel for an exportable version.\n\n## Jurisdiction\n\nDraft and review under Indian law. Apply Indian statutes and conventions. Use INR lakh/crore notation, DD.MM.YYYY dates, and Indian court terminology. Where a point turns on state-specific law, note that it varies by state and ask which state applies if material.",
+        "columns_config": null
+    },
+    {
+        "user_id": null,
+        "is_system": true,
+        "created_at": "",
+        "id": "builtin-risk-anomaly-tabular",
+        "metadata": {
+            "title": "Contract Risk & Anomaly Review",
+            "description": "Flags unusual clauses, one-sided obligations, missing protections, and Indian statutory compliance gaps across a set of contracts, with an overall risk rating per document.",
+            "type": "tabular",
+            "contributors": [
+                {
+                    "name": "Gavel",
+                    "organisation": "Gavel",
+                    "role": null,
+                    "linkedin": null
+                }
+            ],
+            "language": "English",
+            "version": "1.0.0",
+            "practice": "General Corporate",
+            "jurisdictions": [
+                "India"
+            ]
+        },
+        "skill_md": "# Contract Risk & Anomaly Review\n\n## Purpose\n\nScreen a set of contracts for risk the way a reviewer triages a due-diligence data room: what is unusual, what is one-sided, what is missing, and what breaks Indian compliance requirements.\n\n## Instructions\n\n- Apply each column prompt to each document independently.\n- Judge \"unusual\" against prevailing Indian market practice for that document type.\n- Extract only findings supported by the document text and cite the exact language.\n- If a document is clean on a column, say so briefly rather than inventing findings.\n- Do not invent clauses, parties, amounts, or citations.\n\n## Jurisdiction\n\nDraft and review under Indian law. Apply Indian statutes and conventions. Use INR lakh/crore notation, DD.MM.YYYY dates, and Indian court terminology. Where a point turns on state-specific law, note that it varies by state and ask which state applies if material.",
+        "columns_config": [
+            {
+                "index": 0,
+                "name": "Parties & Document Type",
+                "format": "text",
+                "prompt": "Identify the parties (full legal names and roles) and classify the document type (e.g. service agreement, lease, NDA, employment contract)."
+            },
+            {
+                "index": 1,
+                "name": "Unusual / Non-Standard Clauses",
+                "format": "bulleted_list",
+                "prompt": "List clauses that deviate from prevailing Indian market practice for this document type — unusual triggers, atypical remedies, uncommon structures. Quote the operative language for each. If none, state 'No unusual clauses identified'."
+            },
+            {
+                "index": 2,
+                "name": "One-Sided Obligations",
+                "format": "bulleted_list",
+                "prompt": "List materially one-sided provisions: unilateral termination or amendment rights, asymmetric indemnities or liability caps, one-way confidentiality, uncapped obligations on one party only. Name which party benefits in each case."
+            },
+            {
+                "index": 3,
+                "name": "Missing Protections",
+                "format": "bulleted_list",
+                "prompt": "List standard protections absent for this document type: e.g. no liability cap, no termination for convenience, no force majeure, no dispute resolution clause, no confidentiality, no indemnity for IP infringement, no notice provisions."
+            },
+            {
+                "index": 4,
+                "name": "Liability Exposure",
+                "format": "text",
+                "prompt": "Summarize the liability position: cap amount and basis, carve-outs from the cap, indemnity scope, and any uncapped or unlimited exposures. Express amounts in ₹ where stated."
+            },
+            {
+                "index": 5,
+                "name": "Indian Compliance Flags",
+                "format": "bulleted_list",
+                "prompt": "Flag Indian statutory compliance issues visible on the face of the document: stamp duty and registration (Registration Act 1908) where the document type requires it, GST treatment of payments, TDS provisions, arbitration clause consistency with the Arbitration and Conciliation Act 1996, and any clause likely unenforceable under Indian law (e.g. broad post-termination non-compete under Section 27, Indian Contract Act)."
+            },
+            {
+                "index": 6,
+                "name": "Overall Risk",
+                "format": "tag",
+                "tags": [
+                    "Low",
+                    "Medium",
+                    "High",
+                    "Critical"
+                ],
+                "prompt": "Rate the document's overall risk from the perspective of the party with less drafting control, considering the findings in the other columns."
+            }
+        ]
+    },
+    {
+        "user_id": null,
+        "is_system": true,
+        "created_at": "",
+        "id": "builtin-key-dates-tabular",
+        "metadata": {
+            "title": "Key Dates & Obligations Tracker",
+            "description": "Extracts every operative date and ongoing obligation from a set of contracts — expiry, renewal notice windows, lock-ins, payment schedules — so nothing lapses unnoticed.",
+            "type": "tabular",
+            "contributors": [
+                {
+                    "name": "Gavel",
+                    "organisation": "Gavel",
+                    "role": null,
+                    "linkedin": null
+                }
+            ],
+            "language": "English",
+            "version": "1.0.0",
+            "practice": "General Corporate",
+            "jurisdictions": [
+                "India"
+            ]
+        },
+        "skill_md": "# Key Dates & Obligations Tracker\n\n## Purpose\n\nExtract the operative dates and continuing obligations from each contract so the firm can maintain a live obligations calendar — the core of contract lifecycle management.\n\n## Instructions\n\n- Apply each column prompt to each document independently.\n- Dates must come from the document text; convert relative periods (e.g. \"90 days before expiry\") into concrete dates where the anchor date is stated, and show the computation.\n- Where a date or obligation is absent, state 'Not specified' rather than guessing.\n- Cite the clause for every extracted item.\n\n## Jurisdiction\n\nDraft and review under Indian law. Apply Indian statutes and conventions. Use INR lakh/crore notation, DD.MM.YYYY dates, and Indian court terminology. Where a point turns on state-specific law, note that it varies by state and ask which state applies if material.",
+        "columns_config": [
+            {
+                "index": 0,
+                "name": "Effective Date",
+                "format": "date",
+                "prompt": "State the effective/commencement date of this agreement. If execution and commencement differ, give the commencement date and note the difference."
+            },
+            {
+                "index": 1,
+                "name": "Expiry Date",
+                "format": "date",
+                "prompt": "State the expiry date of the current term. If the term is expressed as a duration, compute the expiry from the commencement date and show the computation."
+            },
+            {
+                "index": 2,
+                "name": "Auto-Renewal",
+                "format": "yes_no",
+                "prompt": "Does this agreement renew automatically unless notice is given?"
+            },
+            {
+                "index": 3,
+                "name": "Renewal / Non-Renewal Notice Deadline",
+                "format": "text",
+                "prompt": "State the deadline for giving renewal or non-renewal notice (e.g. '90 days before expiry'), and compute the concrete last date where the expiry date is known. This is the date that must not be missed."
+            },
+            {
+                "index": 4,
+                "name": "Lock-in Period",
+                "format": "text",
+                "prompt": "State any lock-in period during which termination for convenience is unavailable, and the consequences of early exit during lock-in."
+            },
+            {
+                "index": 5,
+                "name": "Payment Schedule",
+                "format": "text",
+                "prompt": "Summarize recurring payment obligations: amount in ₹, frequency, due dates, escalation, and late-payment interest."
+            },
+            {
+                "index": 6,
+                "name": "Termination Notice Period",
+                "format": "text",
+                "prompt": "State the notice period each party must give to terminate (for convenience and for cause), and any cure periods."
+            },
+            {
+                "index": 7,
+                "name": "Ongoing Obligations",
+                "format": "bulleted_list",
+                "prompt": "List continuing obligations requiring action during the term or surviving it: reporting, insurance maintenance, audits, confidentiality survival, renewal of bank guarantees, statutory filings."
+            }
+        ]
     }
 ];
 
@@ -1660,5 +1974,35 @@ export const SYSTEM_ASSISTANT_WORKFLOWS: { id: string; title: string; skill_md: 
         "id": "builtin-sha-summary",
         "title": "Shareholder Agreement Review",
         "skill_md": "# Shareholder Agreement Review\n\n## Instructions\n\nReview the uploaded shareholder agreement and produce a comprehensive table-based legal review from the perspective of the party represented by the user/client. If the user has not already identified which party they represent, ask them to clarify that party before producing the review.\n\nOnce the represented party is clear, provide exactly one Markdown result table. Use one row for each material issue found in the agreement, guided by the review checklist below, and add a final row called **Overall Risk Rating**. The result table must have exactly these columns:\n\n- Issue\n- Summary\n- Recommended Change\n\nUse these risk ratings inside the **Summary** column: Low means standard or minimal concern; Medium means a manageable negotiation concern; High means a material legal, commercial, operational, or enforceability concern requiring negotiation; Critical means a severe issue that may block signing unless resolved. Start each summary with the risk rating, e.g. \"High — drag threshold is too low\".\n\nThe **Summary** column should include only the relevant points from the **General** checklist column and the party-specific checklist column for the represented party, together with clause references where available. Do not include issues that are adverse only to the other party unless they also create risk for the represented party. The **Recommended Change** column must be drafted from the represented party's perspective. Also flag general drafting errors that may affect the represented party, including inconsistent defined terms, inconsistent entity names, cross-reference errors, numbering issues, duplicated provisions, missing schedules, and internal inconsistencies. Keep the response concise and avoid long prose outside the table.\n\n## Result Table Format\n\nUse this result table structure. Include annotations such as [1] and [2] in the **Summary** and **Recommended Change** columns to reference the relevant sections of the document. The example rows are illustrative only; tailor the actual rows to the uploaded agreement and represented party.\n\n| Issue | Summary | Recommended Change |\n| --- | --- | --- |\n| Drag-Along Rights | High — Clause [x] sets the drag threshold at [x]% and does not include a minimum price protection. The minority-specific checklist point indicates the minority can be forced to sell at an unfavorable price. | For the minority, raise the drag threshold, add a minimum price equal to fair market value, and limit warranties to proceeds received. |\n| Drafting Consistency | Medium — Clauses [x] and [y] use inconsistent defined terms for the share classes. The general drafting point indicates ambiguity that may affect the represented party's rights. | For the represented party, align defined terms, share class definitions, and cross-references before signing. |\n\n## Review Checklist\n\nUse this checklist as guidance for what to review and flag. It is not the result-table template and should not be reproduced verbatim. For each checklist issue, consider both the **General** column and the party-specific column for the represented party (Majority or Minority).\n\n| Issue | General | Majority | Minority |\n| --- | --- | --- | --- |\n| Parties and Shareholdings | Identify each shareholder, role, share class, percentage holding, and fully diluted position. Flag inconsistent cap table information, missing parties, or unclear beneficial ownership. | | |\n| Share Classes and Rights | Summarize voting rights, dividend rights, liquidation preferences, conversion rights, redemption rights, and class consents. | Flag class consents or voting requirements that effectively give minority approval rights over ordinary decisions. | Flag hidden preference rights, disproportionate majority voting rights, or unfavorable class economics. |\n| Board Composition and Governance | Identify board size, appointment rights, observer rights, quorum, chair, and casting vote. | Flag quorum or deadlock provisions giving minority an effective veto over governance. | Flag entrenched majority appointment rights, casting vote held by a majority nominee, or no observer rights for minority. |\n| Reserved Matters | List matters requiring special majority, unanimity, investor consent, or board consent. | Flag reserved matters requiring minority consent that constrain ordinary business decisions. | Flag absence of meaningful minority veto rights or low-dollar thresholds allowing majority to structure around them. |\n| Pre-emption on New Shares | Summarize pre-emption rights, offer process, timing, exclusions, and carve-outs. | Flag mechanics slowing fundraising or requiring minority consent to issue new shares. | Flag broad carve-outs, short exercise periods, or mechanics permitting dilution without proper notice. |\n| Transfer Restrictions | Summarize lock-ups, prohibited transfers, permitted transfers, and consent requirements. | Flag restrictions preventing majority exit or group reorganisation without minority consent. | Flag absence of lock-up on majority transfers or mechanics allowing majority to exit leaving minority trapped. |\n| Right of First Refusal / Pre-emption on Transfer | Identify trigger, process, pricing, matching rights, and exceptions. | Flag long ROFR processes or pricing mechanics delaying majority exit. | Flag unclear matching rights, long processes excluding minority participation, or exceptions removing minority protections. |\n| Drag-Along Rights | Identify drag threshold, sale conditions, minority protections, and power of attorney. | Flag high drag threshold or conditions preventing majority from executing a sale. | Flag low drag threshold, no minimum price protection, forced warranties beyond proceeds received, or broad power of attorney. |\n| Tag-Along Rights | Identify triggering transfers, eligible holders, and sale terms. | Flag broad tag triggers complicating majority exit. | Flag missing or narrow tag rights, or mechanics allowing majority to exclude minority from exit proceeds. |\n| Anti-Dilution Protections | Identify anti-dilution mechanics, carve-outs, and adjustment triggers. | Flag mechanics punishing founders or majority holders on down-rounds. | Flag absence of anti-dilution protection, full ratchet terms, or unclear carve-outs from adjustment. |\n| Dividend Policy | Summarize dividend rights, preferential dividends, restrictions, and discretion. | Flag mandatory dividend obligations impairing business cash flow or restricting majority discretion. | Flag unclear preferential dividend rights or majority discretion over dividends without minority consent. |\n| Exit and Liquidity | Identify IPO, trade sale, redemption, put/call rights, timelines, and liquidation preferences. | Flag forced exit timelines or investor put rights constraining majority exit strategy. | Flag unclear waterfall on exit, exit rights not applying equally, or no minority participation in liquidity events. |\n| Deadlock | Summarize deadlock definition, escalation, expert determination, shoot-out, and liquidation mechanics. | Flag deadlock provisions giving minority disproportionate leverage or effective veto. | Flag shoot-out rights triggered at low thresholds or mechanics structurally favoring majority. |\n| Non-Compete and Non-Solicitation | Identify who is bound, restricted activities, geography, duration, and carve-outs. | Flag restraints binding the majority entity or overly broad scope applied to the majority group. | Flag broad non-competes restricting the minority's ability to operate independently after exit. |\n| Information Rights | Identify reporting, inspection, management accounts, and confidentiality obligations. | Flag extensive information rights giving minority commercially sensitive operational visibility. | Flag absence of reporting or inspection rights, or inadequate confidentiality obligations on recipients. |\n| Related Party Transactions | Identify approval requirements, disclosure duties, and arm's-length standards. | Flag overly strict conflict controls restricting legitimate majority-group transactions. | Flag weak conflict controls, broad permitted related-party dealings, or no arm's-length enforcement. |\n| Governing Law and Dispute Resolution | State governing law, forum, arbitration, escalation, and interim relief rights. Flag unclear or ambiguous forum or dispute mechanics. | | |\n\nDeliver the review inline in your chat response. Do not generate a downloadable Word document unless the user explicitly asks for one.\n\n## Jurisdiction\n\nReview all documents under Indian law. Apply Indian statutes and conventions (Indian Contract Act 1872, Companies Act 2013, and other applicable Indian legislation). Flag stamp duty, registration (Registration Act 1908), GST treatment, and other Indian statutory compliance issues where relevant to the document type. Express amounts in INR lakh/crore format where the document does. Where a point turns on state-specific law (stamp duty, rent control, shops and establishments), note that it varies by state."
+    },
+    {
+        "id": "builtin-legal-notice-cheque-dishonour",
+        "title": "Draft Legal Notice — Cheque Dishonour (S.138 NI Act)",
+        "skill_md": "# Draft Legal Notice — Cheque Dishonour (S.138 NI Act)\n\n## Purpose\n\nDraft a statutory demand notice under Section 138 read with Section 142 of the Negotiable Instruments Act, 1881 on behalf of the payee/holder in due course.\n\n## Instructions\n\n1. If the facts are not already provided, call ask_inputs to collect in one call: (a) name and address of the drawer (addressee); (b) name and address of the payee/client; (c) cheque number, date, and amount; (d) drawee bank and branch; (e) the underlying debt or liability the cheque discharged (invoice, loan, agreement); (f) date of presentation and date of the bank's return memo; (g) reason stated in the return memo (e.g. \"funds insufficient\", \"payment stopped\"); (h) whether any earlier notice was sent. Also ask the user to upload the cheque and return memo if available.\n2. Verify the limitation timeline before drafting and state it explicitly: the notice must be issued within 30 days of receipt of the return memo, the drawer then has 15 days from receipt of the notice to pay, and a complaint must be filed within one month after that 15-day period expires. If the 30-day window appears to have lapsed, warn the user prominently and note that presentation may be repeated within the cheque's validity to restart the cycle, where available.\n3. Draft the notice with: sender advocate block; addressee block; subject line quoting cheque number and amount in ₹ with words; numbered paragraphs setting out the transaction, the cheque particulars, the dishonour, and the statutory demand for payment within 15 days of receipt; a statement that failing payment, criminal proceedings under Section 138 NI Act and civil recovery will follow without further reference; mode of service (registered post A.D. and email); and an advocate signature block.\n4. Call generate_docx to produce the notice as a downloadable Word document. Do not invent facts — leave clearly marked [BLANKS] for anything not provided.\n\n## Jurisdiction\n\nDraft and review under Indian law. Apply Indian statutes and conventions. Use INR lakh/crore notation, DD.MM.YYYY dates, and Indian court terminology. Where a point turns on state-specific law, note that it varies by state and ask which state applies if material."
+    },
+    {
+        "id": "builtin-bail-application",
+        "title": "Draft Bail Application (BNSS)",
+        "skill_md": "# Draft Bail Application (BNSS)\n\n## Purpose\n\nDraft a bail application under the Bharatiya Nagarik Suraksha Sanhita, 2023 — anticipatory bail under Section 482 BNSS or regular bail under Sections 480/483 BNSS — before the appropriate Sessions Court or High Court.\n\n## Instructions\n\n1. If not already provided, call ask_inputs to collect in one call: (a) whether anticipatory or regular bail is sought; (b) the court (Sessions Court or High Court, and which); (c) applicant's name, age, address, and occupation; (d) FIR number, police station, date, and the offences alleged (with sections — use BNS sections for offences after 01.07.2024, IPC for earlier); (e) date of arrest if in custody, and custody status; (f) brief prosecution allegations; (g) the applicant's version and key grounds; (h) prior criminal antecedents, if any. Ask the user to upload the FIR and any remand orders.\n2. Draft with the correct cause title and format: court name; application number placeholder; parties (Applicant versus State); the provision invoked; numbered grounds. Build grounds from the facts, drawing on recognised considerations: false implication, no prima facie case, cooperation with investigation, no custodial interrogation required (for anticipatory), period already spent in custody and chargesheet status (for regular), parity with co-accused, medical grounds, deep roots in society and no flight risk, and the triple test (flight risk, tampering with evidence, influencing witnesses).\n3. Include an undertakings paragraph (appear before the IO/court as required, not leave India without permission, not contact witnesses) and a prayer clause. End with the advocate block and a supporting affidavit skeleton.\n4. Do not cite case law from memory without verification: where a precedent materially strengthens a ground, search Indian Kanoon, read the judgment, and cite it with a link; otherwise state the ground on principle.\n5. Call generate_docx for the final application. Leave [BLANKS] for facts not provided; never invent FIR details.\n\n## Jurisdiction\n\nDraft and review under Indian law. Apply Indian statutes and conventions. Use INR lakh/crore notation, DD.MM.YYYY dates, and Indian court terminology. Where a point turns on state-specific law, note that it varies by state and ask which state applies if material."
+    },
+    {
+        "id": "builtin-writ-petition",
+        "title": "Draft Writ Petition (Article 226)",
+        "skill_md": "# Draft Writ Petition (Article 226)\n\n## Purpose\n\nDraft a writ petition under Article 226 of the Constitution of India before the appropriate High Court (certiorari, mandamus, prohibition, quo warranto, or habeas corpus as the facts require).\n\n## Instructions\n\n1. If not already provided, call ask_inputs to collect in one call: (a) the High Court and bench; (b) petitioner details; (c) each respondent with official designation (State/authority first, then subordinate officers); (d) the impugned action or order (date, authority, reference number) or the inaction complained of; (e) the fundamental or legal right violated; (f) the relief sought, including interim relief; (g) whether any alternative remedy exists and why it is not efficacious; (h) whether there is delay and its explanation. Ask for the impugned order and key correspondence as uploads.\n2. Structure per High Court practice: cause title with territorial jurisdiction statement; synopsis and list of dates (chronological table of events); memo of parties; the petition body with numbered facts; GROUNDS in the alternative, each starting \"BECAUSE...\"; a paragraph on maintainability addressing alternative remedy and delay; prayer clause (main and interim); and a supporting affidavit skeleton. Include an annexure index for documents referred to.\n3. For grounds involving settled doctrine (natural justice, proportionality, arbitrariness under Article 14, legitimate expectation), verify supporting authority via Indian Kanoon before citing; cite with links and never from memory.\n4. Call generate_docx for the petition. Leave [BLANKS] where facts were not provided.\n\n## Jurisdiction\n\nDraft and review under Indian law. Apply Indian statutes and conventions. Use INR lakh/crore notation, DD.MM.YYYY dates, and Indian court terminology. Where a point turns on state-specific law, note that it varies by state and ask which state applies if material."
+    },
+    {
+        "id": "builtin-legal-research-memo",
+        "title": "Legal Research Memo (India)",
+        "skill_md": "# Legal Research Memo (India)\n\n## Purpose\n\nProduce a citation-grounded research memorandum on a question of Indian law, suitable as an internal first-draft memo for a partner's review.\n\n## Instructions\n\n1. If the research question is vague, call ask_inputs to pin down: the precise legal question, the relevant state (where state law matters), the client's position/interest, and any deadline or forum context.\n2. Research before writing. Use indiankanoon_search with focused queries (statute sections, doctrine names, doctypes:supremecourt / doctypes:highcourts filters) and read the most relevant judgments with indiankanoon_read_doc before relying on them. Prefer Supreme Court authority; use High Court authority where the question is state-specific or the Supreme Court has not spoken. Note conflicting High Court positions where they exist.\n3. Structure the memo exactly as: **Question Presented** (one sentence); **Short Answer** (one paragraph, direct); **Statutory Framework** (the governing provisions, quoted where short); **Case Law** (each authority with full citation, Indian Kanoon link, and a one-paragraph statement of what it holds and how it applies); **Analysis** (apply law to the client's facts, address counter-arguments); **Conclusion and Recommended Next Steps**; **Caveats** (unsettled points, pending matters, state variations).\n4. Every case cited must have been read via Indian Kanoon in this conversation — never cite from memory. If authority on point cannot be found, say so expressly and reason from statute and principle.\n5. Deliver the memo inline. Offer generate_docx only if the user wants a Word version.\n\n## Jurisdiction\n\nDraft and review under Indian law. Apply Indian statutes and conventions. Use INR lakh/crore notation, DD.MM.YYYY dates, and Indian court terminology. Where a point turns on state-specific law, note that it varies by state and ask which state applies if material."
+    },
+    {
+        "id": "builtin-case-chronology",
+        "title": "Case Chronology Builder",
+        "skill_md": "# Case Chronology Builder\n\n## Purpose\n\nBuild a complete, source-cited chronology (list of dates and events) from the uploaded case files — pleadings, correspondence, orders, agreements, invoices — of the kind filed with a writ petition or used to brief senior counsel.\n\n## Instructions\n\n1. Read or search every available document. For large sets, use search_documents to locate dated events, then read the specific documents; for small sets, read each document in full.\n2. Extract every dated event: agreements signed, payments made or missed, notices issued and received, filings, hearings, orders, and key correspondence. Capture the date (DD.MM.YYYY), a one-line description of the event, and the source document with page.\n3. Output one Markdown table sorted strictly chronologically with columns: Date | Event | Source. Cite the source document for every row using citation markers. Where two documents give conflicting dates for the same event, include both and flag the conflict prominently below the table.\n4. After the table, list: (a) undated but material events; (b) apparent gaps in the record (e.g. a reply referred to but not on file); and (c) limitation-relevant dates with a note on any limitation risk visible from the chronology.\n5. If the user asks for an exportable version, call generate_excel with the same columns.\n\n## Jurisdiction\n\nDraft and review under Indian law. Apply Indian statutes and conventions. Use INR lakh/crore notation, DD.MM.YYYY dates, and Indian court terminology. Where a point turns on state-specific law, note that it varies by state and ask which state applies if material."
+    },
+    {
+        "id": "builtin-deviation-analysis",
+        "title": "Deviation Analysis vs Standard Draft",
+        "skill_md": "# Deviation Analysis vs Standard Draft\n\n## Purpose\n\nCompare a counterparty draft against the firm's standard form (or a prior signed precedent) and produce a clause-by-clause deviation report — the review done before a markup call.\n\n## Instructions\n\n1. Two documents are required: the standard/template and the counterparty draft. If either is missing, call ask_inputs requesting the uploads and asking which party the user represents.\n2. Read both documents. Align them clause by clause (by subject matter, not clause number, since numbering will differ).\n3. Produce exactly one Markdown table with columns: Clause / Subject | Standard Position | Draft Position | Deviation Risk | Recommended Response. Rate Deviation Risk as Low / Medium / High / Critical from the represented party's perspective. Include rows for: (a) clauses materially changed; (b) protective clauses present in the standard but deleted or missing in the draft; and (c) new clauses added by the counterparty that do not appear in the standard. Skip clauses that are substantively identical.\n4. In Recommended Response, give the concrete negotiation position: accept, reject and restore the standard wording, or a specific compromise fallback with suggested language.\n5. Cite the relevant passages of both documents. End with an Overall Risk Rating row and a short list of the three points to hold firmest on in negotiation.\n6. Deliver inline; offer generate_docx or generate_excel for an exportable version.\n\n## Jurisdiction\n\nDraft and review under Indian law. Apply Indian statutes and conventions. Use INR lakh/crore notation, DD.MM.YYYY dates, and Indian court terminology. Where a point turns on state-specific law, note that it varies by state and ask which state applies if material."
     }
 ];

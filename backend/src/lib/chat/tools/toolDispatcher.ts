@@ -8,6 +8,7 @@ import {
   readIndianKanoonDoc,
 } from "../../indiankanoon";
 import { searchDocumentChunks } from "../../documentIndex";
+import { searchClauseLibrary } from "../../../routes/clauses";
 import {
   INDIANKANOON_TOOL_NAMES,
   type IndianKanoonToolEvent,
@@ -839,6 +840,47 @@ export async function runToolCalls(
         tool_call_id: tc.id,
         content: lines.join("\n") || "No cells found.",
       });
+    } else if (tc.function.name === "search_clause_library") {
+      const query = typeof args.query === "string" ? args.query.trim() : "";
+      try {
+        if (!query) throw new Error("query is required.");
+        const result = await searchClauseLibrary(userId, query);
+        let content: string;
+        if (!result.available) {
+          content =
+            "The clause library is not set up on this deployment. Draft from first principles.";
+        } else if (result.clauses.length === 0) {
+          content = `No clauses in the firm library match "${query}". Draft from first principles and suggest the user save the final clause to their library for reuse.`;
+        } else {
+          content = result.clauses
+            .map((c) => {
+              const header = c.category
+                ? `### ${c.title} [${c.category}]`
+                : `### ${c.title}`;
+              const guidance = c.guidance
+                ? `\nDrafting guidance: ${c.guidance}`
+                : "";
+              return `${header}\n${c.body}${guidance}`;
+            })
+            .join("\n\n");
+        }
+        toolResults.push({
+          role: "tool",
+          tool_call_id: tc.id,
+          content,
+        });
+      } catch (err) {
+        toolResults.push({
+          role: "tool",
+          tool_call_id: tc.id,
+          content: JSON.stringify({
+            error:
+              err instanceof Error
+                ? err.message
+                : "Clause library search failed.",
+          }),
+        });
+      }
     } else if (tc.function.name === "search_documents") {
       const query = typeof args.query === "string" ? args.query.trim() : "";
       try {

@@ -53,6 +53,7 @@ Citation rules:
 
 DOCX GENERATION:
 - If the user asks you to create or draft a document, call generate_docx and provide the downloadable Word document rather than only displaying text inline.
+- Before drafting any clause a firm would have a standard position on (indemnity, limitation of liability, termination, confidentiality, arbitration, notices), call search_clause_library once and prefer the firm's approved language where it exists, adapting party names, amounts, and dates to the matter.
 - If the user asks for a spreadsheet, table workbook, tracker, checklist matrix, or Excel file, call generate_excel.
 - If the user asks for slides, a presentation, pitch deck, board deck, or PowerPoint file, call generate_ppt.
 - If the user asks to revise a document you just generated, call edit_document on that document unless they explicitly want a brand-new document or the change is too broad for coherent editing.

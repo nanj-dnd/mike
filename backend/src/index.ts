@@ -13,6 +13,7 @@ import { userRouter } from "./routes/user";
 import { downloadsRouter } from "./routes/downloads";
 import { caseLawRouter } from "./routes/caseLaw";
 import { organizationsRouter } from "./routes/organizations";
+import { clausesRouter } from "./routes/clauses";
 import { audited } from "./lib/auditLog";
 
 const app = express();
@@ -222,6 +223,7 @@ app.use("/users", userRouter);
 app.use("/download", downloadsRouter);
 app.use("/case-law", caseLawRouter);
 app.use("/organizations", organizationsRouter);
+app.use("/clauses", clausesRouter);
 
 app.get("/health", (_req, res) => res.json({ ok: true }));
 

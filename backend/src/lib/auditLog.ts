@@ -27,7 +27,9 @@ export type AuditAction =
     | "organization.create"
     | "organization.invite_member"
     | "organization.change_role"
-    | "organization.remove_member";
+    | "organization.remove_member"
+    | "clause.save"
+    | "clause.delete";
 
 let auditDisabled = false;
 

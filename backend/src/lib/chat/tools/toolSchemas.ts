@@ -151,6 +151,25 @@ export const TOOLS = [
   {
     type: "function",
     function: {
+      name: "search_clause_library",
+      description:
+        "Search the firm's clause library (precedent bank) for approved clause language on a topic. Returns matching clauses with their drafting guidance. Call this before drafting any clause a firm would have a standard position on (indemnity, limitation of liability, termination, confidentiality, arbitration, etc.) and prefer returned firm language over generic language, adapting names/amounts to the matter.",
+      parameters: {
+        type: "object",
+        properties: {
+          query: {
+            type: "string",
+            description:
+              "Topic or clause type to look for, e.g. 'limitation of liability', 'arbitration seat Mumbai', 'confidentiality carve-outs'.",
+          },
+        },
+        required: ["query"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
       name: "ask_inputs",
       description:
         "Ask the user for one or more decisions, clarifications, or document uploads before continuing. Use this when guessing would materially affect the answer or when required documents have not been attached. Put all needed questions and document requests in one items array. After calling ask_inputs, do not continue the substantive task until the user responds in a later message.",
