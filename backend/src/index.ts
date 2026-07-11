@@ -12,6 +12,7 @@ import { workflowsRouter } from "./routes/workflows";
 import { userRouter } from "./routes/user";
 import { downloadsRouter } from "./routes/downloads";
 import { caseLawRouter } from "./routes/caseLaw";
+import { audited } from "./lib/auditLog";
 
 const app = express();
 const PORT = process.env.PORT ?? 3001;
@@ -140,6 +141,70 @@ app.delete("/user/account", dataDeleteLimiter);
 app.delete("/user/chats", dataDeleteLimiter);
 app.delete("/user/projects", dataDeleteLimiter);
 app.delete("/user/tabular-reviews", dataDeleteLimiter);
+
+// Audit trail: same one-place declaration style as the rate limiters
+// above. Entries are written fire-and-forget on successful responses.
+const docResource = (req: express.Request) => ({
+  type: "document",
+  id: req.params.documentId,
+});
+app.post("/single-documents", audited("document.upload"));
+app.post(
+  "/single-documents/:documentId/versions",
+  audited("document.version_upload", docResource),
+);
+app.put(
+  "/single-documents/:documentId/versions/:versionId/file",
+  audited("document.version_upload", docResource),
+);
+app.post(
+  "/projects/:projectId/documents",
+  audited("document.upload", (req) => ({
+    type: "project",
+    id: req.params.projectId,
+  })),
+);
+app.delete(
+  "/single-documents/:documentId",
+  audited("document.delete", docResource),
+);
+app.get(
+  "/single-documents/:documentId/url",
+  audited("document.download", docResource),
+);
+app.post("/single-documents/download-zip", audited("document.download"));
+app.post("/chat/create", audited("chat.create"));
+app.delete(
+  "/chat/:chatId",
+  audited("chat.delete", (req) => ({ type: "chat", id: req.params.chatId })),
+);
+const reviewResource = (req: express.Request) => ({
+  type: "tabular_review",
+  id: req.params.reviewId,
+});
+app.post("/tabular-review", audited("tabular.create"));
+app.post(
+  "/tabular-review/:reviewId/generate",
+  audited("tabular.generate", reviewResource),
+);
+app.delete(
+  "/tabular-review/:reviewId",
+  audited("tabular.delete", reviewResource),
+);
+app.get("/user/export", audited("data.export"));
+app.get("/user/chats/export", audited("data.export"));
+app.get("/user/tabular-reviews/export", audited("data.export"));
+app.delete("/user/account", audited("account.delete"));
+app.delete("/user/chats", audited("data.delete"));
+app.delete("/user/projects", audited("data.delete"));
+app.delete("/user/tabular-reviews", audited("data.delete"));
+app.put(
+  "/user/api-keys/:provider",
+  audited("api_key.save", (req) => ({
+    type: "api_key",
+    id: req.params.provider,
+  })),
+);
 
 app.use((req, res, next) =>
   express.json({ limit: jsonLimitForPath(req.path) })(req, res, next),

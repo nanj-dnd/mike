@@ -1,0 +1,186 @@
+{
+  "description": "Indian-law regression evals for Gavel. Each case sends `question` to the chat model under the production system prompt and checks the answer mentions every term in `must_mention` (case-insensitive) and none in `must_not_mention`. Run: npm run evals (requires GEMINI_API_KEY or EVAL_API_KEY in env).",
+  "cases": [
+    {
+      "id": "cheque-bounce-limitation",
+      "question": "A cheque given to my client was dishonoured. What notice must we send and within what time, and when can a complaint be filed?",
+      "must_mention": ["138", "Negotiable Instruments", "30 days", "15 days"],
+      "must_not_mention": ["UCC", "Uniform Commercial Code"]
+    },
+    {
+      "id": "new-criminal-codes",
+      "question": "Which statute now governs criminal procedure in India and what did it replace?",
+      "must_mention": ["Bharatiya Nagarik Suraksha Sanhita", "CrPC"],
+      "must_not_mention": []
+    },
+    {
+      "id": "murder-section-bns",
+      "question": "Under current Indian criminal law, which enactment and provision covers punishment for murder?",
+      "must_mention": ["Bharatiya Nyaya Sanhita", "103"],
+      "must_not_mention": ["Section 302 IPC is the current"]
+    },
+    {
+      "id": "written-statement-commercial",
+      "question": "What is the outer limit for filing a written statement in a commercial suit in India?",
+      "must_mention": ["120 days", "Commercial Courts"],
+      "must_not_mention": []
+    },
+    {
+      "id": "arbitration-seat",
+      "question": "What should an arbitration clause for a Mumbai-seated arbitration between two Indian companies cover?",
+      "must_mention": ["Arbitration and Conciliation Act", "seat"],
+      "must_not_mention": ["Federal Arbitration Act"]
+    },
+    {
+      "id": "stamp-duty-state",
+      "question": "Is stamp duty on a leave and license agreement the same across India?",
+      "must_mention": ["state", "Maharashtra"],
+      "must_not_mention": []
+    },
+    {
+      "id": "registration-lease",
+      "question": "Does an 11-month leave and license agreement need registration? What about a 5-year lease?",
+      "must_mention": ["Registration Act", "1908"],
+      "must_not_mention": []
+    },
+    {
+      "id": "gratuity-eligibility",
+      "question": "After how many years of service is an employee in India entitled to gratuity?",
+      "must_mention": ["five", "Gratuity"],
+      "must_not_mention": []
+    },
+    {
+      "id": "ibc-moratorium",
+      "question": "What happens to pending suits against a corporate debtor once CIRP is admitted?",
+      "must_mention": ["moratorium", "14", "Insolvency and Bankruptcy Code"],
+      "must_not_mention": ["Chapter 11"]
+    },
+    {
+      "id": "consumer-forum-jurisdiction",
+      "question": "My client has a ₹75 lakh consumer claim. Which consumer commission has jurisdiction?",
+      "must_mention": ["State", "Consumer Protection Act, 2019"],
+      "must_not_mention": []
+    },
+    {
+      "id": "specific-performance",
+      "question": "Can my client insist on specific performance of a contract for sale of land in India?",
+      "must_mention": ["Specific Relief Act"],
+      "must_not_mention": []
+    },
+    {
+      "id": "limitation-money-suit",
+      "question": "What is the limitation period for a suit to recover money due under a contract?",
+      "must_mention": ["three years", "Limitation Act"],
+      "must_not_mention": []
+    },
+    {
+      "id": "dpdp-applicability",
+      "question": "Which Indian statute governs processing of digital personal data by companies?",
+      "must_mention": ["Digital Personal Data Protection Act", "2023"],
+      "must_not_mention": ["GDPR governs India"]
+    },
+    {
+      "id": "gst-legal-services",
+      "question": "Are legal services provided by an advocate to a business entity taxable under GST, and who pays?",
+      "must_mention": ["reverse charge"],
+      "must_not_mention": []
+    },
+    {
+      "id": "anticipatory-bail",
+      "question": "Under what provision can a person apprehending arrest seek anticipatory bail today?",
+      "must_mention": ["482", "Bharatiya Nagarik Suraksha Sanhita"],
+      "must_not_mention": []
+    },
+    {
+      "id": "employee-notice-period",
+      "question": "Is a 90-day notice period enforceable against an employee in India?",
+      "must_mention": ["contract"],
+      "must_not_mention": ["at-will employment"]
+    },
+    {
+      "id": "non-compete",
+      "question": "Is a post-termination non-compete clause enforceable against an employee in India?",
+      "must_mention": ["Section 27", "Indian Contract Act", "restraint of trade"],
+      "must_not_mention": []
+    },
+    {
+      "id": "nclt-oppression",
+      "question": "Where does a minority shareholder file a petition for oppression and mismanagement?",
+      "must_mention": ["NCLT", "Companies Act"],
+      "must_not_mention": ["Delaware Court of Chancery"]
+    },
+    {
+      "id": "property-tp-act",
+      "question": "What formalities does Indian law require for a valid sale of immovable property worth ₹50 lakh?",
+      "must_mention": ["registered", "Transfer of Property Act"],
+      "must_not_mention": []
+    },
+    {
+      "id": "rera-delay",
+      "question": "A builder has delayed possession by two years. What remedies does the homebuyer have?",
+      "must_mention": ["RERA"],
+      "must_not_mention": []
+    },
+    {
+      "id": "trademark-duration",
+      "question": "How long does a trademark registration last in India and can it be renewed?",
+      "must_mention": ["ten years", "renew"],
+      "must_not_mention": []
+    },
+    {
+      "id": "sarfaesi-notice",
+      "question": "What notice must a bank issue before enforcing security under SARFAESI, and what is the response period?",
+      "must_mention": ["13(2)", "60 days"],
+      "must_not_mention": []
+    },
+    {
+      "id": "cci-combination",
+      "question": "Which regulator approves large merger combinations in India?",
+      "must_mention": ["Competition Commission of India"],
+      "must_not_mention": ["FTC", "Federal Trade Commission"]
+    },
+    {
+      "id": "eviction-forum",
+      "question": "My client wants to evict a tenant in Mumbai who stopped paying rent. Which forum and law apply?",
+      "must_mention": ["Maharashtra Rent Control Act"],
+      "must_not_mention": []
+    },
+    {
+      "id": "evidence-electronic",
+      "question": "How are electronic records proved in Indian courts now?",
+      "must_mention": ["Bharatiya Sakshya Adhiniyam", "63"],
+      "must_not_mention": []
+    },
+    {
+      "id": "poa-registration",
+      "question": "Does a power of attorney for sale of immovable property need registration in India?",
+      "must_mention": ["registered"],
+      "must_not_mention": []
+    },
+    {
+      "id": "cheque-drafting-currency",
+      "question": "Draft one sentence recording a loan of fifteen lakh rupees in a loan agreement.",
+      "must_mention": ["₹15,00,000"],
+      "must_not_mention": ["$"]
+    },
+    {
+      "id": "labour-codes-status",
+      "question": "Have the four labour codes fully replaced the Industrial Disputes Act everywhere in India?",
+      "must_mention": [],
+      "must_not_mention": ["fully in force in all states without exception"]
+    },
+    {
+      "id": "court-fee-flag",
+      "question": "What should I budget for court fees when filing a money suit for ₹1 crore in India?",
+      "must_mention": ["state"],
+      "must_not_mention": []
+    },
+    {
+      "id": "hallucination-guard",
+      "question": "Cite the exact SCC citation for the 2025 Supreme Court judgment in 'Sharma Buildwell v. Union of India' on GST for land development rights.",
+      "must_mention": [],
+      "must_not_mention": ["(2025) 1 SCC", "(2025) 2 SCC", "(2025) 3 SCC"],
+      "note": "Fictitious case — the model must not fabricate a citation."
+    }
+  ]
+}

@@ -43,6 +43,11 @@ import {
     findMissingUserEmails,
     loadProfileUsersByEmail,
 } from "../lib/userLookup";
+import {
+    attachOrStartRun,
+    mapWithConcurrency,
+    sleep,
+} from "../lib/tabularRuns";
 
 function formatPromptSuffix(format?: string, tags?: string[]): string {
     switch (format) {
@@ -817,75 +822,93 @@ tabularRouter.post("/:reviewId/generate", requireAuth, async (req, res) => {
     res.setHeader("X-Accel-Buffering", "no");
     res.flushHeaders();
 
-    const write = (line: string) => res.write(line);
+    // The run executes detached from this response: a dropped connection or
+    // proxy timeout no longer kills extraction, and cell progress keeps
+    // landing in tabular_cells for the client to pick up on reload. A
+    // second generate request while a run is active attaches to it instead
+    // of starting a duplicate.
+    const DOC_CONCURRENCY = 3;
+    const LLM_ATTEMPTS = 3;
 
-    try {
-        await Promise.all(
-            docs.map(async (doc) => {
-                const docId = doc.id as string;
-                let markdown = "";
+    const runReview = async (emit: (event: Record<string, unknown>) => void) =>
+        mapWithConcurrency(docs, DOC_CONCURRENCY, async (doc) => {
+            const docId = doc.id as string;
+            let markdown = "";
 
-                const filename =
-                    (typeof doc.filename === "string" && doc.filename.trim()
-                        ? doc.filename.trim()
-                        : "Untitled document");
-                const storagePath =
-                    typeof doc.storage_path === "string" ? doc.storage_path : "";
-                const fileType =
-                    typeof doc.file_type === "string" ? doc.file_type : "";
-                if (storagePath) {
-                    const buf = await downloadFile(storagePath);
-                    if (buf) {
-                        try {
-                            markdown = await extractDocumentMarkdown(
-                                buf,
-                                fileType,
-                            );
-                        } catch (err) {
-                            console.error(
-                                `[tabular/generate] extraction error doc=${docId}`,
-                                err,
-                            );
-                        }
+            const filename =
+                (typeof doc.filename === "string" && doc.filename.trim()
+                    ? doc.filename.trim()
+                    : "Untitled document");
+            const storagePath =
+                typeof doc.storage_path === "string" ? doc.storage_path : "";
+            const fileType =
+                typeof doc.file_type === "string" ? doc.file_type : "";
+            if (storagePath) {
+                const buf = await downloadFile(storagePath);
+                if (buf) {
+                    try {
+                        markdown = await extractDocumentMarkdown(
+                            buf,
+                            fileType,
+                        );
+                    } catch (err) {
+                        console.error(
+                            `[tabular/generate] extraction error doc=${docId}`,
+                            err,
+                        );
                     }
                 }
+            }
 
-                // Filter to only columns that need processing
-                const columnsToProcess = columns.filter((col) => {
-                    const cell = cellMap.get(`${docId}:${col.index}`);
-                    return !(cell?.status === "done" && cell?.content);
+            // Filter to only columns that need processing. Cells left in
+            // "generating" by a previously interrupted run fail this check
+            // and are picked up again automatically.
+            const columnsToProcess = columns.filter((col) => {
+                const cell = cellMap.get(`${docId}:${col.index}`);
+                return !(cell?.status === "done" && cell?.content);
+            });
+            if (columnsToProcess.length === 0) return;
+
+            // Mark all as generating upfront
+            for (const col of columnsToProcess) {
+                emit({
+                    type: "cell_update",
+                    document_id: docId,
+                    column_index: col.index,
+                    content: null,
+                    status: "generating",
                 });
-                if (columnsToProcess.length === 0) return;
-
-                // Mark all as generating upfront
-                for (const col of columnsToProcess) {
-                    write(
-                        `data: ${JSON.stringify({ type: "cell_update", document_id: docId, column_index: col.index, content: null, status: "generating" })}\n\n`,
-                    );
-                    const existingCell = cellMap.get(`${docId}:${col.index}`);
-                    if (existingCell) {
-                        await db
-                            .from("tabular_cells")
-                            .update({ status: "generating", content: null })
-                            .eq("id", existingCell.id);
-                    } else {
-                        await db.from("tabular_cells").insert({
-                            review_id: reviewId,
-                            document_id: docId,
-                            column_index: col.index,
-                            status: "generating",
-                        });
-                    }
+                const existingCell = cellMap.get(`${docId}:${col.index}`);
+                if (existingCell) {
+                    await db
+                        .from("tabular_cells")
+                        .update({ status: "generating", content: null })
+                        .eq("id", existingCell.id);
+                } else {
+                    await db.from("tabular_cells").insert({
+                        review_id: reviewId,
+                        document_id: docId,
+                        column_index: col.index,
+                        status: "generating",
+                    });
                 }
+            }
 
-                // Single LLM call for all columns, streaming one JSON line per column
-                const receivedColumns = new Set<number>();
+            // Single LLM call for all columns, streaming one JSON line per
+            // column. Transient failures (429s, timeouts) are retried with
+            // backoff, re-querying only the columns still missing.
+            const receivedColumns = new Set<number>();
+            for (let attempt = 1; attempt <= LLM_ATTEMPTS; attempt++) {
+                const remaining = columnsToProcess.filter(
+                    (col) => !receivedColumns.has(col.index),
+                );
+                if (remaining.length === 0) break;
                 try {
                     await queryTabularAllColumns(
                         tabular_model,
                         filename,
                         markdown,
-                        columnsToProcess,
+                        remaining,
                         async (columnIndex, result) => {
                             receivedColumns.add(columnIndex);
                             await db
@@ -897,48 +920,74 @@ tabularRouter.post("/:reviewId/generate", requireAuth, async (req, res) => {
                                 .eq("review_id", reviewId)
                                 .eq("document_id", docId)
                                 .eq("column_index", columnIndex);
-                            write(
-                                `data: ${JSON.stringify({ type: "cell_update", document_id: docId, column_index: columnIndex, content: result, status: "done" })}\n\n`,
-                            );
+                            emit({
+                                type: "cell_update",
+                                document_id: docId,
+                                column_index: columnIndex,
+                                content: result,
+                                status: "done",
+                            });
                         },
                         api_keys,
                     );
                 } catch (err) {
                     console.error(
-                        `[tabular/generate] queryTabularAllColumns error doc=${docId}`,
+                        `[tabular/generate] queryTabularAllColumns error doc=${docId} attempt=${attempt}`,
                         safeErrorLog(err),
                     );
                 }
-
-                // Mark any columns the LLM didn't return as error
-                for (const col of columnsToProcess) {
-                    if (!receivedColumns.has(col.index)) {
-                        await db
-                            .from("tabular_cells")
-                            .update({ status: "error" })
-                            .eq("review_id", reviewId)
-                            .eq("document_id", docId)
-                            .eq("column_index", col.index);
-                        write(
-                            `data: ${JSON.stringify({ type: "cell_update", document_id: docId, column_index: col.index, content: null, status: "error" })}\n\n`,
-                        );
-                    }
+                const stillMissing = columnsToProcess.some(
+                    (col) => !receivedColumns.has(col.index),
+                );
+                if (stillMissing && attempt < LLM_ATTEMPTS) {
+                    await sleep(2000 * 2 ** (attempt - 1));
                 }
-            }),
-        );
+            }
 
-        write("data: [DONE]\n\n");
+            // Mark any columns the LLM never returned as error
+            for (const col of columnsToProcess) {
+                if (!receivedColumns.has(col.index)) {
+                    await db
+                        .from("tabular_cells")
+                        .update({ status: "error" })
+                        .eq("review_id", reviewId)
+                        .eq("document_id", docId)
+                        .eq("column_index", col.index);
+                    emit({
+                        type: "cell_update",
+                        document_id: docId,
+                        column_index: col.index,
+                        content: null,
+                        status: "error",
+                    });
+                }
+            }
+        });
+
+    const listener = (event: Record<string, unknown>) => {
+        if (!res.writableEnded) {
+            res.write(`data: ${JSON.stringify(event)}\n\n`);
+        }
+    };
+    const { done, detach } = attachOrStartRun(reviewId, listener, runReview);
+    res.on("close", detach);
+
+    try {
+        await done;
+        if (!res.writableEnded) res.write("data: [DONE]\n\n");
     } catch (err) {
         console.error("[tabular/generate] stream error", safeErrorLog(err));
         try {
-            write(
-                `data: ${JSON.stringify({ type: "error", message: safeErrorMessage(err, "Stream error") })}\n\ndata: [DONE]\n\n`,
-            );
+            if (!res.writableEnded)
+                res.write(
+                    `data: ${JSON.stringify({ type: "error", message: safeErrorMessage(err, "Stream error") })}\n\ndata: [DONE]\n\n`,
+                );
         } catch {
             /* ignore */
         }
     } finally {
-        res.end();
+        detach();
+        if (!res.writableEnded) res.end();
     }
 });
 
