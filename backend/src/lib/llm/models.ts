@@ -60,6 +60,52 @@ export function resolveModel(id: string | null | undefined, fallback: string): s
     return fallback;
 }
 
+// ---------------------------------------------------------------------------
+// Key-aware default models
+// ---------------------------------------------------------------------------
+// When the user hasn't explicitly picked a model for a task (title generation,
+// tabular review), default to the first provider in this order that they have
+// an API key for. An explicit pick in Account → Model Preferences always wins
+// over this order.
+export const PROVIDER_PREFERENCE: readonly Provider[] = [
+    "gemini",
+    "openai",
+    "claude",
+];
+
+export type ModelTier = "low" | "mid";
+
+const TIER_DEFAULT_BY_PROVIDER: Record<ModelTier, Record<Provider, string>> = {
+    low: {
+        gemini: DEFAULT_TITLE_MODEL,
+        openai: OPENAI_LOW_MODELS[0],
+        claude: CLAUDE_LOW_MODELS[0],
+    },
+    mid: {
+        gemini: DEFAULT_TABULAR_MODEL,
+        openai: OPENAI_MID_MODELS[0],
+        claude: CLAUDE_MID_MODELS[0],
+    },
+};
+
+/**
+ * Pick the default model of `tier` for the first provider in
+ * PROVIDER_PREFERENCE that the user has a key for. Accepts either stored key
+ * strings (UserApiKeys) or boolean status flags (ApiKeyStatus). With no user
+ * keys at all, falls back to Gemini (the dev-mode env fallback).
+ */
+export function defaultModelForKeys(
+    tier: ModelTier,
+    apiKeys: Partial<Record<Provider, string | boolean | null>>,
+): string {
+    for (const provider of PROVIDER_PREFERENCE) {
+        const key = apiKeys[provider];
+        const hasKey = typeof key === "string" ? !!key.trim() : key === true;
+        if (hasKey) return TIER_DEFAULT_BY_PROVIDER[tier][provider];
+    }
+    return TIER_DEFAULT_BY_PROVIDER[tier].gemini;
+}
+
 export function providerDisplayName(provider: Provider): string {
     if (provider === "claude") return "Anthropic";
     if (provider === "openai") return "OpenAI";
