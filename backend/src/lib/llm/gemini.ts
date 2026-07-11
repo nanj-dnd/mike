@@ -30,10 +30,10 @@ type GeminiContent = {
 };
 
 function apiKey(override?: string | null): string {
-  const key = override?.trim() || process.env.GEMINI_API_KEY?.trim() || "";
+  const key = override?.trim() || "";
   if (!key) {
     throw new Error(
-      "Gemini API key is not configured. Set GEMINI_API_KEY or add a user Gemini key.",
+      "Gemini API key is not configured. Add your Gemini API key in Account \u2192 API Keys.",
     );
   }
   return key;

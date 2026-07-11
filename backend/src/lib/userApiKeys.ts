@@ -50,7 +50,16 @@ function envApiKey(provider: ApiKeyProvider): string | null {
     }
 }
 
+/**
+ * LLM keys are strictly bring-your-own: every user must add their own
+ * provider key (encrypted per user) before they can run models. Platform
+ * env keys are honoured only for CourtListener, where the platform-hosted
+ * bulk data is the documented default.
+ */
+const ENV_FALLBACK_PROVIDERS: readonly ApiKeyProvider[] = ["courtlistener"];
+
 export function hasEnvApiKey(provider: ApiKeyProvider): boolean {
+    if (!ENV_FALLBACK_PROVIDERS.includes(provider)) return false;
     return !!envApiKey(provider);
 }
 
@@ -153,12 +162,16 @@ export async function getUserApiKeys(
     userId: string,
     db: Db = createServerSupabase(),
 ): Promise<UserApiKeys> {
+    // LLM providers start empty: no platform fallback. Only CourtListener
+    // may fall back to the platform env key (see ENV_FALLBACK_PROVIDERS).
     const apiKeys: UserApiKeys = {
-        claude: envApiKey("claude"),
-        gemini: envApiKey("gemini"),
-        openai: envApiKey("openai"),
-        openrouter: envApiKey("openrouter"),
-        courtlistener: envApiKey("courtlistener"),
+        claude: null,
+        gemini: null,
+        openai: null,
+        openrouter: null,
+        courtlistener: hasEnvApiKey("courtlistener")
+            ? envApiKey("courtlistener")
+            : null,
     };
 
     const { data, error } = await db
@@ -167,11 +180,12 @@ export async function getUserApiKeys(
         .eq("user_id", userId);
     if (error) throw error;
 
+    // A user's own stored key always wins over any env fallback.
     for (const row of (data ?? []) as EncryptedKeyRow[]) {
         const provider = normalizeApiKeyProvider(row.provider);
         if (!provider) continue;
-        if (apiKeys[provider]?.trim()) continue;
-        apiKeys[provider] = decrypt(row);
+        const userKey = decrypt(row);
+        if (userKey?.trim()) apiKeys[provider] = userKey;
     }
 
     return apiKeys;

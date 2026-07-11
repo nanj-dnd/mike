@@ -2,6 +2,11 @@ import { Router } from "express";
 import { requireAuth } from "../middleware/auth";
 import { createServerSupabase } from "../lib/supabase";
 import {
+    DEFAULT_MAIN_MODEL,
+    missingModelApiKey,
+    resolveModel,
+} from "../lib/llm";
+import {
     buildProjectDocContext,
     buildMessages,
     buildWorkflowStore,
@@ -167,6 +172,16 @@ projectChatRouter.post("/", requireAuth, async (req, res) => {
         api_keys: apiKeys,
         legal_research_us: legalResearchUs,
     } = await getUserModelSettings(userId, db);
+    const missingKey = missingModelApiKey(
+        resolveModel(model, DEFAULT_MAIN_MODEL),
+        apiKeys,
+    );
+    if (missingKey) {
+        return void res.status(422).json({
+            code: "missing_api_key",
+            ...missingKey,
+        });
+    }
     const apiMessages = buildMessages(
         messagesForLLM,
         docAvailability,

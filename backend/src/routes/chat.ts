@@ -17,7 +17,12 @@ import {
     parseAskInputsResponsePayload,
     type ChatMessage,
 } from "../lib/chat";
-import { completeText } from "../lib/llm";
+import {
+    completeText,
+    DEFAULT_MAIN_MODEL,
+    missingModelApiKey,
+    resolveModel,
+} from "../lib/llm";
 import {
     getUserModelSettings,
 } from "../lib/userSettings";
@@ -547,6 +552,16 @@ chatRouter.post("/", requireAuth, async (req, res) => {
         api_keys: apiKeys,
         legal_research_us: legalResearchUs,
     } = await getUserModelSettings(userId, db);
+    const missingKey = missingModelApiKey(
+        resolveModel(model, DEFAULT_MAIN_MODEL),
+        apiKeys,
+    );
+    if (missingKey) {
+        return void res.status(422).json({
+            code: "missing_api_key",
+            ...missingKey,
+        });
+    }
     const apiMessages = buildMessages(
         enrichedMessages,
         docAvailability,

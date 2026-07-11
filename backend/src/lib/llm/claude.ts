@@ -22,10 +22,10 @@ type NativeMessage = {
 const MAX_TOKENS = 16384;
 
 function apiKey(override?: string | null): string {
-  const key = override?.trim() || process.env.ANTHROPIC_API_KEY?.trim() || "";
+  const key = override?.trim() || "";
   if (!key) {
     throw new Error(
-      "Anthropic API key is not configured. Set ANTHROPIC_API_KEY or add a user Anthropic key.",
+      "Anthropic API key is not configured. Add your Anthropic API key in Account \u2192 API Keys.",
     );
   }
   return key;

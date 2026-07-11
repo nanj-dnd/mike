@@ -57,9 +57,10 @@ export default function ApiKeysPage() {
                 API Keys
             </h2>
             <p className="text-sm text-gray-500 mb-4">
-                You must provide your own API keys for the app to work or add
-                your API keys into the .env file if you are running your own
-                instance of Gavel. All API keys are encrypted in storage.
+                Gavel is bring-your-own-key: add your own AI provider API key
+                below to use the assistant, tabular reviews, and drafting.
+                Keys are encrypted at rest and used only for your own
+                requests.
             </p>
             <AccountSection>
                 {MODEL_API_KEY_FIELDS.map((field, index) => (

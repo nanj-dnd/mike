@@ -54,10 +54,10 @@ type ResponseStreamEvent = {
 };
 
 function apiKey(override?: string | null): string {
-  const key = override?.trim() || process.env.OPENAI_API_KEY?.trim() || "";
+  const key = override?.trim() || "";
   if (!key) {
     throw new Error(
-      "OpenAI API key is not configured. Set OPENAI_API_KEY or add a user OpenAI key.",
+      "OpenAI API key is not configured. Add your OpenAI API key in Account \u2192 API Keys.",
     );
   }
   return key;

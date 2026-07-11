@@ -26,6 +26,7 @@ import {
 } from "../lib/chat";
 import {
     completeText,
+    providerDisplayName,
     providerForModel,
     streamChatWithTools,
     type Provider,
@@ -70,19 +71,13 @@ function formatPromptSuffix(format?: string, tags?: string[]): string {
 
 export const tabularRouter = Router();
 
-function providerLabel(provider: Provider): string {
-    if (provider === "claude") return "Anthropic";
-    if (provider === "openai") return "OpenAI";
-    return "Gemini";
-}
-
 function missingModelApiKey(model: string, apiKeys: UserApiKeys) {
     const provider = providerForModel(model);
     if (apiKeys[provider]?.trim()) return null;
     return {
         provider,
         model,
-        detail: `${providerLabel(provider)} API key is required to use ${model}. Add an API key or select a different tabular review model.`,
+        detail: `${providerDisplayName(provider)} API key is required to use ${model}. Add your own API key in Account → API Keys, or select a different tabular review model.`,
     };
 }
 
