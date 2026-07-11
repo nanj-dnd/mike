@@ -23,7 +23,11 @@ export type AuditAction =
     | "data.delete"
     | "account.delete"
     | "api_key.save"
-    | "api_key.delete";
+    | "api_key.delete"
+    | "organization.create"
+    | "organization.invite_member"
+    | "organization.change_role"
+    | "organization.remove_member";
 
 let auditDisabled = false;
 

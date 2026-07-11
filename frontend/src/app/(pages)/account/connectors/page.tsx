@@ -632,6 +632,13 @@ export default function ConnectorsPage() {
                 )}
             </div>
 
+            <RecommendedConnectors
+                onQuickAdd={(name, serverUrl) => {
+                    setAddDraft({ ...emptyAddDraft, name, serverUrl });
+                    setAddOpen(true);
+                }}
+            />
+
             <NewMcpModal
                 open={addOpen}
                 draft={addDraft}
@@ -717,6 +724,113 @@ function ConnectorsSkeleton() {
                 </AccountSection>
             ))}
         </>
+    );
+}
+
+type RecommendedConnector = {
+    name: string;
+    tagline: string;
+    /**
+     * Only set when we have a verified, stable public MCP server URL —
+     * clicking "Quick add" pre-fills the Add modal with it. Everything
+     * else here needs the URL/token from the user's own account with
+     * that provider, so it links out instead of pretending to one-click.
+     */
+    serverUrl?: string;
+    learnMoreUrl?: string;
+};
+
+const RECOMMENDED_CONNECTORS: RecommendedConnector[] = [
+    {
+        name: "Notion",
+        tagline:
+            "Matter wikis, precedent banks, and internal know-how — searchable from chat.",
+        serverUrl: "https://mcp.notion.com/mcp",
+    },
+    {
+        name: "Google Drive / Workspace",
+        tagline:
+            "Pull client-shared documents and firm templates without a manual upload step.",
+        learnMoreUrl: "https://workspace.google.com/marketplace",
+    },
+    {
+        name: "Slack",
+        tagline:
+            "Post matter updates, deadline reminders, and AI summaries into the right channel.",
+        learnMoreUrl: "https://slack.com/marketplace",
+    },
+    {
+        name: "Zoho Books / Zoho CRM",
+        tagline:
+            "Common in Indian firms for GST-compliant billing — reconcile invoices against matters.",
+        learnMoreUrl: "https://www.zoho.com/marketplace/",
+    },
+    {
+        name: "Google Calendar",
+        tagline:
+            "Surface hearing dates and limitation deadlines from your matter calendar in chat.",
+        learnMoreUrl: "https://workspace.google.com/marketplace",
+    },
+    {
+        name: "E-signature (DocuSign / Leegality / Digio)",
+        tagline:
+            "Send a drafted agreement straight for e-signature — Leegality and Digio support Aadhaar eSign for Indian execution.",
+        learnMoreUrl: "https://www.docusign.com/",
+    },
+];
+
+function RecommendedConnectors({
+    onQuickAdd,
+}: {
+    onQuickAdd: (name: string, serverUrl: string) => void;
+}) {
+    return (
+        <div className="mt-8">
+            <h3 className="mb-1 text-sm font-medium text-gray-900">
+                Recommended for law firms
+            </h3>
+            <p className="mb-3 text-sm text-gray-500">
+                Each provider issues its own MCP server URL (and often a
+                token) from your account with them — paste it into Add. Where
+                we know a stable public URL, Quick add fills it in for you.
+            </p>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                {RECOMMENDED_CONNECTORS.map((c) => (
+                    <AccountSection key={c.name} className="p-3.5">
+                        <div className="flex items-start justify-between gap-2">
+                            <p className="text-sm font-medium text-gray-900">
+                                {c.name}
+                            </p>
+                            {c.serverUrl ? (
+                                <button
+                                    type="button"
+                                    onClick={() =>
+                                        onQuickAdd(c.name, c.serverUrl!)
+                                    }
+                                    className="shrink-0 text-xs font-medium text-blue-600 hover:underline"
+                                >
+                                    Quick add
+                                </button>
+                            ) : (
+                                c.learnMoreUrl && (
+                                    <a
+                                        href={c.learnMoreUrl}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="shrink-0 text-xs font-medium text-gray-400 hover:text-gray-600"
+                                    >
+                                        Learn more
+                                    </a>
+                                )
+                            )}
+                        </div>
+                        <p className="mt-1 text-xs leading-5 text-gray-500">
+                            {c.tagline}
+                        </p>
+                    </AccountSection>
+                ))}
+            </div>
+        </div>
     );
 }
 

@@ -179,6 +179,108 @@ export async function createProject(
     });
 }
 
+// ---------------------------------------------------------------------------
+// Organizations (RBAC)
+// ---------------------------------------------------------------------------
+
+export type OrgRole = "admin" | "partner" | "associate";
+
+export interface OrganizationSummary {
+    id: string;
+    name: string;
+    created_at: string;
+    my_role: OrgRole;
+}
+
+export interface OrganizationMember {
+    id: string;
+    email: string;
+    role: OrgRole;
+    status: "invited" | "active";
+    created_at: string;
+}
+
+export interface AuditLogEntry {
+    id: string;
+    created_at: string;
+    user_id: string;
+    user_email: string | null;
+    action: string;
+    resource_type: string | null;
+    resource_id: string | null;
+    ip: string | null;
+}
+
+export async function listOrganizations(): Promise<OrganizationSummary[]> {
+    const { organizations } = await apiRequest<{
+        organizations: OrganizationSummary[];
+    }>("/organizations");
+    return organizations;
+}
+
+export async function createOrganization(
+    name: string,
+): Promise<OrganizationSummary> {
+    return apiRequest<OrganizationSummary>("/organizations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name }),
+    });
+}
+
+export async function listOrganizationMembers(orgId: string): Promise<{
+    my_role: OrgRole;
+    members: OrganizationMember[];
+}> {
+    return apiRequest(`/organizations/${orgId}/members`);
+}
+
+export async function inviteOrganizationMember(
+    orgId: string,
+    email: string,
+    role: OrgRole,
+): Promise<OrganizationMember> {
+    return apiRequest<OrganizationMember>(`/organizations/${orgId}/members`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, role }),
+    });
+}
+
+export async function updateOrganizationMemberRole(
+    orgId: string,
+    memberId: string,
+    role: OrgRole,
+): Promise<void> {
+    await apiRequest<{ ok: boolean }>(
+        `/organizations/${orgId}/members/${memberId}`,
+        {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ role }),
+        },
+    );
+}
+
+export async function removeOrganizationMember(
+    orgId: string,
+    memberId: string,
+): Promise<void> {
+    await apiRequest<{ ok: boolean }>(
+        `/organizations/${orgId}/members/${memberId}`,
+        { method: "DELETE" },
+    );
+}
+
+export async function getOrganizationAuditLog(
+    orgId: string,
+): Promise<AuditLogEntry[]> {
+    const { entries } = await apiRequest<{ entries: AuditLogEntry[] }>(
+        `/organizations/${orgId}/audit-log`,
+    );
+    return entries;
+}
+
 export async function deleteAccount(): Promise<void> {
     return apiRequest<void>("/user/account", { method: "DELETE" });
 }

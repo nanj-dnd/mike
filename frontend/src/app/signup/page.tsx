@@ -10,6 +10,7 @@ import { SiteLogo } from "@/app/components/site-logo";
 import { CheckCircle2 } from "lucide-react";
 import { useAuth } from "@/app/contexts/AuthContext";
 import { updateUserProfile } from "@/app/lib/mikeApi";
+import { GoogleSignInButton } from "@/app/components/auth/GoogleSignInButton";
 
 const authGlassCardClassName =
     "rounded-2xl border border-white/70 bg-white/72 p-8 shadow-[0_4px_14px_rgba(15,23,42,0.045),inset_0_1px_0_rgba(255,255,255,0.86),inset_0_-8px_18px_rgba(255,255,255,0.12)] backdrop-blur-2xl";
@@ -148,6 +149,14 @@ export default function SignupPage() {
                                 Sign up
                             </span>
                         </div>
+                    </div>
+
+                    <GoogleSignInButton label="Continue with Google" />
+
+                    <div className="my-4 flex items-center gap-3">
+                        <div className="h-px flex-1 bg-gray-200" />
+                        <span className="text-xs text-gray-400">or</span>
+                        <div className="h-px flex-1 bg-gray-200" />
                     </div>
 
                     <form onSubmit={handleSignup} className="space-y-4">
