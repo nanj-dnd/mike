@@ -1,9 +1,15 @@
 "use client";
 
 import { useCallback, useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { PanelLeft } from "lucide-react";
 import { useAuth } from "@/app/contexts/AuthContext";
+import { useUserProfile } from "@/app/contexts/UserProfileContext";
+import {
+    hasAnyModelApiKey,
+    isOnboardingDone,
+    markOnboardingDone,
+} from "@/app/lib/onboarding";
 import { ChatHistoryProvider } from "@/app/contexts/ChatHistoryContext";
 import { SidebarContext } from "@/app/contexts/SidebarContext";
 import { PageChromeContext } from "@/app/contexts/PageChromeContext";
@@ -15,7 +21,9 @@ export default function MikeLayout({
     children: React.ReactNode;
 }) {
     const { isAuthenticated, authLoading } = useAuth();
+    const { profile, loading: profileLoading } = useUserProfile();
     const router = useRouter();
+    const pathname = usePathname();
     const [mobileActionsContainer, setMobileActionsContainer] =
         useState<HTMLDivElement | null>(null);
 
@@ -73,6 +81,21 @@ export default function MikeLayout({
             router.push("/login");
         }
     }, [authLoading, isAuthenticated, router]);
+
+    // First login: send BYO-key users with no model API key to the API
+    // Keys page once. Users who already have a key are marked done so
+    // they're never redirected, on this or any future login.
+    useEffect(() => {
+        if (authLoading || !isAuthenticated || profileLoading || !profile)
+            return;
+        if (hasAnyModelApiKey(profile.apiKeys)) {
+            markOnboardingDone();
+            return;
+        }
+        if (isOnboardingDone() || pathname.startsWith("/account")) return;
+        markOnboardingDone();
+        router.replace("/account/api-keys?onboarding=1");
+    }, [authLoading, isAuthenticated, profileLoading, profile, pathname, router]);
 
     if (authLoading) {
         return (

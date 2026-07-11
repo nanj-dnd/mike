@@ -11,6 +11,7 @@ import {
     DropdownMenuTrigger,
 } from "@/app/components/ui/dropdown-menu";
 import { useUserProfile } from "@/app/contexts/UserProfileContext";
+import { isOnboardingQueryActive } from "@/app/lib/onboarding";
 import type { ApiKeyState } from "@/app/lib/mikeApi";
 import {
     MODELS,
@@ -40,7 +41,12 @@ export default function ModelPreferencesPage() {
     const [optimisticValues, setOptimisticValues] = useState<
         Partial<Record<ModelPreferenceField, string>>
     >({});
+    const [onboarding, setOnboarding] = useState(false);
     const savedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    useEffect(() => {
+        setOnboarding(isOnboardingQueryActive());
+    }, []);
 
     useEffect(() => {
         return () => {
@@ -79,6 +85,17 @@ export default function ModelPreferencesPage() {
                     Model Preferences
                 </h2>
             </div>
+            {onboarding && (
+                <div className="mb-4 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-gray-700">
+                    <p className="mb-1 font-medium text-gray-900">
+                        You&apos;re all set
+                    </p>
+                    Defaults matching your API key are already selected.
+                    Optionally pick which models Gavel uses for chat titles
+                    and tabular reviews — you can change this anytime, and
+                    you&apos;re ready to start using the assistant.
+                </div>
+            )}
             <AccountSection>
                 <div className="px-4 py-5">
                     <label className="text-sm font-medium text-gray-700 block mb-2">

@@ -1,9 +1,15 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Eye, EyeOff } from "lucide-react";
 import { Input } from "@/app/components/ui/input";
 import { useUserProfile } from "@/app/contexts/UserProfileContext";
+import {
+    hasAnyModelApiKey,
+    isOnboardingQueryActive,
+    markOnboardingDone,
+} from "@/app/lib/onboarding";
 import {
     MfaVerificationPopup,
     needsMfaVerification,
@@ -50,12 +56,38 @@ const OTHER_API_KEY_FIELDS = [
 
 export default function ApiKeysPage() {
     const { profile, updateApiKey } = useUserProfile();
+    const router = useRouter();
+    const [onboarding, setOnboarding] = useState(false);
+
+    useEffect(() => {
+        setOnboarding(isOnboardingQueryActive());
+    }, []);
+
+    // Onboarding step 2: once the first model key is saved, move on to
+    // Model Preferences.
+    const hasModelKey = hasAnyModelApiKey(profile?.apiKeys);
+    useEffect(() => {
+        if (!onboarding || !hasModelKey) return;
+        markOnboardingDone();
+        router.replace("/account/models?onboarding=1");
+    }, [onboarding, hasModelKey, router]);
 
     return (
         <div>
             <h2 className="mb-3 text-2xl font-medium font-serif text-gray-900">
                 API Keys
             </h2>
+            {onboarding && !hasModelKey && (
+                <div className="mb-4 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-gray-700">
+                    <p className="mb-1 font-medium text-gray-900">
+                        Welcome to Gavel
+                    </p>
+                    To get started, add an API key for at least one AI
+                    provider — Google (Gemini), Anthropic (Claude), or OpenAI.
+                    Once you save a key, we&apos;ll take you to model
+                    preferences.
+                </div>
+            )}
             <p className="text-sm text-gray-500 mb-4">
                 Gavel is bring-your-own-key: add your own AI provider API key
                 below to use the assistant, tabular reviews, and drafting.
