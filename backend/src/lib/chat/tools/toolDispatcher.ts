@@ -7,6 +7,7 @@ import {
   searchIndianKanoon,
   readIndianKanoonDoc,
 } from "../../indiankanoon";
+import { searchDocumentChunks } from "../../documentIndex";
 import {
   INDIANKANOON_TOOL_NAMES,
   type IndianKanoonToolEvent,
@@ -838,6 +839,92 @@ export async function runToolCalls(
         tool_call_id: tc.id,
         content: lines.join("\n") || "No cells found.",
       });
+    } else if (tc.function.name === "search_documents") {
+      const query = typeof args.query === "string" ? args.query.trim() : "";
+      try {
+        if (!query) throw new Error("query is required.");
+        // Map chat-local labels to document ids; default to all available.
+        const byDocumentId = new Map<
+          string,
+          { slug: string; filename: string }
+        >();
+        for (const [slug, info] of Object.entries(docIndex ?? {})) {
+          if (info.document_id) {
+            byDocumentId.set(info.document_id, {
+              slug,
+              filename: info.filename,
+            });
+          }
+        }
+        const requestedSlugs = Array.isArray(args.docIds)
+          ? (args.docIds as unknown[]).filter(
+              (v): v is string => typeof v === "string",
+            )
+          : null;
+        const documentIds = requestedSlugs?.length
+          ? requestedSlugs
+              .map((slug) => docIndex?.[slug]?.document_id)
+              .filter((id): id is string => !!id)
+          : [...byDocumentId.keys()];
+
+        const outcome = await searchDocumentChunks({
+          query,
+          documentIds,
+          userId,
+          apiKeys: apiKeys ?? {},
+          matchCount:
+            typeof args.maxResults === "number" ? args.maxResults : undefined,
+        });
+
+        const lines: string[] = [];
+        if (outcome.indexUnavailable) {
+          lines.push(
+            "Semantic index is not available on this deployment. Use read_document or find_in_document instead.",
+          );
+        } else if (outcome.embeddingsUnavailable) {
+          lines.push(
+            "Semantic search needs a Gemini or OpenAI API key for embeddings; none is configured. Use read_document or find_in_document instead.",
+          );
+        } else {
+          for (const m of outcome.matches) {
+            const doc = byDocumentId.get(m.document_id);
+            const label = doc
+              ? `${doc.slug} "${doc.filename}"`
+              : m.document_id;
+            const where = m.page ? ` (page ${m.page})` : "";
+            lines.push(
+              `[${label}${where}, relevance ${m.similarity.toFixed(2)}]\n${m.content}`,
+            );
+          }
+          if (outcome.matches.length === 0) {
+            lines.push("No relevant passages found.");
+          }
+          if (outcome.unindexedDocIds.length > 0) {
+            const names = outcome.unindexedDocIds
+              .map((id) => byDocumentId.get(id)?.filename ?? id)
+              .join(", ");
+            lines.push(
+              `Note: not yet indexed (indexing started, retry shortly or read directly): ${names}`,
+            );
+          }
+        }
+        toolResults.push({
+          role: "tool",
+          tool_call_id: tc.id,
+          content: lines.join("\n\n"),
+        });
+      } catch (err) {
+        toolResults.push({
+          role: "tool",
+          tool_call_id: tc.id,
+          content: JSON.stringify({
+            error:
+              err instanceof Error
+                ? err.message
+                : "Document search failed.",
+          }),
+        });
+      }
     } else if (tc.function.name === INDIANKANOON_TOOL_NAMES.search) {
       const query = typeof args.query === "string" ? args.query : "";
       write(

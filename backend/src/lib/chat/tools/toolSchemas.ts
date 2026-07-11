@@ -122,6 +122,35 @@ export const TOOLS = [
   {
     type: "function",
     function: {
+      name: "search_documents",
+      description:
+        "Semantic search across the available documents: finds the passages most relevant to a natural-language query, with document names and page numbers. Prefer this over reading documents in full when many or large documents are available and you need to locate where something is discussed. Follow up with read_document or find_in_document on the specific documents the results point to.",
+      parameters: {
+        type: "object",
+        properties: {
+          query: {
+            type: "string",
+            description:
+              "Natural-language description of what to find, e.g. 'termination rights on change of control' or 'stamp duty and registration obligations'.",
+          },
+          docIds: {
+            type: "array",
+            items: { type: "string" },
+            description:
+              "Optional chat-local document labels (e.g. doc-0) to restrict the search to. Defaults to all available documents.",
+          },
+          maxResults: {
+            type: "integer",
+            description: "Maximum passages to return. Default 12.",
+          },
+        },
+        required: ["query"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
       name: "ask_inputs",
       description:
         "Ask the user for one or more decisions, clarifications, or document uploads before continuing. Use this when guessing would materially affect the answer or when required documents have not been attached. Put all needed questions and document requests in one items array. After calling ask_inputs, do not continue the substantive task until the user responds in a later message.",

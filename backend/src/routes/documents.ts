@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { indexDocumentForUser } from "../lib/documentIndex";
 import { requireAuth } from "../middleware/auth";
 import { createServerSupabase } from "../lib/supabase";
 import {
@@ -562,6 +563,7 @@ documentsRouter.post(
       }
     }
 
+    void indexDocumentForUser(documentId, userId);
     res.status(201).json(versionRow);
   },
 );
@@ -721,6 +723,7 @@ documentsRouter.post(
         .json({ detail: "Failed to update document current version." });
     }
 
+    void indexDocumentForUser(documentId, userId);
     res.status(201).json(versionRow);
   },
 );
@@ -1423,6 +1426,8 @@ async function handleDocumentUpload(
           active_version_number: 1,
         }
       : updated;
+    // Index for semantic search on the uploader's key (fire-and-forget).
+    void indexDocumentForUser(docId, userId);
     return void res.status(201).json(responseDoc);
   } catch (e) {
     await db.from("documents").update({ status: "error" }).eq("id", doc.id);
