@@ -268,16 +268,16 @@ export default function SignupPage() {
                     <div className="mt-4 text-center text-xs text-gray-500">
                         By signing up, you agree to our{" "}
                         <Link
-                            href="/support"
+                            href="/terms"
                             target="_blank"
                             rel="noopener noreferrer"
                             className="text-blue-600 hover:underline"
                         >
-                            Terms of Use
+                            Terms of Service
                         </Link>{" "}
                         and{" "}
                         <Link
-                            href="/support"
+                            href="/privacy"
                             target="_blank"
                             rel="noopener noreferrer"
                             className="text-blue-600 hover:underline"
