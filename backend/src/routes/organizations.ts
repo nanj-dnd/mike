@@ -3,6 +3,7 @@ import { requireAuth } from "../middleware/auth";
 import { createServerSupabase } from "../lib/supabase";
 import { normalizeEmail, findProfileUserByEmail } from "../lib/userLookup";
 import { logAudit } from "../lib/auditLog";
+import { sendOrgInviteEmail } from "../lib/email";
 
 export const organizationsRouter = Router();
 
@@ -257,6 +258,18 @@ organizationsRouter.post("/:orgId/members", requireAuth, async (req, res) => {
         resourceId: orgId,
         metadata: { email, role },
         req,
+    });
+    // Notify the invitee by email (fire-and-forget; invite works without it).
+    const { data: orgRow } = await db
+        .from("gavel_organizations")
+        .select("name")
+        .eq("id", orgId)
+        .single();
+    sendOrgInviteEmail({
+        to: email,
+        orgName: (orgRow?.name as string) ?? "your firm",
+        invitedByEmail: admin.email,
+        role,
     });
     res.status(201).json({
         id: data.id,
