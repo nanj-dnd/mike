@@ -80,7 +80,7 @@ export function WorkflowDetailPage({ id, workflowType }: Props) {
     const router = useRouter();
     const { user } = useAuth();
     const { profile } = useUserProfile();
-    const stickyCellBg = "bg-[#fafbfc]";
+    const stickyCellBg = "bg-gray-50";
 
     const [workflow, setWorkflow] = useState<Workflow | null>(null);
     const [loading, setLoading] = useState(true);

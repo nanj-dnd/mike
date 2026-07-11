@@ -155,7 +155,7 @@ export function ProjectDocumentsView({ projectId }: Props) {
     const [addDocsOpen, setAddDocsOpen] = useState(false);
     const setOwnerOnlyAction = workspace.setOwnerOnlyAction;
     const { user } = useAuth();
-    const stickyCellBg = "bg-[#fafbfc]";
+    const stickyCellBg = "bg-gray-50";
     const [viewingDoc, setViewingDoc] = useState<Document | null>(null);
     const [viewingDocVersion, setViewingDocVersion] = useState<{
         id: string;

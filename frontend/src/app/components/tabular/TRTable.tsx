@@ -72,7 +72,7 @@ export const TRTable = forwardRef<TRTableHandle, Props>(function TRTable(
     },
     ref,
 ) {
-    const stickyCellBg = "bg-[#fafbfc]";
+    const stickyCellBg = "bg-gray-50";
     const scrollContainerRef = useRef<HTMLDivElement>(null);
     const headerRef = useRef<HTMLDivElement>(null);
     const lastScrollLeftRef = useRef(0);

@@ -129,10 +129,10 @@
        white ↔ near-black surfaces, gray-900 text ↔ near-white text,
        so dark-filled buttons (bg-gray-950 text-white) become
        light-filled buttons with dark text. */
-    --color-white: oklch(0.205 0 0);
+    --color-white: oklch(0.22 0 0);
     --color-black: oklch(1 0 0);
-    --color-gray-50: oklch(0.16 0 0);
-    --color-gray-100: oklch(0.25 0 0);
+    --color-gray-50: oklch(0.165 0 0);
+    --color-gray-100: oklch(0.26 0 0);
     --color-gray-200: oklch(0.3 0 0);
     --color-gray-300: oklch(0.37 0 0);
     --color-gray-400: oklch(0.55 0 0);
@@ -152,6 +152,9 @@
     --color-slate-700: oklch(0.8 0.02 260);
     --color-slate-800: oklch(0.87 0.015 260);
     --color-slate-900: oklch(0.93 0.01 260);
+    /* neutral-* only appears as gradient stops (chat send button). */
+    --color-neutral-600: oklch(0.72 0 0);
+    --color-neutral-700: oklch(0.8 0 0);
 
     /* Pale status tints used as backgrounds (bg-red-50 & co.) become
        dark tinted surfaces; their 600–800 text shades are lifted so
@@ -180,6 +183,17 @@
     --color-yellow-100: oklch(0.3 0.065 95);
     --color-yellow-700: oklch(0.82 0.14 95);
     --color-yellow-800: oklch(0.86 0.12 95);
+}
+
+/* Many components carry glassmorphism shadows with literal white inset
+   highlights (e.g. shadow-[...,inset_0_1px_0_rgba(255,255,255,0.9)]).
+   Literal rgba() values don't flip with the palette, so in dark mode they
+   render as bright hairlines. Normalize every such class to one subtle
+   dark-glass treatment instead of editing ~30 call sites. */
+.dark [class*="inset_0_1px_0_rgba(255,255,255"] {
+    box-shadow:
+        0 3px 9px rgba(0, 0, 0, 0.35),
+        inset 0 1px 0 rgba(255, 255, 255, 0.06);
 }
 
 /* ── Dark overrides for hardcoded colors below ─────────────────────── */

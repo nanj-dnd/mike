@@ -15,7 +15,7 @@ import {
 } from "@/app/components/shared/RowActions";
 import { GLASS_DROPDOWN } from "@/app/components/shared/HeaderFilterDropdown";
 
-export const TABLE_STICKY_CELL_BG = "bg-[#fafbfc]";
+export const TABLE_STICKY_CELL_BG = "bg-gray-50";
 export const TABLE_PRIMARY_CELL_WIDTH_CLASS =
     "w-[248px] sm:w-[292px] md:w-[332px] shrink-0";
 export const TABLE_CHECKBOX_CLASS =
@@ -81,7 +81,7 @@ export function TableHeaderRow({ children, className, ...props }: DivProps) {
     return (
         <div
             className={cn(
-                "sticky top-0 z-[70] flex h-8 items-center border-b border-gray-200 bg-[#fafbfc] pr-3 text-xs font-medium text-gray-500 select-none md:pr-10",
+                "sticky top-0 z-[70] flex h-8 items-center border-b border-gray-200 bg-gray-50 pr-3 text-xs font-medium text-gray-500 select-none md:pr-10",
                 className,
             )}
             {...props}
