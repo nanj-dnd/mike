@@ -300,6 +300,10 @@ function validateProfilePayload(body: unknown):
               title_model?: string;
               tabular_model?: string;
               legal_research_us?: boolean;
+              role?: string | null;
+              practice_types?: string[] | null;
+              city?: string | null;
+              state?: string | null;
               updated_at: string;
           };
       }
