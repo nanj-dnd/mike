@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { AlertCircle, Upload, Loader2, X } from "lucide-react";
+import { AlertCircle, Cloud, Upload, Loader2, X } from "lucide-react";
 import {
     uploadStandaloneDocument,
     uploadProjectDocument,
@@ -14,6 +14,7 @@ import {
     invalidateDirectoryCache,
 } from "../shared/useDirectoryData";
 import { Modal } from "./Modal";
+import { CloudImportModal } from "./CloudImportModal";
 import {
     SUPPORTED_DOCUMENT_ACCEPT,
     formatUnsupportedDocumentWarning,
@@ -45,6 +46,7 @@ export function AddDocumentsModal({
     const [uploadingFilenames, setUploadingFilenames] = useState<string[]>([]);
     const [uploadWarning, setUploadWarning] = useState<string | null>(null);
     const [extraUploadedDocs, setExtraUploadedDocs] = useState<Document[]>([]);
+    const [cloudImportOpen, setCloudImportOpen] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
@@ -53,6 +55,7 @@ export function AddDocumentsModal({
         setExtraUploadedDocs([]);
         setUploadingFilenames([]);
         setUploadWarning(null);
+        setCloudImportOpen(false);
     }, [open]);
 
     if (!open) return null;
@@ -200,6 +203,17 @@ export function AddDocumentsModal({
                 </div>
             )}
 
+            <div className="mb-2 flex justify-end">
+                <button
+                    type="button"
+                    onClick={() => setCloudImportOpen(true)}
+                    className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-xs font-medium text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-900"
+                >
+                    <Cloud className="h-3.5 w-3.5" />
+                    Import from Drive, OneDrive, or URL
+                </button>
+            </div>
+
             <div className="flex min-h-0 flex-1 flex-col">
                 <FileDirectory
                     standaloneDocs={allStandalone}
@@ -216,6 +230,22 @@ export function AddDocumentsModal({
                     showProjectTabs
                 />
             </div>
+
+            <CloudImportModal
+                open={cloudImportOpen}
+                onClose={() => setCloudImportOpen(false)}
+                projectId={projectId}
+                onImported={(imported) => {
+                    invalidateDirectoryCache();
+                    setExtraUploadedDocs((prev) => [...imported, ...prev]);
+                    imported.forEach((d) =>
+                        setSelectedIds(
+                            (prev) => new Set([...prev, d.id]),
+                        ),
+                    );
+                    setCloudImportOpen(false);
+                }}
+            />
         </Modal>
     );
 }

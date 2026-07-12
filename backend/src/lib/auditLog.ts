@@ -29,7 +29,8 @@ export type AuditAction =
     | "organization.change_role"
     | "organization.remove_member"
     | "clause.save"
-    | "clause.delete";
+    | "clause.delete"
+    | "conflict.check";
 
 let auditDisabled = false;
 

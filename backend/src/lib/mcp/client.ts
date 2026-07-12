@@ -259,15 +259,24 @@ function isBlockedIp(ip: string) {
     return true;
 }
 
-export async function validateRemoteMcpUrl(rawUrl: string): Promise<string> {
+/**
+ * SSRF guard shared by every feature that fetches a user-supplied URL
+ * server-side (remote MCP servers, cloud document import): HTTPS only,
+ * no credentials/fragment, and no host that is local, a metadata
+ * endpoint, or resolves to a private address.
+ */
+export async function validatePublicHttpsUrl(
+    rawUrl: string,
+    label = "URL",
+): Promise<string> {
     let url: URL;
     try {
         url = new URL(rawUrl);
     } catch {
-        throw new Error("MCP server URL must be a valid URL.");
+        throw new Error(`${label} must be a valid URL.`);
     }
     if (url.protocol !== "https:") {
-        throw new Error("MCP server URL must use HTTPS.");
+        throw new Error(`${label} must use HTTPS.`);
     }
     url.username = "";
     url.password = "";
@@ -279,7 +288,7 @@ export async function validateRemoteMcpUrl(rawUrl: string): Promise<string> {
         hostname.endsWith(".localhost") ||
         BLOCKED_METADATA_HOSTS.has(hostname)
     ) {
-        throw new Error("MCP server URL points to a blocked host.");
+        throw new Error(`${label} points to a blocked host.`);
     }
 
     const literalFamily = net.isIP(hostname);
@@ -287,10 +296,14 @@ export async function validateRemoteMcpUrl(rawUrl: string): Promise<string> {
         ? [{ address: hostname }]
         : await dns.lookup(hostname, { all: true, verbatim: true });
     if (!addresses.length || addresses.some(({ address }) => isBlockedIp(address))) {
-        throw new Error("MCP server URL resolves to a blocked network address.");
+        throw new Error(`${label} resolves to a blocked network address.`);
     }
 
     return url.toString();
+}
+
+export async function validateRemoteMcpUrl(rawUrl: string): Promise<string> {
+    return validatePublicHttpsUrl(rawUrl, "MCP server URL");
 }
 
 export function headersForAuth(config: McpConnectorAuthConfig) {
