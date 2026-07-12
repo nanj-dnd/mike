@@ -11,6 +11,7 @@ import { CheckCircle2 } from "lucide-react";
 import { useAuth } from "@/app/contexts/AuthContext";
 import { updateUserProfile } from "@/app/lib/mikeApi";
 import { GoogleSignInButton } from "@/app/components/auth/GoogleSignInButton";
+import { ProfileEnrichmentStep } from "@/app/components/auth/ProfileEnrichmentStep";
 
 const authGlassCardClassName =
     "rounded-2xl border border-white/70 bg-white/72 p-8 shadow-[0_4px_14px_rgba(15,23,42,0.045),inset_0_1px_0_rgba(255,255,255,0.86),inset_0_-8px_18px_rgba(255,255,255,0.12)] backdrop-blur-2xl";
@@ -34,6 +35,9 @@ export default function SignupPage() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState(false);
+    // Post-signup profile-enrichment step; only shown when signup returned
+    // a session (i.e. the profile can actually be saved).
+    const [enrichStep, setEnrichStep] = useState(false);
 
     useEffect(() => {
         if (!authLoading && isAuthenticated && !success) {
@@ -86,9 +90,15 @@ export default function SignupPage() {
                 }
             }
             setSuccess(true);
-            setTimeout(() => {
-                router.push("/assistant");
-            }, 2000);
+            if (data.session) {
+                // Signed in immediately: show the one-time profile step
+                // before landing in the app.
+                setEnrichStep(true);
+            } else {
+                setTimeout(() => {
+                    router.push("/assistant");
+                }, 2000);
+            }
         } catch (error: unknown) {
             setError(
                 error instanceof Error
@@ -99,6 +109,24 @@ export default function SignupPage() {
             setLoading(false);
         }
     };
+
+    // Profile enrichment step (shown once, right after account creation)
+    if (success && enrichStep) {
+        return (
+            <div className="min-h-dvh bg-gray-50/80 flex items-start justify-center px-6 pt-32 md:pt-40 pb-10 relative">
+                <div className="absolute top-4 md:top-8 left-1/2 -translate-x-1/2">
+                    <SiteLogo size="lg" asLink />
+                </div>
+                <div className="w-full max-w-md">
+                    <div className={authGlassCardClassName}>
+                        <ProfileEnrichmentStep
+                            onDone={() => router.push("/assistant")}
+                        />
+                    </div>
+                </div>
+            </div>
+        );
+    }
 
     // Success View
     if (success) {

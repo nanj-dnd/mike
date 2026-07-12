@@ -315,6 +315,10 @@ function validateProfilePayload(body: unknown):
         "titleModel",
         "tabularModel",
         "legalResearchUs",
+        "role",
+        "practiceTypes",
+        "city",
+        "state",
     ]);
     const invalidField = Object.keys(raw).find(
         (key) => !allowedFields.has(key),
@@ -332,6 +336,10 @@ function validateProfilePayload(body: unknown):
         title_model?: string;
         tabular_model?: string;
         legal_research_us?: boolean;
+        role?: string | null;
+        practice_types?: string[] | null;
+        city?: string | null;
+        state?: string | null;
         updated_at: string;
     } = { updated_at: new Date().toISOString() };
 
@@ -387,8 +395,46 @@ function validateProfilePayload(body: unknown):
         update.legal_research_us = raw.legalResearchUs;
     }
 
+    // Profile-enrichment fields (post-signup "Almost there" step). All
+    // optional and nullable.
+    for (const field of ["role", "city", "state"] as const) {
+        if (field in raw) {
+            if (raw[field] !== null && typeof raw[field] !== "string") {
+                return {
+                    ok: false,
+                    detail: `${field} must be a string or null`,
+                };
+            }
+            update[field] = (raw[field] as string | null)?.trim() || null;
+        }
+    }
+
+    if ("practiceTypes" in raw) {
+        if (
+            raw.practiceTypes !== null &&
+            (!Array.isArray(raw.practiceTypes) ||
+                raw.practiceTypes.some((v) => typeof v !== "string"))
+        ) {
+            return {
+                ok: false,
+                detail: "practiceTypes must be an array of strings or null",
+            };
+        }
+        const cleaned = Array.isArray(raw.practiceTypes)
+            ? (raw.practiceTypes as string[])
+                  .map((v) => v.trim())
+                  .filter(Boolean)
+            : [];
+        update.practice_types = cleaned.length > 0 ? cleaned : null;
+    }
+
     return { ok: true, update };
 }
+
+// Columns added by migration 20260712_03_gavel_profile_enrichment. On
+// databases where it hasn't been applied yet, retry the profile update
+// without them so signup enrichment degrades silently instead of failing.
+const ENRICHMENT_COLUMNS = ["role", "practice_types", "city", "state"] as const;
 
 function readBooleanBodyField(
     body: unknown,
@@ -539,10 +585,23 @@ userRouter.patch("/profile", requireAuth, async (req, res) => {
     if (ensureError)
         return void res.status(500).json({ detail: ensureError.message });
 
-    const { error: updateError } = await db
+    let { error: updateError } = await db
         .from("user_profiles")
         .update(parsed.update)
         .eq("user_id", userId);
+    if (
+        updateError &&
+        ENRICHMENT_COLUMNS.some((column) =>
+            isMissingProfileColumn(updateError, column),
+        )
+    ) {
+        const stripped = { ...parsed.update };
+        for (const column of ENRICHMENT_COLUMNS) delete stripped[column];
+        ({ error: updateError } = await db
+            .from("user_profiles")
+            .update(stripped)
+            .eq("user_id", userId));
+    }
     if (updateError)
         return void res.status(500).json({ detail: updateError.message });
 

@@ -413,6 +413,10 @@ export async function updateUserProfile(payload: {
     titleModel?: string;
     tabularModel?: string;
     legalResearchUs?: boolean;
+    role?: string | null;
+    practiceTypes?: string[] | null;
+    city?: string | null;
+    state?: string | null;
 }): Promise<UserProfile> {
     return apiRequest<UserProfile>("/user/profile", {
         method: "PATCH",
