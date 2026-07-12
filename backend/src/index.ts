@@ -16,6 +16,7 @@ import { organizationsRouter } from "./routes/organizations";
 import { clausesRouter } from "./routes/clauses";
 import { conflictsRouter } from "./routes/conflicts";
 import { adminRouter } from "./routes/admin";
+import { cloudImportRouter } from "./routes/cloudImport";
 import { audited } from "./lib/auditLog";
 import {
   errorMonitor,
@@ -145,6 +146,8 @@ app.put(
   uploadLimiter,
 );
 app.post("/projects/:projectId/documents", uploadLimiter);
+app.post("/cloud-import/:provider/import", uploadLimiter);
+app.post("/cloud-import/url", uploadLimiter);
 app.get("/user/export", exportLimiter);
 app.get("/user/chats/export", exportLimiter);
 app.get("/user/tabular-reviews/export", exportLimiter);
@@ -184,6 +187,8 @@ app.get(
   audited("document.download", docResource),
 );
 app.post("/single-documents/download-zip", audited("document.download"));
+app.post("/cloud-import/:provider/import", audited("document.upload"));
+app.post("/cloud-import/url", audited("document.upload"));
 app.post("/chat/create", audited("chat.create"));
 app.delete(
   "/chat/:chatId",
@@ -250,6 +255,7 @@ app.use("/organizations", organizationsRouter);
 app.use("/clauses", clausesRouter);
 app.use("/conflicts", conflictsRouter);
 app.use("/admin", adminRouter);
+app.use("/cloud-import", cloudImportRouter);
 
 app.get("/health", (_req, res) => res.json({ ok: true }));
 

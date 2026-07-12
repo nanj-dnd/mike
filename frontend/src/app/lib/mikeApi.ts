@@ -338,6 +338,98 @@ export async function deleteClause(clauseId: string): Promise<void> {
     });
 }
 
+// ---------- Cloud document import ----------
+
+export type CloudImportProvider = "google_drive" | "onedrive";
+
+export interface CloudProviderStatus {
+    provider: CloudImportProvider;
+    configured: boolean;
+    connected: boolean;
+    accountEmail: string | null;
+}
+
+export interface CloudFile {
+    id: string;
+    name: string;
+    importName: string;
+    sizeBytes: number | null;
+    modifiedAt: string | null;
+    exportedAs: "docx" | "xlsx" | "pptx" | null;
+}
+
+export async function listCloudImportProviders(): Promise<
+    CloudProviderStatus[]
+> {
+    const { providers } = await apiRequest<{
+        providers: CloudProviderStatus[];
+    }>("/cloud-import");
+    return providers;
+}
+
+export async function startCloudImportOAuth(
+    provider: CloudImportProvider,
+): Promise<{ authorizeUrl: string }> {
+    return apiRequest<{ authorizeUrl: string }>(
+        `/cloud-import/${provider}/oauth/start`,
+        { method: "POST" },
+    );
+}
+
+export async function disconnectCloudImportAccount(
+    provider: CloudImportProvider,
+): Promise<void> {
+    await apiRequest<{ ok: boolean }>(`/cloud-import/${provider}`, {
+        method: "DELETE",
+    });
+}
+
+export async function listCloudImportFiles(
+    provider: CloudImportProvider,
+    q?: string,
+): Promise<CloudFile[]> {
+    const query = q?.trim() ? `?q=${encodeURIComponent(q.trim())}` : "";
+    const { files } = await apiRequest<{ files: CloudFile[] }>(
+        `/cloud-import/${provider}/files${query}`,
+    );
+    return files;
+}
+
+export async function importCloudFiles(
+    provider: CloudImportProvider,
+    fileIds: string[],
+    projectId?: string | null,
+): Promise<{
+    documents: Document[];
+    failures: { fileId: string; detail: string }[];
+}> {
+    return apiRequest("/cloud-import/" + provider + "/import", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ fileIds, projectId: projectId ?? null }),
+    });
+}
+
+export async function importDocumentFromUrl(
+    url: string,
+    projectId?: string | null,
+    filename?: string,
+): Promise<Document[]> {
+    const { documents } = await apiRequest<{ documents: Document[] }>(
+        "/cloud-import/url",
+        {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                url,
+                projectId: projectId ?? null,
+                ...(filename ? { filename } : {}),
+            }),
+        },
+    );
+    return documents;
+}
+
 // ---------- Conflict-of-interest checking ----------
 
 export type ConflictPartySide = "client" | "opposing" | "other";
