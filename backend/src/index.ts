@@ -15,7 +15,14 @@ import { caseLawRouter } from "./routes/caseLaw";
 import { organizationsRouter } from "./routes/organizations";
 import { clausesRouter } from "./routes/clauses";
 import { conflictsRouter } from "./routes/conflicts";
+import { adminRouter } from "./routes/admin";
 import { audited } from "./lib/auditLog";
+import {
+  errorMonitor,
+  initErrorReporting,
+  serverErrorObserver,
+  tracked,
+} from "./lib/usageMetrics";
 
 const app = express();
 const PORT = process.env.PORT ?? 3001;
@@ -123,6 +130,7 @@ app.use(
 );
 
 app.use(generalLimiter);
+app.use(serverErrorObserver);
 
 app.post("/chat", chatLimiter);
 app.post("/projects/:projectId/chat", chatLimiter);
@@ -209,6 +217,21 @@ app.put(
   })),
 );
 
+// Operator usage metrics: adoption events on the actions that indicate a
+// live, healthy account. Same one-place declaration style as the audit
+// trail; 5xx capture is global via serverErrorObserver above.
+app.get("/user/profile", tracked("app.open"));
+app.post("/chat", tracked("chat.message"));
+app.post("/projects/:projectId/chat", tracked("chat.message"));
+app.post("/tabular-review/:reviewId/chat", tracked("chat.message"));
+app.post("/chat/create", tracked("chat.create"));
+app.post("/single-documents", tracked("document.upload"));
+app.post("/projects/:projectId/documents", tracked("document.upload"));
+app.post("/tabular-review/:reviewId/generate", tracked("tabular.generate"));
+app.post("/projects", tracked("project.create"));
+app.post("/workflows", tracked("workflow.create"));
+app.post("/conflicts/check", tracked("conflict.check"));
+
 app.use((req, res, next) =>
   express.json({ limit: jsonLimitForPath(req.path) })(req, res, next),
 );
@@ -226,9 +249,13 @@ app.use("/case-law", caseLawRouter);
 app.use("/organizations", organizationsRouter);
 app.use("/clauses", clausesRouter);
 app.use("/conflicts", conflictsRouter);
+app.use("/admin", adminRouter);
 
 app.get("/health", (_req, res) => res.json({ ok: true }));
 
+app.use(errorMonitor);
+
+void initErrorReporting();
 app.listen(PORT, () => {
   console.log(`Gavel backend running on port ${PORT}`);
 });
