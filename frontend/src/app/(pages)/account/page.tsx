@@ -336,8 +336,10 @@ export default function AccountPage() {
                 <h2 className="text-2xl font-medium font-serif text-gray-900">
                     Actions
                 </h2>
+                {/* Default variant, not outline: the outline variant carries
+                    dark:bg-input/dark:border-input utilities that tailwind-merge
+                    can't drop, which hid this solid button in dark mode. */}
                 <Button
-                    variant="outline"
                     onClick={handleLogout}
                     className="w-full gap-1.5 rounded-lg border border-transparent bg-gray-950 px-3 text-white shadow-none transition-colors hover:bg-gray-900 hover:text-white active:bg-black sm:w-auto"
                 >
