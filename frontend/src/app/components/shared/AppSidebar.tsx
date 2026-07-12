@@ -12,6 +12,7 @@ import {
     ChevronsUpDown,
     ChevronDown,
     BookMarked,
+    ShieldCheck,
 } from "lucide-react";
 import { useAuth } from "@/app/contexts/AuthContext";
 import { useUserProfile } from "@/app/contexts/UserProfileContext";
@@ -30,6 +31,7 @@ const NAV_ITEMS = [
     { href: "/tabular-reviews", label: "Tabular Review", icon: Table2 },
     { href: "/workflows", label: "Workflows", icon: Library },
     { href: "/clauses", label: "Clause Library", icon: BookMarked },
+    { href: "/conflicts", label: "Conflict Check", icon: ShieldCheck },
 ];
 
 interface AppSidebarProps {

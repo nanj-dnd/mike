@@ -338,6 +338,65 @@ export async function deleteClause(clauseId: string): Promise<void> {
     });
 }
 
+// ---------- Conflict-of-interest checking ----------
+
+export type ConflictPartySide = "client" | "opposing" | "other";
+
+export interface ConflictParty {
+    name: string;
+    side: ConflictPartySide;
+}
+
+export interface ConflictHit {
+    queryName: string;
+    querySide: ConflictPartySide;
+    matchedName: string;
+    matchedSide: ConflictPartySide;
+    projectId: string;
+    projectName: string;
+    match: "exact" | "partial";
+    severity: "adverse" | "related";
+}
+
+export interface ConflictCheckResult {
+    id: string;
+    status: "clear" | "flagged";
+    hits: ConflictHit[];
+    created_at: string;
+}
+
+export interface ConflictCheckRecord extends ConflictCheckResult {
+    project_id: string | null;
+    parties: ConflictParty[];
+}
+
+export async function runConflictCheck(input: {
+    parties: ConflictParty[];
+    projectId?: string | null;
+}): Promise<ConflictCheckResult> {
+    return apiRequest<ConflictCheckResult>("/conflicts/check", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(input),
+    });
+}
+
+export async function listConflictHistory(): Promise<ConflictCheckRecord[]> {
+    const { checks } = await apiRequest<{ checks: ConflictCheckRecord[] }>(
+        "/conflicts/history",
+    );
+    return checks;
+}
+
+export async function getProjectParties(
+    projectId: string,
+): Promise<ConflictParty[]> {
+    const { parties } = await apiRequest<{ parties: ConflictParty[] }>(
+        `/conflicts/projects/${projectId}/parties`,
+    );
+    return parties;
+}
+
 export async function deleteAccount(): Promise<void> {
     return apiRequest<void>("/user/account", { method: "DELETE" });
 }
