@@ -394,6 +394,7 @@ returns table (
 )
 language sql
 stable
+set search_path = public
 as $$
   with owned as (
     select
@@ -496,6 +497,7 @@ returns table (
 )
 language sql
 stable
+set search_path = public
 as $$
   select
     c.id,
@@ -597,6 +599,7 @@ returns table (
 )
 language sql
 stable
+set search_path = public
 as $$
   with visible_projects as (
     select p.*
@@ -688,6 +691,7 @@ returns table (
 )
 language sql
 stable
+set search_path = public
 as $$
   with accessible_projects as (
     select p.id
