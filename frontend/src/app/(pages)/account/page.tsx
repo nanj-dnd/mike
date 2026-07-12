@@ -363,8 +363,10 @@ export default function AccountPage() {
                             data. This action cannot be undone.
                         </p>
                     </div>
+                    {/* Not the outline variant: its dark:bg-input / dark:border-input
+                        utilities can't be merged out and box this transparent
+                        ghost button in dark mode. */}
                     <Button
-                        variant="outline"
                         onClick={() => setDeleteConfirm(true)}
                         disabled={isDeleting}
                         className={`w-full shrink-0 gap-1.5 sm:w-auto ${accountGlassDangerOutlineButtonClassName}`}
