@@ -28,10 +28,14 @@ export function GoogleSignInButton({ label }: { label: string }) {
             // Browser navigates away to Google on success; no further
             // action needed here.
         } catch (err) {
-            setError(
+            const message =
                 err instanceof Error
                     ? err.message
-                    : "Could not start Google sign-in.",
+                    : "Could not start Google sign-in.";
+            setError(
+                /provider is not enabled|unsupported provider/i.test(message)
+                    ? "Google sign-in isn't set up on this deployment yet. An administrator needs to enable the Google provider in Supabase Auth. Sign in with email instead."
+                    : message,
             );
             setLoading(false);
         }

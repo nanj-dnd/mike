@@ -112,9 +112,11 @@ export function SsoDomainSignIn() {
             const message =
                 err instanceof Error ? err.message : "SSO sign-in failed.";
             setError(
-                /no sso provider|not found|not enabled/i.test(message)
-                    ? `Single sign-on isn't set up for ${domain} yet. Ask your admin to contact support, or sign in with email instead.`
-                    : message,
+                /saml.*disabled|sso.*disabled/i.test(message)
+                    ? "Single sign-on isn't enabled on this deployment yet. An administrator needs to turn on SSO for the Supabase project before any firm can use it."
+                    : /no sso provider|not found|not enabled/i.test(message)
+                      ? `Single sign-on isn't set up for ${domain} yet. Ask your admin to contact support, or sign in with email instead.`
+                      : message,
             );
             setLoading(false);
         }
