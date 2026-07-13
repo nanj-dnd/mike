@@ -1607,3 +1607,96 @@ export async function deleteWorkflowShare(
         method: "DELETE",
     });
 }
+
+// ---------------------------------------------------------------------------
+// Workflow engine (orchestration runs)
+// ---------------------------------------------------------------------------
+
+export type WorkflowRunStatus =
+    | "pending"
+    | "running"
+    | "waiting"
+    | "succeeded"
+    | "failed"
+    | "canceled";
+
+export interface WorkflowEngineRun {
+    id: string;
+    graph_id: string;
+    status: WorkflowRunStatus;
+    trigger_source: string;
+    error: string | null;
+    created_at: string;
+    started_at: string | null;
+    finished_at: string | null;
+}
+
+export interface WorkflowEngineNodeRun {
+    node_id: string;
+    iteration_key: string;
+    attempt: number;
+    status: "pending" | "running" | "succeeded" | "failed" | "skipped" | "waiting";
+    input: unknown;
+    output: Record<string, unknown> | null;
+    error: { class: string; message: string } | null;
+    model: string | null;
+    prompt_tokens: number | null;
+    completion_tokens: number | null;
+    started_at: string | null;
+    finished_at: string | null;
+}
+
+export interface WorkflowEngineRunTrace {
+    run: WorkflowEngineRun & {
+        input: Record<string, unknown> | null;
+        output: Record<string, unknown> | null;
+    };
+    node_runs: WorkflowEngineNodeRun[];
+    events: {
+        node_id: string | null;
+        level: "info" | "warn" | "error";
+        message: string;
+        data: Record<string, unknown> | null;
+        created_at: string;
+    }[];
+}
+
+export async function listWorkflowEngineRuns(): Promise<WorkflowEngineRun[]> {
+    const { runs } = await apiRequest<{ runs: WorkflowEngineRun[] }>(
+        "/workflow-runs",
+    );
+    return runs;
+}
+
+export async function getWorkflowEngineRun(
+    runId: string,
+): Promise<WorkflowEngineRunTrace> {
+    return apiRequest<WorkflowEngineRunTrace>(`/workflow-runs/${runId}`);
+}
+
+export async function cancelWorkflowEngineRun(runId: string): Promise<void> {
+    await apiRequest(`/workflow-runs/${runId}/cancel`, { method: "POST" });
+}
+
+export async function resumeWorkflowEngineRun(
+    runId: string,
+    nodeId: string,
+    response: unknown,
+): Promise<void> {
+    await apiRequest(`/workflow-runs/${runId}/resume`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ node_id: nodeId, response }),
+    });
+}
+
+export async function executeTemplateWorkflow(
+    workflowId: string,
+    request?: string,
+): Promise<{ run_id: string; graph_id: string }> {
+    return apiRequest(`/workflows/${workflowId}/execute`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ input: { request: request ?? "" } }),
+    });
+}

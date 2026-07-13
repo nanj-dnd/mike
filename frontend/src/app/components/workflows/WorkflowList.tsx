@@ -356,9 +356,18 @@ export function WorkflowList() {
                     },
                 ]}
             >
-                <h1 className="text-2xl font-medium font-serif text-gray-900">
-                    Workflows
-                </h1>
+                <div className="flex items-baseline gap-3">
+                    <h1 className="text-2xl font-medium font-serif text-gray-900">
+                        Workflows
+                    </h1>
+                    <button
+                        type="button"
+                        onClick={() => router.push("/workflows/runs")}
+                        className="text-sm text-gray-500 transition-colors hover:text-gray-900"
+                    >
+                        Runs
+                    </button>
+                </div>
             </PageHeader>
 
             <TableToolbar
