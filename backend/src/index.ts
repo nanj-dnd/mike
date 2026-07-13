@@ -17,6 +17,12 @@ import { clausesRouter } from "./routes/clauses";
 import { conflictsRouter } from "./routes/conflicts";
 import { adminRouter } from "./routes/admin";
 import { cloudImportRouter } from "./routes/cloudImport";
+import {
+  workflowGraphsRouter,
+  workflowRunsRouter,
+  workflowHooksRouter,
+} from "./routes/workflowGraphs";
+import { startEngineBackground } from "./lib/workflowEngine";
 import { audited } from "./lib/auditLog";
 import {
   errorMonitor,
@@ -148,6 +154,11 @@ app.put(
 app.post("/projects/:projectId/documents", uploadLimiter);
 app.post("/cloud-import/:provider/import", uploadLimiter);
 app.post("/cloud-import/url", uploadLimiter);
+// Workflow-engine runs invoke LLMs; webhook starts are internet-facing.
+app.post("/workflow-graphs/:graphId/runs", chatLimiter);
+app.post("/workflow-runs/:runId/resume", chatLimiter);
+app.post("/workflows/:workflowId/execute", chatLimiter);
+app.post("/hooks/workflows/:slug", chatLimiter);
 app.get("/user/export", exportLimiter);
 app.get("/user/chats/export", exportLimiter);
 app.get("/user/tabular-reviews/export", exportLimiter);
@@ -221,6 +232,22 @@ app.put(
     id: req.params.provider,
   })),
 );
+const graphResource = (req: express.Request) => ({
+  type: "workflow_graph",
+  id: req.params.graphId,
+});
+const runResource = (req: express.Request) => ({
+  type: "workflow_run",
+  id: req.params.runId,
+});
+app.post("/workflow-graphs", audited("workflow_graph.create"));
+app.patch("/workflow-graphs/:graphId", audited("workflow_graph.update", graphResource));
+app.delete("/workflow-graphs/:graphId", audited("workflow_graph.delete", graphResource));
+app.post("/workflow-graphs/:graphId/runs", audited("workflow_run.start", graphResource));
+app.post("/workflow-runs/:runId/cancel", audited("workflow_run.cancel", runResource));
+app.post("/workflow-runs/:runId/resume", audited("workflow_run.resume", runResource));
+app.post("/workflow-graphs/:graphId/triggers", audited("workflow_trigger.create", graphResource));
+app.post("/workflows/:workflowId/execute", audited("workflow_run.start"));
 
 // Operator usage metrics: adoption events on the actions that indicate a
 // live, healthy account. Same one-place declaration style as the audit
@@ -256,6 +283,9 @@ app.use("/clauses", clausesRouter);
 app.use("/conflicts", conflictsRouter);
 app.use("/admin", adminRouter);
 app.use("/cloud-import", cloudImportRouter);
+app.use("/workflow-graphs", workflowGraphsRouter);
+app.use("/workflow-runs", workflowRunsRouter);
+app.use("/hooks", workflowHooksRouter);
 
 app.get("/health", (_req, res) => res.json({ ok: true }));
 
@@ -264,4 +294,6 @@ app.use(errorMonitor);
 void initErrorReporting();
 app.listen(PORT, () => {
   console.log(`Gavel backend running on port ${PORT}`);
+  // Workflow engine: crash recovery sweep + cron trigger tick.
+  startEngineBackground();
 });

@@ -30,7 +30,15 @@ export type AuditAction =
     | "organization.remove_member"
     | "clause.save"
     | "clause.delete"
-    | "conflict.check";
+    | "conflict.check"
+    | "workflow_graph.create"
+    | "workflow_graph.update"
+    | "workflow_graph.delete"
+    | "workflow_run.start"
+    | "workflow_run.cancel"
+    | "workflow_run.resume"
+    | "workflow_trigger.create"
+    | "workflow_trigger.delete";
 
 let auditDisabled = false;
 

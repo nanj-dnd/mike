@@ -771,6 +771,66 @@ workflowsRouter.post("/:workflowId/share", requireAuth, asyncRoute(async (req, r
   res.status(204).send();
 }));
 
+// Back-compat bridge into the orchestration engine: execute a legacy
+// prompt-template workflow (assistant type) as a single-LLM-node graph
+// run. The chat-based execution path (read_workflow tool) is untouched;
+// this adds a standalone, durable, traceable way to run the same template.
+workflowsRouter.post("/:workflowId/execute", requireAuth, async (req, res) => {
+  const userId = res.locals.userId as string;
+  const userEmail = res.locals.userEmail as string | undefined;
+  const db = createServerSupabase();
+  try {
+    const { buildWorkflowStore } = await import("../lib/chat/contextBuilders");
+    const {
+      ensureTemplateGraph,
+      createRun,
+      startRun,
+      buildEngineDepsForUser,
+      isEngineMissingTableError,
+    } = await import("../lib/workflowEngine");
+
+    const store = await buildWorkflowStore(userId, userEmail ?? null, db);
+    const template = store.get(req.params.workflowId);
+    if (!template) {
+      return void res
+        .status(404)
+        .json({ detail: "Workflow not found (only assistant workflows can be executed)" });
+    }
+
+    const request =
+      typeof req.body?.input?.request === "string" ? req.body.input.request : "";
+    try {
+      const graphId = await ensureTemplateGraph(db, {
+        userId,
+        templateWorkflowId: req.params.workflowId,
+        title: template.title,
+        skillMd: template.skill_md,
+      });
+      const runId = await createRun(db, {
+        graphId,
+        userId,
+        input: { request },
+        triggerSource: "template",
+      });
+      if (!runId) return void res.status(500).json({ detail: "Failed to create run" });
+      const deps = await buildEngineDepsForUser(userId, db);
+      await startRun(runId, deps);
+      res.status(201).json({ run_id: runId, graph_id: graphId, status: "running" });
+    } catch (error) {
+      if (isEngineMissingTableError(error)) {
+        return void res.status(503).json({
+          detail:
+            "The workflow engine is not set up on this deployment yet. Apply migration 20260713_01_gavel_workflow_engine.sql.",
+        });
+      }
+      throw error;
+    }
+  } catch (error) {
+    console.error("[workflows] execute failed", error);
+    res.status(500).json({ detail: "Failed to execute workflow" });
+  }
+});
+
 workflowsRouter.use(
   (err: unknown, _req: Request, res: Response, next: NextFunction) => {
     if (res.headersSent) return next(err);
