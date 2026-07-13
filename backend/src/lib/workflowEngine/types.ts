@@ -213,6 +213,11 @@ export interface LlmCompleteParams {
   systemPrompt?: string;
   prompt: string;
   maxTokens?: number;
+  /**
+   * Stable per logical node execution (same across retries); implementations
+   * making side-effecting external calls should forward it for deduping.
+   */
+  idempotencyKey?: string;
 }
 
 export interface LlmUsageTotals {

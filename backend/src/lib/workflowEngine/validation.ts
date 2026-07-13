@@ -415,7 +415,7 @@ export function nodeOutputNames(node: NodeDef): string[] {
     case "llm":
       return ["text", "json"];
     case "transform":
-      return Object.keys((node.config as TransformNodeConfig).outputs ?? {});
+      return Object.keys((node.config as Partial<TransformNodeConfig>).outputs ?? {});
     case "branch":
       return ["value"];
     case "human":
@@ -444,7 +444,7 @@ function collectNodeReferenceRoots(node: NodeDef): string[] {
   if (node.type === "llm" || node.type === "human") {
     visit(config, true);
   } else if (node.type === "transform") {
-    for (const expr of Object.values((config as TransformNodeConfig).outputs ?? {})) {
+    for (const expr of Object.values((config as Partial<TransformNodeConfig>).outputs ?? {})) {
       if (typeof expr === "string") visit(expr, false);
     }
   } else if (node.type === "branch") {
@@ -452,7 +452,7 @@ function collectNodeReferenceRoots(node: NodeDef): string[] {
     if (c.expression) visit(c.expression, false);
     if (c.llm?.prompt) visit(c.llm.prompt, true);
   } else if (node.type === "loop") {
-    const c = config as LoopNodeConfig;
+    const c = config as Partial<LoopNodeConfig>;
     if (c.for_each) visit(c.for_each, false);
     if (c.while) visit(c.while, false);
     // body refs are validated recursively in their own scope; result runs

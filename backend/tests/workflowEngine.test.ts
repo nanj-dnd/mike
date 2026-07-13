@@ -290,6 +290,8 @@ test("engine: retries retryable failures with backoff, then succeeds", async () 
   assert.deepEqual(sleeps, [100, 200]); // exponential backoff
   const row = [...persistence.nodeRuns.values()].find((r) => r.node_id === "flaky")!;
   assert.equal(row.attempt, 3);
+  // One logical execution -> one idempotency key, stable across retries.
+  assert.equal(row.idempotency_key, `${run.id}:flaky`);
 });
 
 test("engine: non-retryable failure fails the run", async () => {
@@ -393,6 +395,37 @@ test("engine: for_each loop iterates and collects results", async () => {
   assert.deepEqual(out.results, ["reviewed(a)", "reviewed(b)", "reviewed(c)"]);
   // Body node runs are namespaced per iteration.
   assert.equal(nodeStatus(persistence, "each#1.review"), "succeeded");
+});
+
+test("engine: loop node timeout_ms fails the loop between iterations", async () => {
+  const llm = fakeLlm(async () => {
+    await new Promise((r) => setTimeout(r, 15));
+    return "slow";
+  });
+  const def: WorkflowDefinition = {
+    nodes: [
+      {
+        id: "spin",
+        type: "loop",
+        config: {
+          while: "true",
+          max_iterations: 50,
+          body: {
+            nodes: [{ id: "work", type: "llm", config: { prompt: "go" } }],
+            edges: [],
+          },
+        },
+        timeout_ms: 1,
+      },
+    ],
+    edges: [],
+  };
+  const { persistence, run } = await executeRun(def, llm);
+  assert.equal(run.status, "failed");
+  const row = [...persistence.nodeRuns.values()].find((r) => r.node_id === "spin")!;
+  assert.equal(row.status, "failed");
+  assert.equal(row.error?.class, "timeout");
+  assert.ok(llm.calls.length < 50); // deadline cut the loop short
 });
 
 // --- engine: human-in-the-loop + resume -----------------------------------------

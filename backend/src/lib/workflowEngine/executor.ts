@@ -522,12 +522,17 @@ export class RunExecutor {
     // number (at-least-once); succeeded rows short-circuit above.
     let attempt = existing?.status === "running" ? existing.attempt : 1;
 
+    // Stable across retries and crash re-runs so an external call retried
+    // after an ambiguous failure dedupes instead of double-applying.
+    const idempotencyKey = `${this.run.id}:${fullId}`;
+
     for (;;) {
       const row: NodeRunRow = {
         ...(this.nodeStates.get(fullId) ?? this.newNodeRow(fullId, prefix)),
         attempt,
         status: "running",
         started_at: this.nodeStates.get(fullId)?.started_at ?? new Date().toISOString(),
+        idempotency_key: idempotencyKey,
         error: null,
       };
       await this.persistNode(row);
@@ -604,7 +609,11 @@ export class RunExecutor {
     const resolver = this.makeResolver(prefix, scope);
     switch (node.type) {
       case "llm":
-        return this.executeLlmNode(node.config as unknown as LlmNodeConfig, resolver);
+        return this.executeLlmNode(
+          node.config as unknown as LlmNodeConfig,
+          resolver,
+          this.nodeStates.get(fullId)?.idempotency_key ?? undefined,
+        );
       case "transform": {
         const config = node.config as unknown as TransformNodeConfig;
         const output: Record<string, unknown> = {};
@@ -659,6 +668,7 @@ export class RunExecutor {
   private async executeLlmNode(
     config: LlmNodeConfig,
     resolver: PathResolver,
+    idempotencyKey?: string,
   ): Promise<{
     output: Record<string, unknown>;
     input: unknown;
@@ -685,6 +695,7 @@ export class RunExecutor {
       systemPrompt: system,
       prompt,
       maxTokens: config.max_tokens,
+      idempotencyKey,
     });
     const output: Record<string, unknown> = { text };
     if (config.output === "json") {
@@ -775,13 +786,28 @@ export class RunExecutor {
     const baseRow = () => ({
       ...(this.nodeStates.get(fullId) ?? this.newNodeRow(fullId, prefix)),
     });
+    const startedAt =
+      this.nodeStates.get(fullId)?.started_at ?? new Date().toISOString();
     await this.persistNode({
       ...baseRow(),
       status: "running",
-      started_at: this.nodeStates.get(fullId)?.started_at ?? new Date().toISOString(),
+      started_at: startedAt,
       output: { results, next_index: index },
       error: null,
     });
+
+    // Loops don't go through withNodeTimeout (an iteration mid-flight must
+    // persist its own state), so enforce the node timeout between
+    // iterations. Anchored to the persisted started_at, the wall-clock
+    // budget survives crash-resume.
+    const loopTimeoutMs = node.timeout_ms ?? DEFAULT_NODE_TIMEOUT_MS.loop;
+    const loopDeadline = new Date(startedAt).getTime() + loopTimeoutMs;
+    const loopDeadlinePassed = () => Date.now() > loopDeadline;
+    const checkLoopDeadline = () => {
+      if (loopDeadlinePassed()) {
+        throw new EngineNodeError("timeout", `Loop node timed out after ${loopTimeoutMs}ms`);
+      }
+    };
 
     const persistProgress = async (status: NodeRunRow["status"]) => {
       await this.persistNode({
@@ -836,13 +862,14 @@ export class RunExecutor {
           async () => {
             for (;;) {
               const i = cursor++;
-              if (i >= total || this.canceled || this.timedOut) return;
+              if (i >= total || this.canceled || this.timedOut || loopDeadlinePassed()) return;
               outcomes.push(await runIteration(i, items[i]));
             }
           },
         );
         await Promise.all(workers);
         if (this.canceled || this.timedOut) return;
+        if (outcomes.length < total) checkLoopDeadline();
         if (outcomes.includes("failed")) {
           throw new EngineNodeError("validation", "a loop iteration failed");
         }
@@ -854,6 +881,7 @@ export class RunExecutor {
       } else {
         while (index < total) {
           if (this.canceled || this.timedOut) return;
+          checkLoopDeadline();
           const outcome = await runIteration(index, items[index]);
           if (outcome === "canceled") return;
           if (outcome === "failed") {
@@ -872,6 +900,7 @@ export class RunExecutor {
       // while mode — condition sees loop.index; always sequential.
       for (;;) {
         if (this.canceled || this.timedOut) return;
+        checkLoopDeadline();
         if (index >= cap) break;
         let keepGoing: boolean;
         try {

@@ -321,7 +321,7 @@ class Parser {
       }
       return this.resolver(t.value, path);
     }
-    throw new ExpressionError(`Unexpected token: ${"value" in t ? String(t.value) : t.kind}`);
+    throw new ExpressionError(`Unexpected token: ${String(t.value)}`);
   }
 }
 
