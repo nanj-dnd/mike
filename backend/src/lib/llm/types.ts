@@ -66,3 +66,9 @@ export type StreamChatParams = {
 export type StreamChatResult = {
     fullText: string;
 };
+
+/** Token usage for one completion, when the provider reports it. */
+export type LlmUsage = {
+    prompt_tokens: number;
+    completion_tokens: number;
+};

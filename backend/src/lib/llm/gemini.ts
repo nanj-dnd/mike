@@ -328,12 +328,12 @@ export async function streamGemini(
   }
 }
 
-export async function completeGeminiText(params: {
+export async function completeGeminiTextResult(params: {
   model: string;
   systemPrompt?: string;
   user: string;
   apiKeys?: { gemini?: string | null };
-}): Promise<string> {
+}): Promise<{ text: string; usage: { prompt_tokens: number; completion_tokens: number } | null }> {
   const ai = client(params.apiKeys?.gemini);
   let resp: Awaited<ReturnType<typeof ai.models.generateContent>>;
   try {
@@ -347,5 +347,21 @@ export async function completeGeminiText(params: {
   } catch (error) {
     throw new Error(geminiErrorMessage(error));
   }
-  return resp.text ?? "";
+  const meta = resp.usageMetadata;
+  const usage = meta
+    ? {
+        prompt_tokens: meta.promptTokenCount ?? 0,
+        completion_tokens: meta.candidatesTokenCount ?? 0,
+      }
+    : null;
+  return { text: resp.text ?? "", usage };
+}
+
+export async function completeGeminiText(params: {
+  model: string;
+  systemPrompt?: string;
+  user: string;
+  apiKeys?: { gemini?: string | null };
+}): Promise<string> {
+  return (await completeGeminiTextResult(params)).text;
 }

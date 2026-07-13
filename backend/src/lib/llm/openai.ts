@@ -365,13 +365,13 @@ export async function streamOpenAI(
   }
 }
 
-export async function completeOpenAIText(params: {
+export async function completeOpenAITextResult(params: {
   model: string;
   systemPrompt?: string;
   user: string;
   maxTokens?: number;
   apiKeys?: { openai?: string | null };
-}): Promise<string> {
+}): Promise<{ text: string; usage: { prompt_tokens: number; completion_tokens: number } | null }> {
   const response = await createResponse({
     model: params.model,
     instructions: params.systemPrompt,
@@ -384,17 +384,37 @@ export async function completeOpenAIText(params: {
     output?: {
       content?: { type?: string; text?: string }[];
     }[];
+    usage?: { input_tokens?: number; output_tokens?: number };
   };
 
-  if (typeof json.output_text === "string") return json.output_text;
+  const usage = json.usage
+    ? {
+        prompt_tokens: json.usage.input_tokens ?? 0,
+        completion_tokens: json.usage.output_tokens ?? 0,
+      }
+    : null;
 
-  return (
+  if (typeof json.output_text === "string") {
+    return { text: json.output_text, usage };
+  }
+
+  const text =
     json.output
       ?.flatMap((item) => item.content ?? [])
       .filter((content) => content.type === "output_text")
       .map((content) => content.text ?? "")
-      .join("") ?? ""
-  );
+      .join("") ?? "";
+  return { text, usage };
+}
+
+export async function completeOpenAIText(params: {
+  model: string;
+  systemPrompt?: string;
+  user: string;
+  maxTokens?: number;
+  apiKeys?: { openai?: string | null };
+}): Promise<string> {
+  return (await completeOpenAITextResult(params)).text;
 }
 
 export type { NormalizedToolResult };

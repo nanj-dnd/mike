@@ -265,13 +265,13 @@ export async function streamClaude(
   }
 }
 
-export async function completeClaudeText(params: {
+export async function completeClaudeTextResult(params: {
   model: string;
   systemPrompt?: string;
   user: string;
   maxTokens?: number;
   apiKeys?: { claude?: string | null };
-}): Promise<string> {
+}): Promise<{ text: string; usage: { prompt_tokens: number; completion_tokens: number } | null }> {
   const anthropic = client(params.apiKeys?.claude);
   let resp: Awaited<ReturnType<typeof anthropic.messages.create>>;
   try {
@@ -288,7 +288,23 @@ export async function completeClaudeText(params: {
     .filter((b): b is Anthropic.TextBlock => b.type === "text")
     .map((b) => b.text)
     .join("");
-  return text;
+  const usage = resp.usage
+    ? {
+        prompt_tokens: resp.usage.input_tokens ?? 0,
+        completion_tokens: resp.usage.output_tokens ?? 0,
+      }
+    : null;
+  return { text, usage };
+}
+
+export async function completeClaudeText(params: {
+  model: string;
+  systemPrompt?: string;
+  user: string;
+  maxTokens?: number;
+  apiKeys?: { claude?: string | null };
+}): Promise<string> {
+  return (await completeClaudeTextResult(params)).text;
 }
 
 // Helper re-export for callers wanting to hand normalized results back in.
