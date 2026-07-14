@@ -11,10 +11,7 @@ import { CheckCircle2 } from "lucide-react";
 import { useAuth } from "@/app/contexts/AuthContext";
 import { updateUserProfile } from "@/app/lib/mikeApi";
 import { GoogleSignInButton } from "@/app/components/auth/GoogleSignInButton";
-import {
-    MicrosoftSignInButton,
-    SsoDomainSignIn,
-} from "@/app/components/auth/EnterpriseSsoButtons";
+import { MicrosoftSignInButton } from "@/app/components/auth/EnterpriseSsoButtons";
 import { ProfileEnrichmentStep } from "@/app/components/auth/ProfileEnrichmentStep";
 
 const authGlassCardClassName =
@@ -323,8 +320,6 @@ export default function SignupPage() {
                             {loading ? "Creating account..." : "Sign up"}
                         </Button>
                     </form>
-
-                    <SsoDomainSignIn />
 
                     {/* Terms and Privacy */}
                     <div className="mt-4 text-center text-xs text-gray-500">
