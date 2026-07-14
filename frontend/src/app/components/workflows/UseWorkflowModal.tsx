@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { useDirectoryData } from "../shared/useDirectoryData";
 import { FileDirectory } from "../shared/FileDirectory";
 import { useChatHistoryContext } from "@/app/contexts/ChatHistoryContext";
+import { useSelectedModel } from "@/app/hooks/useSelectedModel";
 import { Modal } from "../modals/Modal";
 import { ModalFieldLabel } from "../modals/ModalFieldLabel";
 import { ModalSegmentedToggle } from "../modals/ModalSegmentedToggle";
@@ -56,6 +57,7 @@ export function UseWorkflowModal({ workflows, workflow, onClose, skipSelect = fa
 
     const router = useRouter();
     const { saveChat, setNewChatMessages } = useChatHistoryContext();
+    const [model] = useSelectedModel();
     const {
         loading: dirLoading,
         projects,
@@ -125,6 +127,7 @@ export function UseWorkflowModal({ workflows, workflow, onClose, skipSelect = fa
                     content,
                     files: files.length > 0 ? files : undefined,
                     workflow: { id: wf.id, title: wf.metadata.title },
+                    model,
                 },
             ]);
             handleClose();
