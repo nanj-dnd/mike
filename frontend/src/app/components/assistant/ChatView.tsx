@@ -21,6 +21,7 @@ import type {
 } from "../shared/types";
 import { useSidebar } from "@/app/contexts/SidebarContext";
 import { invalidateDocxBytes } from "@/app/hooks/useFetchDocxBytes";
+import { useSelectedModel } from "@/app/hooks/useSelectedModel";
 
 interface Props {
     chatId?: string | null;
@@ -81,6 +82,7 @@ export function ChatView({
     );
     const { setSidebarOpen } = useSidebar();
     const panelCloseTimerRef = useRef<number | null>(null);
+    const [selectedModel] = useSelectedModel();
 
     useEffect(() => {
         setHiddenAskInputKeys(new Set());
@@ -798,7 +800,12 @@ export function ChatView({
                                             return next;
                                         });
                                         void handleChat(
-                                            { role: "user", content, files },
+                                            {
+                                                role: "user",
+                                                content,
+                                                files,
+                                                model: selectedModel,
+                                            },
                                             {
                                                 askInputsResponse: response,
                                             },
