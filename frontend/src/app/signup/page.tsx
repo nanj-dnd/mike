@@ -42,15 +42,30 @@ export default function SignupPage() {
     // Post-signup profile-enrichment step; only shown when signup returned
     // a session (i.e. the profile can actually be saved).
     const [enrichStep, setEnrichStep] = useState(false);
+    // Supabase's auth-state listener (in AuthContext) can flip
+    // isAuthenticated to true before this component's own handleSignup
+    // continuation sets `success` — signUp() establishes the session, and
+    // that listener fires as a side effect independent of when our own
+    // await chain resumes. Without this guard, the redirect effect below
+    // wins that race and yanks the user to /assistant before the "Almost
+    // there" step ever renders. Setting it synchronously, before the
+    // signUp call starts, closes the window entirely.
+    const [awaitingOwnRedirect, setAwaitingOwnRedirect] = useState(false);
 
     useEffect(() => {
-        if (!authLoading && isAuthenticated && !success) {
+        if (
+            !authLoading &&
+            isAuthenticated &&
+            !success &&
+            !awaitingOwnRedirect
+        ) {
             router.replace("/assistant");
         }
-    }, [authLoading, isAuthenticated, router, success]);
+    }, [authLoading, isAuthenticated, router, success, awaitingOwnRedirect]);
 
     const handleSignup = async (e: React.FormEvent) => {
         e.preventDefault();
+        setAwaitingOwnRedirect(true);
         setLoading(true);
         setError(null);
 
@@ -58,6 +73,7 @@ export default function SignupPage() {
         if (password !== confirmPassword) {
             setError("Passwords do not match");
             setLoading(false);
+            setAwaitingOwnRedirect(false);
             return;
         }
 
@@ -65,6 +81,7 @@ export default function SignupPage() {
         if (password.length < 6) {
             setError("Password must be at least 6 characters");
             setLoading(false);
+            setAwaitingOwnRedirect(false);
             return;
         }
 
@@ -104,6 +121,7 @@ export default function SignupPage() {
                 }, 2000);
             }
         } catch (error: unknown) {
+            setAwaitingOwnRedirect(false);
             setError(
                 error instanceof Error
                     ? error.message
