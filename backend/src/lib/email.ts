@@ -10,7 +10,7 @@ import { Resend } from "resend";
 const FROM =
     process.env.EMAIL_FROM?.trim() || "Gavel <noreply@primafacie.in>";
 const APP_URL =
-    process.env.FRONTEND_URL?.trim() || "https://mikeross.primafacie.in";
+    process.env.FRONTEND_URL?.trim() || "https://trygavel.in";
 
 function client(): Resend | null {
     const key = process.env.RESEND_API_KEY?.trim();
