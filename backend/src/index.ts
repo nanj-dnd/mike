@@ -18,6 +18,7 @@ import { conflictsRouter } from "./routes/conflicts";
 import { adminRouter } from "./routes/admin";
 import { cloudImportRouter } from "./routes/cloudImport";
 import { audited } from "./lib/auditLog";
+import { allowedFrontendOrigins } from "./lib/frontendUrls";
 import {
   errorMonitor,
   initErrorReporting,
@@ -125,7 +126,7 @@ app.use(
 
 app.use(
   cors({
-    origin: process.env.FRONTEND_URL ?? "http://localhost:3000",
+    origin: allowedFrontendOrigins(),
     credentials: true,
   }),
 );

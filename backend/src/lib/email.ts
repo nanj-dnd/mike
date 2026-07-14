@@ -1,4 +1,5 @@
 import { Resend } from "resend";
+import { primaryFrontendUrl } from "./frontendUrls";
 
 /**
  * Outbound email via Resend. Fire-and-forget for non-critical mail (org
@@ -9,8 +10,7 @@ import { Resend } from "resend";
 
 const FROM =
     process.env.EMAIL_FROM?.trim() || "Gavel <noreply@primafacie.in>";
-const APP_URL =
-    process.env.FRONTEND_URL?.trim() || "https://trygavel.in";
+const APP_URL = primaryFrontendUrl();
 
 function client(): Resend | null {
     const key = process.env.RESEND_API_KEY?.trim();

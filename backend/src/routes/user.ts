@@ -35,6 +35,7 @@ import {
     userExportFilename,
 } from "../lib/userDataExport";
 import { findProfileUserByEmail } from "../lib/userLookup";
+import { primaryFrontendUrl } from "../lib/frontendUrls";
 
 export const userRouter = Router();
 
@@ -85,10 +86,7 @@ function backendPublicUrl(req: {
 }
 
 function frontendUrl(path = "/account/connectors") {
-    const base = (process.env.FRONTEND_URL ?? "http://localhost:3000").replace(
-        /\/+$/,
-        "",
-    );
+    const base = primaryFrontendUrl().replace(/\/+$/, "");
     return `${base}${path}`;
 }
 

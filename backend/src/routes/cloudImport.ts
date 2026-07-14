@@ -26,6 +26,7 @@ import {
 } from "../lib/cloudImport";
 import { ALLOWED_DOCUMENT_TYPES } from "../lib/documentTypes";
 import { recordUsage } from "../lib/usageMetrics";
+import { primaryFrontendUrl } from "../lib/frontendUrls";
 
 export const cloudImportRouter = Router();
 
@@ -33,9 +34,7 @@ const MAX_FILES_PER_IMPORT = 10;
 const MAX_URL_REDIRECTS = 3;
 
 function frontendOrigin(): string {
-    return new URL(
-        process.env.FRONTEND_URL ?? "http://localhost:3000",
-    ).origin;
+    return new URL(primaryFrontendUrl()).origin;
 }
 
 function popupCsp(nonce: string) {
