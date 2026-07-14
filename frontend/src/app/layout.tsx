@@ -15,7 +15,7 @@ const ebGaramond = EB_Garamond({
 });
 
 export const metadata: Metadata = {
-    metadataBase: new URL("https://mikeross.primafacie.in"),
+    metadataBase: new URL("https://trygavel.in"),
     title: "Gavel - AI Legal Platform for Indian Law Firms",
     description:
         "AI-powered legal document analysis, drafting, and contract review built for Indian law — Indian statutes, courts, and drafting conventions.",
@@ -28,7 +28,7 @@ export const metadata: Metadata = {
     },
     openGraph: {
         type: "website",
-        url: "https://mikeross.primafacie.in",
+        url: "https://trygavel.in",
         siteName: "Gavel",
         title: "Gavel - AI Legal Platform for Indian Law Firms",
         description:
