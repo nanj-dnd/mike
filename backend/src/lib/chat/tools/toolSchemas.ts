@@ -202,7 +202,7 @@ export const TOOLS = [
                 options: {
                   type: "array",
                   description:
-                    "For choice items only: selectable choices to show. Each choice has a single user-facing value, which is also sent back if selected.",
+                    "For choice items only: real, distinct choices to show as buttons, e.g. named alternatives ('Anticipatory Bail' / 'Regular Bail') or a yes/no decision. Omit this field entirely (do not pass an empty array or a single placeholder option) when the question is purely open-ended fact-gathering with no natural fixed choices, such as asking for a name, date, address, or free-form description — for those, rely solely on the always-available free-text field and do not invent a choice option like 'I will type it below' or restate the question as a fake second option.",
                   minItems: 1,
                   maxItems: 8,
                   items: {
@@ -219,7 +219,7 @@ export const TOOLS = [
                 allow_other: {
                   type: "boolean",
                   description:
-                    "For choice items only: whether to show an Other option with a text field. Defaults to true.",
+                    "For choice items only: whether to show a free-text field (labelled 'Other' alongside real options, or as the sole input when options is omitted). Defaults to true. Leave true and omit options for open-ended questions.",
                 },
                 other_label: {
                   type: "string",

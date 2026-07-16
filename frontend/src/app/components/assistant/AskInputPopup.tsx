@@ -491,6 +491,47 @@ function OptionInput({
     onOtherOpen: () => void;
     onOtherValue: (value: string) => void;
 }) {
+    // Purely open-ended fact-gathering (no real choices, e.g. "what is the
+    // petitioner's name and address") — a numbered clickable "option" list
+    // makes no sense here since there's nothing to choose between. Render
+    // a single always-open text field instead of routing through the
+    // choice-button treatment.
+    if (item.options.length === 0 && item.allow_other) {
+        return (
+            <div className="mt-2 flex items-end gap-2 rounded-lg bg-gray-100/70 p-2">
+                <textarea
+                    name={`other-${item.id}`}
+                    rows={1}
+                    autoFocus
+                    value={otherValue}
+                    disabled={disabled}
+                    onChange={(e) => {
+                        onOtherValue(e.target.value);
+                        e.target.style.height = "auto";
+                        e.target.style.height = `${e.target.scrollHeight}px`;
+                    }}
+                    onKeyDown={(e) => {
+                        if (e.key === "Enter" && !e.shiftKey) {
+                            e.preventDefault();
+                            onAnswer(otherValue);
+                        }
+                    }}
+                    placeholder="Type your answer..."
+                    className="flex-1 resize-none overflow-hidden bg-transparent text-sm leading-5 text-gray-800 outline-none placeholder:text-gray-400"
+                />
+                <button
+                    type="button"
+                    disabled={disabled || !otherValue.trim()}
+                    onClick={() => onAnswer(otherValue)}
+                    className="shrink-0 flex items-center gap-1 rounded-full bg-blue-600 px-3 py-0.5 font-sans text-[10px] text-white transition-colors hover:bg-blue-700 disabled:cursor-default disabled:opacity-40"
+                >
+                    Set
+                    <CornerDownLeft className="h-3 w-3" />
+                </button>
+            </div>
+        );
+    }
+
     return (
         <div className="mt-2 grid gap-2">
             {item.options.map((option, idx) => {
