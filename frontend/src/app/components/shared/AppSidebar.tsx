@@ -8,7 +8,6 @@ import {
     FolderOpen,
     Table2,
     Library,
-    User,
     ChevronsUpDown,
     ChevronDown,
     BookMarked,
@@ -20,6 +19,7 @@ import { useChatHistoryContext } from "@/app/contexts/ChatHistoryContext";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import { MikeIcon } from "@/app/components/chat/mike-icon";
+import { AccountMenu } from "@/app/components/shared/AccountMenu";
 import { SidebarChatItem } from "@/app/components/shared/SidebarChatItem";
 import { listProjects } from "@/app/lib/mikeApi";
 import type { Project } from "@/app/components/shared/types";
@@ -57,7 +57,6 @@ export function AppSidebar({ isOpen, onToggle }: AppSidebarProps) {
         return projectChatMatch?.[1] ?? null;
     }, [pathname]);
     const [shouldAnimate, setShouldAnimate] = useState(false);
-    const [isDropdownOpen, setIsDropdownOpen] = useState(false);
     const [projectsCollapsed, setProjectsCollapsed] = useState(false);
     const [historyCollapsed, setHistoryCollapsed] = useState(false);
     const [projectNames, setProjectNames] = useState<Record<string, string>>(
@@ -94,15 +93,6 @@ export function AppSidebar({ isOpen, onToggle }: AppSidebarProps) {
         if (isOpen) setShouldAnimate(true);
         onToggle();
     };
-
-    useEffect(() => {
-        const handleClickOutside = () => setIsDropdownOpen(false);
-        if (isDropdownOpen) {
-            document.addEventListener("click", handleClickOutside);
-            return () =>
-                document.removeEventListener("click", handleClickOutside);
-        }
-    }, [isDropdownOpen]);
 
     useEffect(() => {
         setCurrentChatId(routeChatId);
@@ -417,16 +407,15 @@ export function AppSidebar({ isOpen, onToggle }: AppSidebarProps) {
                 {/* User Profile */}
                 <div className="mt-auto p-1">
                     {user && (
-                        <div className="relative">
+                        <AccountMenu>
                             <button
-                                onClick={() =>
-                                    setIsDropdownOpen(!isDropdownOpen)
-                                }
                                 className={cn(
                                     "flex items-center transition-colors w-full px-2.5 py-3 border-t",
                                     "rounded-xl border-white/60",
                                     !isOpen ? "hidden md:flex" : "",
-                                    pathname === "/account" || isDropdownOpen
+                                    "data-[state=open]:bg-gray-200/60",
+                                    pathname === "/account" ||
+                                        pathname.startsWith("/account/")
                                         ? "bg-gray-200/60"
                                         : "hover:bg-gray-100",
                                 )}
@@ -455,31 +444,7 @@ export function AppSidebar({ isOpen, onToggle }: AppSidebarProps) {
                                     </div>
                                 )}
                             </button>
-
-                            {isDropdownOpen && (
-                                <div
-                                    className={cn(
-                                        "absolute bottom-full left-0 z-50 mb-1 p-1 whitespace-nowrap",
-                                        isOpen ? "right-0" : "w-56",
-                                        "bg-white/80 rounded-xl shadow-[0_6px_17px_rgba(15,23,42,0.1)] border border-white/70 backdrop-blur-xl",
-                                    )}
-                                >
-                                    <button
-                                        onClick={() => {
-                                            router.push("/account");
-                                            setIsDropdownOpen(false);
-                                        }}
-                                        className={cn(
-                                            "w-full px-4 py-2 text-left text-sm text-gray-700 flex items-center gap-2 rounded-md",
-                                            "hover:bg-white/70",
-                                        )}
-                                    >
-                                        <User className="h-4 w-4" />
-                                        Account Settings
-                                    </button>
-                                </div>
-                            )}
-                        </div>
+                        </AccountMenu>
                     )}
                 </div>
             </div>
