@@ -524,14 +524,23 @@ export function AskInputsBlock({
     const responseById = new Map(
         response?.responses.map((item) => [item.id, item]) ?? [],
     );
+    // While unanswered, the interactive AskInputPopup floating above the
+    // composer is the live UI for this event — it already shows one
+    // question at a time. Rendering the full question list here too puts
+    // duplicate text directly behind that popup's translucent background,
+    // which bleeds through as overlapping/ghosted text. Show a compact
+    // placeholder until answered; the full per-question summary (with
+    // answers) is genuinely useful only once resolved.
+    if (!response) {
+        return (
+            <EventBlock showConnector={showConnector} dotColor="gray">
+                <p className="font-medium text-gray-600">Asking for input</p>
+            </EventBlock>
+        );
+    }
     return (
-        <EventBlock
-            showConnector={showConnector}
-            dotColor={response ? "green" : "gray"}
-        >
-            <p className="font-medium text-gray-600">
-                {response ? "Asked for input" : "Asking for input"}
-            </p>
+        <EventBlock showConnector={showConnector} dotColor="green">
+            <p className="font-medium text-gray-600">Asked for input</p>
             <div className="mt-2 space-y-2 text-gray-800">
                 {event.items.map((item, index) => {
                     const itemResponse = responseById.get(item.id);
