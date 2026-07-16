@@ -335,117 +335,107 @@ export function AskInputPopup({
 
                 <div className="px-3">
                     {activeItem && (
-                        <div className="mt-3 flex min-h-54 flex-col">
-                            <div className="mt-auto">
-                                <div className="flex items-start justify-between gap-2">
-                                    <div className="min-w-0 flex-1">
-                                        {activeItem.kind === "choice" ? (
-                                            <p className="text-sm text-gray-800">
-                                                {activeItem.question}
-                                            </p>
-                                        ) : (
-                                            <DocumentPrompt item={activeItem} />
-                                        )}
-                                    </div>
-                                    {!submitted && (
-                                        <button
-                                            type="button"
-                                            onClick={() =>
-                                                setSkippedFor(
-                                                    activeItem.id,
-                                                    !skipped.has(activeItem.id),
-                                                )
-                                            }
-                                            className="shrink-0 rounded-full py-0.5 font-sans text-[10px] text-gray-500 transition-colors hover:text-gray-800 disabled:cursor-default disabled:opacity-40"
-                                        >
-                                            {skipped.has(activeItem.id)
-                                                ? "Unskip"
-                                                : "Skip"}
-                                        </button>
-                                    )}
-                                </div>
-
-                                <div className="pt-3">
+                        <div className="mt-3">
+                            <div className="flex items-start justify-between gap-2">
+                                <div className="min-w-0 flex-1">
                                     {activeItem.kind === "choice" ? (
-                                        <OptionInput
-                                            item={activeItem}
-                                            disabled={
-                                                submitted ||
-                                                skipped.has(activeItem.id)
-                                            }
-                                            selectedAnswer={
-                                                choiceAnswers[activeItem.id] ??
-                                                null
-                                            }
-                                            otherOpen={
-                                                !!otherOpen[activeItem.id]
-                                            }
-                                            otherValue={
-                                                otherValues[activeItem.id] ?? ""
-                                            }
-                                            onAnswer={(answer) =>
-                                                chooseAnswer(activeItem, answer)
-                                            }
-                                            onOtherOpen={() =>
-                                                setOtherOpen((prev) => ({
-                                                    ...prev,
-                                                    [activeItem.id]: true,
-                                                }))
-                                            }
-                                            onOtherValue={(value) =>
-                                                setOtherValues((prev) => ({
-                                                    ...prev,
-                                                    [activeItem.id]: value,
-                                                }))
-                                            }
-                                        />
+                                        <p className="text-sm text-gray-800">
+                                            {activeItem.question}
+                                        </p>
                                     ) : (
-                                        <DocumentInput
-                                            item={activeItem}
-                                            disabled={
-                                                submitted ||
-                                                skipped.has(activeItem.id)
-                                            }
-                                            docs={
-                                                docsByInput[activeItem.id] ?? []
-                                            }
-                                            uploading={
-                                                uploadingInputId ===
-                                                activeItem.id
-                                            }
-                                            dragActive={
-                                                dragActiveInputId ===
-                                                activeItem.id
-                                            }
-                                            fileInputRef={(node) => {
-                                                fileInputsRef.current[
-                                                    activeItem.id
-                                                ] = node;
-                                            }}
-                                            onFiles={(files) =>
-                                                void handleFiles(
-                                                    activeItem.id,
-                                                    files,
-                                                )
-                                            }
-                                            onDragActive={(active) =>
-                                                setDragActiveInputId(
-                                                    active
-                                                        ? activeItem.id
-                                                        : null,
-                                                )
-                                            }
-                                            onBrowse={() =>
-                                                setDocSelectorInputId(
-                                                    activeItem.id,
-                                                )
-                                            }
-                                            onRemoveDoc={(docId) =>
-                                                removeDoc(activeItem.id, docId)
-                                            }
-                                        />
+                                        <DocumentPrompt item={activeItem} />
                                     )}
                                 </div>
+                                {!submitted && (
+                                    <button
+                                        type="button"
+                                        onClick={() =>
+                                            setSkippedFor(
+                                                activeItem.id,
+                                                !skipped.has(activeItem.id),
+                                            )
+                                        }
+                                        className="shrink-0 rounded-full py-0.5 font-sans text-[10px] text-gray-500 transition-colors hover:text-gray-800 disabled:cursor-default disabled:opacity-40"
+                                    >
+                                        {skipped.has(activeItem.id)
+                                            ? "Unskip"
+                                            : "Skip"}
+                                    </button>
+                                )}
+                            </div>
+
+                            <div className="pt-3">
+                                {activeItem.kind === "choice" ? (
+                                    <OptionInput
+                                        item={activeItem}
+                                        disabled={
+                                            submitted ||
+                                            skipped.has(activeItem.id)
+                                        }
+                                        selectedAnswer={
+                                            choiceAnswers[activeItem.id] ??
+                                            null
+                                        }
+                                        otherOpen={!!otherOpen[activeItem.id]}
+                                        otherValue={
+                                            otherValues[activeItem.id] ?? ""
+                                        }
+                                        onAnswer={(answer) =>
+                                            chooseAnswer(activeItem, answer)
+                                        }
+                                        onOtherOpen={() =>
+                                            setOtherOpen((prev) => ({
+                                                ...prev,
+                                                [activeItem.id]: true,
+                                            }))
+                                        }
+                                        onOtherValue={(value) =>
+                                            setOtherValues((prev) => ({
+                                                ...prev,
+                                                [activeItem.id]: value,
+                                            }))
+                                        }
+                                    />
+                                ) : (
+                                    <DocumentInput
+                                        item={activeItem}
+                                        disabled={
+                                            submitted ||
+                                            skipped.has(activeItem.id)
+                                        }
+                                        docs={docsByInput[activeItem.id] ?? []}
+                                        uploading={
+                                            uploadingInputId === activeItem.id
+                                        }
+                                        dragActive={
+                                            dragActiveInputId === activeItem.id
+                                        }
+                                        fileInputRef={(node) => {
+                                            fileInputsRef.current[
+                                                activeItem.id
+                                            ] = node;
+                                        }}
+                                        onFiles={(files) =>
+                                            void handleFiles(
+                                                activeItem.id,
+                                                files,
+                                            )
+                                        }
+                                        onDragActive={(active) =>
+                                            setDragActiveInputId(
+                                                active ? activeItem.id : null,
+                                            )
+                                        }
+                                        onBrowse={() =>
+                                            setDocSelectorInputId(
+                                                activeItem.id,
+                                            )
+                                        }
+                                        onRemoveDoc={(docId) =>
+                                            removeDoc(activeItem.id, docId)
+                                        }
+                                    />
+                                )}
                             </div>
                         </div>
                     )}
