@@ -9,7 +9,7 @@ import {
 
 export default function RootPage() {
   return (
-    <main className="min-h-dvh overflow-hidden bg-[#f5f0e8] text-[#1f1d1b]">
+    <main className="min-h-dvh overflow-hidden bg-[#f5f0e8] font-serif text-[#1f1d1b]">
       <div className="relative isolate">
         <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[48rem] bg-[radial-gradient(circle_at_16%_12%,rgba(139,39,55,0.12),transparent_30%),radial-gradient(circle_at_88%_8%,rgba(211,194,164,0.38),transparent_31%),linear-gradient(135deg,#f8f4ed_0%,#f1e9dc_100%)]" />
         <header className="mx-auto flex w-full max-w-7xl items-center justify-between px-6 py-6 lg:px-8">
@@ -19,7 +19,7 @@ export default function RootPage() {
           <nav className="flex items-center gap-3 text-sm font-medium">
             <a
               href="tel:+918104610781"
-              className="inline-flex items-center gap-2 rounded-full border border-white/80 bg-white/45 px-4 py-2.5 text-[#6f1f2e] shadow-[8px_8px_18px_rgba(121,101,73,0.13),-8px_-8px_18px_rgba(255,255,255,0.78)] backdrop-blur-xl transition hover:-translate-y-0.5 hover:bg-white/65"
+              className="inline-flex items-center gap-2 rounded-md border border-[#8b2737]/35 bg-[#f9f4eb] px-4 py-2.5 text-[#6f1f2e] transition hover:bg-[#fffaf3]"
             >
               Contact us <ArrowUpRight className="h-3.5 w-3.5" />
             </a>
@@ -28,7 +28,7 @@ export default function RootPage() {
 
         <section className="mx-auto grid max-w-7xl gap-14 px-6 pb-20 pt-16 lg:grid-cols-[1.05fr_0.95fr] lg:items-center lg:px-8 lg:pb-32 lg:pt-28">
           <div>
-            <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-white/80 bg-white/45 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-[#7d2634] shadow-[5px_5px_14px_rgba(121,101,73,0.1),-5px_-5px_14px_rgba(255,255,255,0.7)] backdrop-blur-xl">
+            <div className="mb-6 inline-flex items-center gap-2 border-b border-[#8b2737]/45 pb-2 text-xs font-semibold uppercase tracking-[0.14em] text-[#7d2634]">
               <span className="h-1.5 w-1.5 rounded-full bg-[#8b2737]" />
               Purpose-built for Indian law firms
             </div>
@@ -43,13 +43,13 @@ export default function RootPage() {
             <div className="mt-9 flex flex-wrap gap-3">
               <a
                 href="tel:+918104610781"
-                className="inline-flex items-center gap-2 rounded-full bg-[#852737] px-5 py-3 text-sm font-semibold text-white shadow-[8px_8px_18px_rgba(102,28,40,0.2),-7px_-7px_15px_rgba(255,255,255,0.55)] transition hover:-translate-y-0.5 hover:bg-[#6f1f2e]"
+                className="inline-flex items-center gap-2 rounded-md bg-[#852737] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#6f1f2e]"
               >
                 Contact us: +91 81046 10781 <ArrowUpRight className="h-4 w-4" />
               </a>
               <a
                 href="#what-you-can-do"
-                className="inline-flex items-center gap-2 rounded-full border border-white/80 bg-white/40 px-5 py-3 text-sm font-semibold text-[#5e2a32] shadow-[6px_6px_15px_rgba(121,101,73,0.1),-6px_-6px_15px_rgba(255,255,255,0.7)] backdrop-blur-xl transition hover:bg-white/65"
+                className="inline-flex items-center gap-2 rounded-md border border-[#a99176] bg-transparent px-5 py-3 text-sm font-semibold text-[#5e2a32] transition hover:bg-[#fffaf3]"
               >
                 Explore capabilities
               </a>
@@ -60,9 +60,9 @@ export default function RootPage() {
           </div>
 
           <div className="relative mx-auto w-full max-w-xl lg:max-w-none">
-            <div className="absolute -inset-6 -z-10 rounded-[2.5rem] bg-[#d9c6a6]/70 blur-2xl" />
-            <div className="rounded-[2rem] border border-white/80 bg-white/40 p-4 shadow-[18px_20px_45px_rgba(116,91,58,0.16),-12px_-12px_30px_rgba(255,255,255,0.7)] backdrop-blur-2xl sm:p-5">
-              <div className="rounded-[1.45rem] border border-white/75 bg-[#f8f4ed]/75 p-5 shadow-[inset_1px_1px_0_rgba(255,255,255,0.9),inset_-4px_-4px_12px_rgba(152,126,91,0.08)] sm:p-7">
+            <div className="absolute -inset-3 -z-10 bg-[#e4d7c4]" />
+            <div className="border border-[#d8cdbd] bg-[#fbf8f1] p-4 sm:p-5">
+              <div className="border border-[#ded3c4] bg-[#f8f4ed] p-5 sm:p-7">
                 <div className="flex items-center justify-between border-b border-[#ded3c4] pb-5">
                   <div className="flex items-center gap-3">
                     <div>
@@ -72,18 +72,18 @@ export default function RootPage() {
                       </p>
                     </div>
                   </div>
-                  <span className="rounded-full border border-white/70 bg-white/50 px-3 py-1 text-xs font-medium text-[#7a2836] shadow-[3px_3px_8px_rgba(121,101,73,0.1),-3px_-3px_8px_rgba(255,255,255,0.75)]">
+                  <span className="border border-[#b78d93] bg-[#f9efef] px-3 py-1 text-xs font-medium text-[#7a2836]">
                     Prepared for law firms
                   </span>
                 </div>
-                <div className="mt-6 grid grid-cols-2 overflow-hidden rounded-2xl border border-white/80 bg-white/30 shadow-[inset_3px_3px_8px_rgba(133,107,73,0.08),inset_-3px_-3px_8px_rgba(255,255,255,0.7)]">
+                <div className="mt-6 grid grid-cols-2 overflow-hidden border border-[#ded3c4] bg-[#fbf8f1]">
                   {[
                     ["14", "capability areas"],
                     ["90+", "individual features"],
                     ["27", "built-in drafting & review playbooks"],
                     ["0", "markup on your AI model costs"],
                   ].map(([number, label]) => (
-                    <div key={label} className="border-b border-r border-white/70 p-4 last:border-b-0 sm:p-5">
+                    <div key={label} className="border-b border-r border-[#ded3c4] p-4 last:border-b-0 sm:p-5">
                       <p className="font-serif text-4xl text-[#852737] sm:text-5xl">{number}</p>
                       <p className="mt-2 text-xs leading-5 text-[#746a61]">{label}</p>
                     </div>
@@ -135,7 +135,7 @@ export default function RootPage() {
               return (
                 <article
                   key={title as string}
-                  className="rounded-2xl border border-white/80 bg-white/42 p-6 shadow-[9px_9px_20px_rgba(121,101,73,0.11),-8px_-8px_18px_rgba(255,255,255,0.72),inset_1px_1px_0_rgba(255,255,255,0.75)] backdrop-blur-xl transition hover:-translate-y-1 hover:bg-white/60"
+                  className="border border-[#ded3c4] bg-[#fbf8f1] p-6 transition hover:border-[#a57a81] hover:bg-[#fffaf3]"
                 >
                   <FeatureIcon
                     className="h-6 w-6 text-[#852737]"
@@ -155,7 +155,7 @@ export default function RootPage() {
       </section>
 
       <section className="mx-auto max-w-7xl px-6 py-20 lg:px-8 lg:py-28">
-        <div className="rounded-[2rem] border border-[#a5525d]/35 bg-[#852737] px-7 py-12 text-[#fffaf1] shadow-[16px_16px_35px_rgba(91,29,40,0.22),-9px_-9px_20px_rgba(255,255,255,0.5),inset_1px_1px_0_rgba(255,255,255,0.16)] sm:px-12 sm:py-16 lg:flex lg:items-end lg:justify-between">
+        <div className="border border-[#6f1f2e] bg-[#852737] px-7 py-12 text-[#fffaf1] sm:px-12 sm:py-16 lg:flex lg:items-end lg:justify-between">
           <div className="max-w-2xl">
             <p className="text-sm font-semibold uppercase tracking-[0.14em] text-[#dfad68]">
               See what Gavel can do for your firm
@@ -169,7 +169,7 @@ export default function RootPage() {
           </div>
           <a
             href="tel:+919137171665"
-            className="mt-8 inline-flex items-center gap-2 rounded-full border border-white/70 bg-white/88 px-5 py-3 text-sm font-semibold text-[#702232] shadow-[6px_6px_14px_rgba(67,20,29,0.22),-5px_-5px_12px_rgba(255,255,255,0.14)] transition hover:-translate-y-0.5 hover:bg-white lg:mt-0"
+            className="mt-8 inline-flex items-center gap-2 rounded-md border border-white/70 bg-[#fffaf3] px-5 py-3 text-sm font-semibold text-[#702232] transition hover:bg-white lg:mt-0"
           >
             Contact us: +91 91371 71665 <ArrowUpRight className="h-4 w-4" />
           </a>
