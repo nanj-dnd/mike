@@ -2,12 +2,10 @@ import Link from "next/link";
 import {
   ArrowUpRight,
   BookOpenCheck,
-  ChevronRight,
   FileSearch,
   FolderKanban,
   Scale,
   ShieldCheck,
-  Sparkles,
 } from "lucide-react";
 
 export default function RootPage() {
@@ -29,18 +27,12 @@ export default function RootPage() {
             </span>
           </Link>
           <nav className="flex items-center gap-3 text-sm font-medium">
-            <Link
-              href="/login"
-              className="hidden rounded-full px-4 py-2 text-[#334657] transition hover:bg-white/70 sm:inline-flex"
-            >
-              Sign in
-            </Link>
-            <Link
-              href="/lawyering"
+            <a
+              href="tel:+918104610781"
               className="inline-flex items-center gap-2 rounded-full bg-[#17232f] px-4 py-2.5 text-white shadow-lg shadow-[#17232f]/15 transition hover:-translate-y-0.5 hover:bg-[#243a4c]"
             >
-              Enter Gavel <ArrowUpRight className="h-3.5 w-3.5" />
-            </Link>
+              Contact us <ArrowUpRight className="h-3.5 w-3.5" />
+            </a>
           </nav>
         </header>
 
@@ -51,29 +43,29 @@ export default function RootPage() {
               Purpose-built for Indian law firms
             </div>
             <h1 className="max-w-3xl font-serif text-5xl leading-[0.93] tracking-[-0.04em] text-[#17232f] sm:text-6xl lg:text-7xl">
-              Make every matter move with more certainty.
+              Everything your firm needs to do legal work better.
             </h1>
             <p className="mt-7 max-w-2xl text-lg leading-8 text-[#52616c] sm:text-xl">
-              Gavel is the India-native workspace for legal research, document
-              intelligence, drafting and matter work — designed around the way
-              your firm practices.
+              Gavel is an AI legal work platform for Indian law firms: document
+              intelligence, drafting playbooks, case-law research, firm
+              knowledge, and the controls a serious practice needs.
             </p>
             <div className="mt-9 flex flex-wrap gap-3">
-              <Link
-                href="/lawyering"
+              <a
+                href="tel:+918104610781"
                 className="inline-flex items-center gap-2 rounded-full bg-[#b8752c] px-5 py-3 text-sm font-semibold text-white shadow-xl shadow-[#b8752c]/20 transition hover:-translate-y-0.5 hover:bg-[#9b5d1f]"
               >
-                Start lawyering <ChevronRight className="h-4 w-4" />
-              </Link>
+                Contact us: +91 81046 10781 <ArrowUpRight className="h-4 w-4" />
+              </a>
               <a
                 href="#what-you-can-do"
                 className="inline-flex items-center gap-2 rounded-full border border-[#c9c5ba] bg-white/60 px-5 py-3 text-sm font-semibold text-[#263b4c] transition hover:border-[#8b9aa5] hover:bg-white"
               >
-                See the workspace
+                Explore capabilities
               </a>
             </div>
             <p className="mt-5 text-sm text-[#73808a]">
-              Bring your own AI provider. Your firm controls its model access.
+              Speak to us on +91 81046 10781 or +91 91371 71665.
             </p>
           </div>
 
@@ -87,42 +79,26 @@ export default function RootPage() {
                       <Scale className="h-5 w-5" />
                     </span>
                     <div>
-                      <p className="text-sm font-semibold">Matter workspace</p>
+                      <p className="text-sm font-semibold">Gavel capabilities</p>
                       <p className="text-xs text-[#79838a]">
-                        India-first legal intelligence
+                        AI legal work platform, built India-first
                       </p>
                     </div>
                   </div>
                   <span className="rounded-full bg-[#edf4ee] px-3 py-1 text-xs font-medium text-[#397042]">
-                    Private to your firm
+                    Prepared for law firms
                   </span>
                 </div>
-                <div className="mt-6 rounded-2xl border border-[#e6e1d8] bg-[#fbfaf7] p-4">
-                  <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#9a6a31]">
-                    Ask Gavel
-                  </p>
-                  <p className="mt-3 font-serif text-2xl leading-tight text-[#1f3140]">
-                    Review this agreement for India-specific risk and
-                    negotiation points.
-                  </p>
-                  <div className="mt-5 flex items-center justify-between border-t border-[#e8e3d9] pt-4 text-xs text-[#68757d]">
-                    <span>Commercial contract review</span>
-                    <Sparkles className="h-4 w-4 text-[#b8752c]" />
-                  </div>
-                </div>
-                <div className="mt-4 grid grid-cols-3 gap-3">
+                <div className="mt-6 grid grid-cols-2 border-l border-t border-[#e6e1d8]">
                   {[
-                    ["Research", "Indian authorities"],
-                    ["Draft", "Firm precedent"],
-                    ["Organise", "Matter context"],
-                  ].map(([title, detail]) => (
-                    <div key={title} className="rounded-xl bg-[#f4f2ed] p-3">
-                      <p className="text-xs font-semibold text-[#304655]">
-                        {title}
-                      </p>
-                      <p className="mt-1 text-[11px] leading-4 text-[#778187]">
-                        {detail}
-                      </p>
+                    ["14", "capability areas"],
+                    ["90+", "individual features"],
+                    ["27", "built-in drafting & review playbooks"],
+                    ["0", "markup on your AI model costs"],
+                  ].map(([number, label]) => (
+                    <div key={label} className="border-b border-r border-[#e6e1d8] p-4 sm:p-5">
+                      <p className="font-serif text-4xl text-[#8d2533] sm:text-5xl">{number}</p>
+                      <p className="mt-2 text-xs leading-5 text-[#68757d]">{label}</p>
                     </div>
                   ))}
                 </div>
@@ -139,33 +115,33 @@ export default function RootPage() {
         <div className="mx-auto max-w-7xl px-6 py-20 lg:px-8 lg:py-28">
           <div className="max-w-2xl">
             <p className="text-sm font-semibold uppercase tracking-[0.14em] text-[#a26a2b]">
-              One legal workspace
+              Built for the whole firm
             </p>
             <h2 className="mt-3 font-serif text-4xl leading-tight tracking-[-0.03em] sm:text-5xl">
-              The work your team does every day, made more connected.
+              Fourteen capability areas, from the first document to firm-wide controls.
             </h2>
           </div>
           <div className="mt-12 grid gap-4 md:grid-cols-2">
             {[
               [
                 BookOpenCheck,
-                "Research with an India-first lens",
-                "Ground research in Indian statutes, courts and drafting conventions — with foreign research kept distinct when you need it.",
+                "Document intelligence & review at scale",
+                "Matter-centric workspaces, grounded answers with citations, version history, and spreadsheet-style extraction across hundreds of documents.",
               ],
               [
                 FileSearch,
-                "Understand every document faster",
-                "Upload and interrogate documents, identify obligations and risks, and prepare review notes that stay tied to the matter.",
+                "India-specific drafting & research",
+                "Court-drafting templates, contract-review playbooks, Indian Kanoon research by default, and optional foreign research when the firm chooses it.",
               ],
               [
                 FolderKanban,
-                "Keep matter context together",
-                "Organise documents, conversations and work product by project so the next instruction starts with the right context.",
+                "Firm knowledge & conflict checking",
+                "A private clause library, meaning-based firm-wide document search, and recorded conflict checks that recognise Indian naming conventions.",
               ],
               [
                 ShieldCheck,
-                "Operate on your firm’s terms",
-                "Each user connects their own supported AI provider key; model access stays under your firm’s control.",
+                "Security, compliance & integrations",
+                "Role-based access, audit trails, MFA, SSO, encrypted credentials, data export and deletion, plus cloud import and remote-tool connections.",
               ],
             ].map(([Icon, title, detail]) => {
               const FeatureIcon = Icon as typeof BookOpenCheck;
@@ -195,22 +171,21 @@ export default function RootPage() {
         <div className="rounded-[2rem] bg-[#17232f] px-7 py-12 text-[#fbf8f0] sm:px-12 sm:py-16 lg:flex lg:items-end lg:justify-between">
           <div className="max-w-2xl">
             <p className="text-sm font-semibold uppercase tracking-[0.14em] text-[#dfad68]">
-              Ready when your matter is
+              See what Gavel can do for your firm
             </p>
             <h2 className="mt-4 font-serif text-4xl leading-tight tracking-[-0.03em] sm:text-5xl">
-              A sharper way for Indian legal teams to get work done.
+              Speak to the team about Gavel’s capabilities.
             </h2>
             <p className="mt-5 text-lg leading-8 text-[#cad0d3]">
-              Open Gavel, connect your preferred AI provider, and begin with the
-              matter in front of you.
+              From drafting and review to research, knowledge and security, we will walk you through the areas most relevant to your practice.
             </p>
           </div>
-          <Link
-            href="/lawyering"
+          <a
+            href="tel:+919137171665"
             className="mt-8 inline-flex items-center gap-2 rounded-full bg-[#f1c77e] px-5 py-3 text-sm font-semibold text-[#1d2b36] transition hover:-translate-y-0.5 hover:bg-[#f8d99e] lg:mt-0"
           >
-            Enter Gavel <ArrowUpRight className="h-4 w-4" />
-          </Link>
+            Contact us: +91 91371 71665 <ArrowUpRight className="h-4 w-4" />
+          </a>
         </div>
       </section>
 
