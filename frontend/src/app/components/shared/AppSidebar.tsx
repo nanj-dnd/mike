@@ -19,7 +19,6 @@ import { useUserProfile } from "@/app/contexts/UserProfileContext";
 import { useChatHistoryContext } from "@/app/contexts/ChatHistoryContext";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
-import { MikeIcon } from "@/app/components/chat/mike-icon";
 import { SidebarChatItem } from "@/app/components/shared/SidebarChatItem";
 import { listProjects } from "@/app/lib/mikeApi";
 import type { Project } from "@/app/components/shared/types";
@@ -149,7 +148,6 @@ export function AppSidebar({ isOpen, onToggle }: AppSidebarProps) {
                 href="/lawyering"
                 className="flex items-center gap-1.5 hover:opacity-80 transition-opacity"
               >
-                <MikeIcon size={22} />
                 <span
                   className={`text-2xl font-light font-serif ${
                     shouldAnimate ? "sidebar-fade-in" : ""

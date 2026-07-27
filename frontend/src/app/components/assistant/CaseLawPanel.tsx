@@ -13,7 +13,6 @@ import {
     Download,
     ExternalLink,
 } from "lucide-react";
-import { MikeIcon } from "@/app/components/chat/mike-icon";
 import type { CaseCitationQuote } from "../shared/types";
 import {
     clearDocxQuoteHighlights,
@@ -492,7 +491,7 @@ export function CaseLawPanel({
                 {loading && (
                     <div className={cn("h-full min-h-0 rounded-lg border border-gray-200", opinionSurfaceClassName)}>
                         <div className="flex h-full items-center justify-center p-5">
-                            <MikeIcon spin mike size={28} />
+                            <div className="h-5 w-5 animate-spin rounded-full border-2 border-gray-200 border-t-gray-700" />
                         </div>
                     </div>
                 )}

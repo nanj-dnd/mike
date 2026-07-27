@@ -19,13 +19,6 @@ export const metadata: Metadata = {
   title: "Gavel | Legal intelligence for Indian law firms",
   description:
     "The India-native legal workspace for research, document intelligence, drafting and matter work.",
-  icons: {
-    icon: [
-      { url: "/icon.svg", type: "image/svg+xml" },
-      { url: "/favicon.ico" },
-    ],
-    apple: "/apple-touch-icon.png",
-  },
   openGraph: {
     type: "website",
     url: "https://trygavel.in",

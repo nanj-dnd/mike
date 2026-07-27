@@ -21,7 +21,6 @@ import { UseWorkflowModal } from "./UseWorkflowModal";
 import { NewWorkflowModal } from "./NewWorkflowModal";
 import { TableToolbar } from "../shared/TableToolbar";
 import { RowActionMenuItems, RowActions } from "../shared/RowActions";
-import { MikeIcon } from "@/app/components/chat/mike-icon";
 import { PageHeader } from "@/app/components/shared/PageHeader";
 import { workflowDetailPath } from "./workflowRoutes";
 import {
@@ -609,8 +608,7 @@ export function WorkflowList() {
                                 </TableCell>
                                 <TableCell className="w-44">
                                     {wf.is_system ? (
-                                        <span className="inline-flex items-center gap-1.5 text-xs font-medium text-gray-600">
-                                            <MikeIcon size={14} />
+                                        <span className="inline-flex text-xs font-medium text-gray-600">
                                             System
                                         </span>
                                     ) : wf.is_owner !== false ? (

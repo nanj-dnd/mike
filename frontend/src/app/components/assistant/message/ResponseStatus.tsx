@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from "react";
-import { MikeIcon } from "@/app/components/chat/mike-icon";
 
 export type StatusState = "active" | "error" | null;
 
@@ -41,13 +40,9 @@ export function ResponseStatus({ status }: { status: StatusState }) {
 
     return (
         <div className="w-full h-9 flex items-center mb-2">
-            <MikeIcon
-                spin={isActive}
-                done={showDone && doneVisible}
-                error={isError}
-                mike={!isError && !(showDone && doneVisible)}
-                size={22}
-            />
+            <span className={`text-xs ${isError ? "text-red-600" : "text-gray-500"}`}>
+                {isError ? "Response interrupted" : isActive ? "Generating…" : showDone && doneVisible ? "Done" : ""}
+            </span>
         </div>
     );
 }
