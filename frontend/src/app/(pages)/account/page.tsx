@@ -380,6 +380,8 @@ export default function AccountPage() {
                 open={deleteConfirm}
                 title="Delete account?"
                 message="This will permanently delete your account and all associated data. This action cannot be undone."
+                requiredConfirmation="DELETE"
+                confirmationLabel="Type DELETE to permanently remove your account and all associated data."
                 confirmLabel="Delete"
                 confirmStatus={isDeleting ? "loading" : "idle"}
                 cancelLabel="Cancel"

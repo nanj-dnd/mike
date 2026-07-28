@@ -61,6 +61,13 @@ export default function SignupPage() {
     setLoading(true);
     setError(null);
 
+    if (!name.trim()) {
+      setError("Please enter a display name.");
+      setLoading(false);
+      setAwaitingOwnRedirect(false);
+      return;
+    }
+
     // Validate passwords match
     if (password !== confirmPassword) {
       setError("Passwords do not match");
@@ -199,8 +206,7 @@ export default function SignupPage() {
                 htmlFor="name"
                 className="block text-sm font-medium text-gray-700 mb-2"
               >
-                Name{" "}
-                <span className="text-gray-400 font-normal">(optional)</span>
+                Display name
               </label>
               <Input
                 id="name"
@@ -208,6 +214,7 @@ export default function SignupPage() {
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="Your name"
+                required
                 className={`w-full ${authInputClassName}`}
               />
             </div>

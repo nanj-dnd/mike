@@ -90,6 +90,53 @@ function providerParam(raw: string): CloudProvider {
     return raw;
 }
 
+function normalizeDocumentImportUrl(rawUrl: string): {
+    url: string;
+    fallbackFilename: string | null;
+} {
+    const parsed = new URL(rawUrl);
+    const host = parsed.hostname.toLowerCase();
+    const driveFileId = parsed.pathname.match(/^\/file\/d\/([^/]+)/)?.[1];
+    if (host === "drive.google.com" && driveFileId) {
+        return {
+            url: `https://drive.usercontent.google.com/download?id=${encodeURIComponent(driveFileId)}&export=download`,
+            fallbackFilename: null,
+        };
+    }
+
+    const googleDocument = host === "docs.google.com"
+        ? parsed.pathname.match(/^\/document\/d\/([^/]+)/)?.[1]
+        : null;
+    if (googleDocument) {
+        return {
+            url: `https://docs.google.com/document/d/${encodeURIComponent(googleDocument)}/export?format=docx`,
+            fallbackFilename: "gavel-import.docx",
+        };
+    }
+
+    const googleSheet = host === "docs.google.com"
+        ? parsed.pathname.match(/^\/spreadsheets\/d\/([^/]+)/)?.[1]
+        : null;
+    if (googleSheet) {
+        return {
+            url: `https://docs.google.com/spreadsheets/d/${encodeURIComponent(googleSheet)}/export?format=xlsx`,
+            fallbackFilename: "gavel-import.xlsx",
+        };
+    }
+
+    const googlePresentation = host === "docs.google.com"
+        ? parsed.pathname.match(/^\/presentation\/d\/([^/]+)/)?.[1]
+        : null;
+    if (googlePresentation) {
+        return {
+            url: `https://docs.google.com/presentation/d/${encodeURIComponent(googlePresentation)}/export/pptx`,
+            fallbackFilename: "gavel-import.pptx",
+        };
+    }
+
+    return { url: rawUrl, fallbackFilename: null };
+}
+
 async function resolveProjectId(
     req: import("express").Request,
     res: import("express").Response,
@@ -181,7 +228,11 @@ cloudImportRouter.post("/url", requireAuth, async (req, res) => {
         if (!project.ok) return;
 
         // Follow redirects manually so every hop is SSRF-checked.
-        let currentUrl = await validatePublicHttpsUrl(rawUrl, "Import URL");
+        const normalizedImport = normalizeDocumentImportUrl(rawUrl);
+        let currentUrl = await validatePublicHttpsUrl(
+            normalizedImport.url,
+            "Import URL",
+        );
         let response: Response | null = null;
         for (let hop = 0; hop <= MAX_URL_REDIRECTS; hop++) {
             response = await fetch(currentUrl, { redirect: "manual" });
@@ -216,7 +267,13 @@ cloudImportRouter.post("/url", requireAuth, async (req, res) => {
         const pathName = decodeURIComponent(
             new URL(currentUrl).pathname.split("/").pop() ?? "",
         );
-        const filename = (overrideName || dispositionName || pathName).trim();
+        const filename = (
+            overrideName ||
+            dispositionName ||
+            pathName ||
+            normalizedImport.fallbackFilename ||
+            ""
+        ).trim();
         if (!filename || !ALLOWED_DOCUMENT_TYPES.has(fileExtension(filename))) {
             return void res.status(400).json({
                 detail:

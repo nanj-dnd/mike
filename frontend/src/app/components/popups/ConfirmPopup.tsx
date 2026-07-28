@@ -1,6 +1,7 @@
 "use client";
 
 import { createPortal } from "react-dom";
+import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import { Loader2, Trash2 } from "lucide-react";
 import { PillButton } from "@/app/components/ui/pill-button";
@@ -18,6 +19,8 @@ interface ConfirmPopupProps {
     onConfirm: () => void;
     onCancel: () => void;
     confirmDisabled?: boolean;
+    requiredConfirmation?: string;
+    confirmationLabel?: string;
     className?: string;
 }
 
@@ -31,11 +34,20 @@ export function ConfirmPopup({
     onConfirm,
     onCancel,
     confirmDisabled = false,
+    requiredConfirmation,
+    confirmationLabel,
     className,
 }: ConfirmPopupProps) {
+    const [confirmation, setConfirmation] = useState("");
+    useEffect(() => {
+        if (!open) setConfirmation("");
+    }, [open]);
     if (!open) return null;
     const confirmBusy = confirmStatus === "loading";
-    const resolvedConfirmDisabled = confirmDisabled || confirmStatus !== "idle";
+    const matchesRequiredConfirmation =
+        !requiredConfirmation || confirmation.trim() === requiredConfirmation;
+    const resolvedConfirmDisabled =
+        confirmDisabled || confirmStatus !== "idle" || !matchesRequiredConfirmation;
     const normalizedConfirmLabel =
         typeof confirmLabel === "string" ? confirmLabel : "Confirm";
     const isDeleteAction = normalizedConfirmLabel.toLowerCase() === "delete";
@@ -75,6 +87,18 @@ export function ConfirmPopup({
                     >
                         {message}
                     </div>
+                )}
+                {requiredConfirmation && (
+                    <label className="mt-3 block text-xs text-gray-700">
+                        {confirmationLabel ?? `Type ${requiredConfirmation} to continue.`}
+                        <input
+                            value={confirmation}
+                            onChange={(event) => setConfirmation(event.target.value)}
+                            placeholder={requiredConfirmation}
+                            autoComplete="off"
+                            className="mt-1.5 w-full rounded-lg border border-gray-200 bg-gray-50 px-2.5 py-2 text-sm text-gray-900 outline-none transition focus:border-gray-400 focus:bg-white"
+                        />
+                    </label>
                 )}
                 <div className="mt-3 flex items-center justify-end gap-2">
                     <PillButton

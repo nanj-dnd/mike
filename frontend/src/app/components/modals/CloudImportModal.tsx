@@ -491,9 +491,9 @@ function UrlImportTab({
     return (
         <div>
             <p className="mb-3 text-sm text-gray-500">
-                Paste a direct HTTPS link to a document (pdf, docx, xlsx,
-                pptx…). The file is fetched server-side and added like an
-                upload.
+                Paste a direct HTTPS link or a publicly shared Google Drive,
+                Docs, Sheets, or Slides link. The file is fetched server-side
+                and added like an upload.
             </p>
             <div className="flex gap-2">
                 <div className="relative flex-1">

@@ -102,7 +102,19 @@ async function deleteDocumentVersionFiles(db: Db, documentIds: string[]) {
         }
     }
 
-    await Promise.all([...paths].map((path) => deleteFile(path)));
+    await Promise.all(
+        [...paths].map((path) =>
+            deleteFile(path).catch((error) => {
+                // Object storage cleanup should not strand a user account when
+                // a stale object has already disappeared or is temporarily
+                // unavailable. The prefix pass below still attempts cleanup.
+                console.warn("[account-delete] storage object cleanup failed", {
+                    path,
+                    error: error instanceof Error ? error.message : error,
+                });
+            }),
+        ),
+    );
 }
 
 async function deleteUserStoragePrefix(userId: string) {
