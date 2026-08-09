@@ -16,7 +16,7 @@ Each row represents one video × target × KPI observation:
 
 - Supervised score training: `training_score_eligible=true` and `training_row_status=ready_scored_label`.
 - Visibility/null training: include `training_row_status=ready_null_label` as explicit non-scored observations.
-- Exclude `exclude_wrong_angle` and `exclude_incomplete` from score training.
+- Exclude `exclude_wrong_angle`, `exclude_incomplete`, and every `exclude_footwork_*` status from score training.
 - Use `dataset_group_key` to keep every row for the same player and capture session in one train/validation/test split.
 
 The human ground-truth fields begin with `human_`. Model suggestions begin with `model_` and must never replace the human fields.
@@ -24,6 +24,31 @@ The human ground-truth fields begin with `human_`. Model suggestions begin with 
 ## Timing
 
 All timestamp fields ending in `_ms` are integer milliseconds from the beginning of the source video. Frame fields ending in `_frame_0based` are zero-based indices calculated from `video_fps` using nearest-frame rounding. The source video hash is in `video_sha256`.
+
+`human_evidence_timestamps_ms_json` is a JSON array of every human evidence point, snapped to the nearest video frame, sorted chronologically, and de-duplicated by zero-based frame index. `human_evidence_frames_0based_json` is the parallel JSON array of frame indices, and `human_evidence_count` is their shared length. The earliest canonical point is mirrored into the backward-compatible singular `human_evidence_timestamp_ms` and `human_evidence_frame_0based` columns. Rows without usable human evidence export `[]`, `[]`, and `0`.
+
+A legacy annotation containing only `evidenceMs` therefore exports a one-item multi-evidence array. New writers may also persist `evidenceFramesMs`; they should keep `evidenceMs` equal to the earliest canonical timestamp. Every evidence point for a delivery-scoped label must fall inside that delivery segment or the label is incomplete and ineligible for score training.
+
+## Human shot-footwork and KPI applicability
+
+`human_shot_footwork` is an explicit delivery-level human judgement with one of `front_foot`, `back_foot`, `both`, or `unclear`. Clip-scoped rows leave it blank. Existing annotations are not backfilled or inferred from KPI scores, delivery outcome, or video metadata.
+
+Only two exact workbook applicability values alter scoring:
+
+- `kpi_applies_to=Front-Foot Only` applies to `front_foot` and `both` deliveries;
+- `kpi_applies_to=Back-Foot Only` applies to `back_foot` and `both` deliveries.
+
+`kpi_applies_to=Both` means the KPI is usable for either front- or back-foot shots; it is not the same semantic as a human `human_shot_footwork=both` judgement. All other conditional applicability prose remains in scope because the catalog does not provide enough structured information to infer those conditions safely.
+
+`kpi_footwork_applicability_state` is one of:
+
+- `not_restricted` — no exact front/back-only rule applies;
+- `applicable` — the human footwork matches the exact restriction, including `both`;
+- `excluded_mismatch` — known front/back footwork does not match;
+- `excluded_unclear` — the annotator explicitly selected `unclear`; or
+- `unresolved_missing` — required shot-footwork has not been labelled.
+
+Missing footwork is a review blocker only when the active rubric and camera angle contain front/back-only delivery KPIs. `unclear` is a valid exportable human judgement and produces a warning, but its restricted KPI rows are excluded from scoring. Known mismatches are explicit excluded rows and do not require a KPI label. Stale labels remain in the saved annotation JSON for auditability, but their human score, confidence, bucket, evidence, and note are suppressed from training CSV fields whenever the row is excluded by footwork.
 
 ## Null and uncertainty semantics
 
@@ -56,4 +81,4 @@ The catalog has nine male routes and 131 unique KPI IDs. Foundation uses explici
 
 ## File format
 
-The browser download is UTF-8 with a BOM for spreadsheet compatibility. Records use RFC-4180 quoting and CRLF row endings; embedded commas, quotes, and line breaks are escaped. Column order is version-locked in `LABELS_CSV_COLUMNS` for v2.
+The browser download is UTF-8 with a BOM for spreadsheet compatibility. Records use RFC-4180 quoting and CRLF row endings; embedded commas, quotes, and line breaks are escaped. Column order is version-locked in `LABELS_CSV_COLUMNS` for v2. The five shot-footwork and multi-evidence fields were appended after the original v2 columns, so every pre-existing column retains its name and ordinal position.

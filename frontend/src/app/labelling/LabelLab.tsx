@@ -43,8 +43,99 @@ import {
   parseTimecode,
   steppedFrameTimeMs,
 } from "./lib/timecode";
+import {
+  canonicalEvidenceTimestamps,
+  footworkApplicability,
+  footworkRequirementFor,
+  isFootworkApplicableForScoring,
+  isFootworkRestrictedKpi,
+  type ShotFootwork,
+} from "./lib/training-contract";
 
 type WorkflowStep = "setup" | "segment" | "label" | "review";
+type LabelPatch = Partial<DeliveryLabel>;
+
+const SHOT_FOOTWORK_OPTIONS: { value: ShotFootwork; label: string }[] = [
+  { value: "front_foot", label: "Front foot" },
+  { value: "back_foot", label: "Back foot" },
+  { value: "both", label: "Both" },
+  { value: "unclear", label: "Unclear" },
+];
+
+function shotFootworkFor(delivery?: Delivery): ShotFootwork | null {
+  const value = delivery?.shotFootwork;
+  return SHOT_FOOTWORK_OPTIONS.some((option) => option.value === value)
+    ? (value as ShotFootwork)
+    : null;
+}
+
+function shotFootworkLabel(value: ShotFootwork | null) {
+  return SHOT_FOOTWORK_OPTIONS.find((option) => option.value === value)?.label ?? "Not selected";
+}
+
+function kpiFootworkAssessability(
+  kpi: KpiDefinition,
+  delivery: Delivery | undefined,
+  discipline: Discipline,
+) {
+  if (discipline !== "batting") {
+    return { assessable: true, state: "not_restricted" as const, reason: "" };
+  }
+
+  const footwork = shotFootworkFor(delivery);
+  const state = footworkApplicability(kpi, footwork);
+  const assessable = isFootworkApplicableForScoring(state);
+  if (assessable) return { assessable, state, reason: "" };
+  const requirementLabel = footworkRequirementFor(kpi) === "front_foot" ? "front-foot" : "back-foot";
+  const reason = state === "unresolved_missing"
+    ? `Choose shot footwork before assessing this ${requirementLabel}-only KPI.`
+    : state === "excluded_unclear"
+      ? `Footwork is explicitly marked unclear, so this ${requirementLabel}-only KPI is excluded from scoring.`
+      : `This ${requirementLabel}-only KPI is excluded for the selected ${shotFootworkLabel(footwork).toLowerCase()} shot.`;
+  return { assessable, state, reason };
+}
+
+function evidenceFramesFor(label: DeliveryLabel | undefined, fps: number) {
+  return canonicalEvidenceTimestamps(
+    label ?? { evidenceMs: null, evidenceFramesMs: [] },
+    fps,
+  );
+}
+
+function ShotFootworkField({
+  delivery,
+  compact = false,
+  onChange,
+}: {
+  delivery: Delivery;
+  compact?: boolean;
+  onChange: (value: ShotFootwork) => void;
+}) {
+  const value = shotFootworkFor(delivery);
+  return (
+    <fieldset className={`footwork-field ${compact ? "footwork-field--compact" : ""}`}>
+      <legend>Shot footwork <em>human selected</em></legend>
+      <div className="footwork-options">
+        {SHOT_FOOTWORK_OPTIONS.map((option) => (
+          <button
+            type="button"
+            key={option.value}
+            className={value === option.value ? "active" : ""}
+            aria-pressed={value === option.value}
+            onClick={() => onChange(option.value)}
+          >
+            {option.label}
+          </button>
+        ))}
+      </div>
+      {!compact && (
+        <small>
+          Choose from the footage; never infer it. “Unclear” explicitly excludes front/back-only KPIs.
+        </small>
+      )}
+    </fieldset>
+  );
+}
 
 interface VideoProject {
   id: string;
@@ -132,14 +223,30 @@ function sanitizeFilename(value: string) {
   return value.replace(/\.[^/.]+$/, "").replace(/[^a-z0-9-_]+/gi, "-").toLowerCase();
 }
 
-function hydrateDocument(value: unknown): AnnotationDocument {
+function hydrateDocument(value: unknown, fps?: number): AnnotationDocument {
   const fallback = emptyDocument();
   if (!value || typeof value !== "object") return fallback;
   const candidate = value as Partial<AnnotationDocument>;
+  const deliveries = Array.isArray(candidate.deliveries)
+    ? candidate.deliveries.map((delivery) => ({
+        ...delivery,
+        shotFootwork: shotFootworkFor(delivery),
+      }))
+    : [];
+  const labels = Array.isArray(candidate.labels)
+    ? candidate.labels.map((label) => {
+        const evidenceFramesMs = canonicalEvidenceTimestamps(label, fps);
+        return {
+          ...label,
+          evidenceMs: evidenceFramesMs[0] ?? null,
+          evidenceFramesMs,
+        };
+      })
+    : [];
   return {
     schemaVersion: "amp-labels-long-v1",
-    deliveries: Array.isArray(candidate.deliveries) ? candidate.deliveries : [],
-    labels: Array.isArray(candidate.labels) ? candidate.labels : [],
+    deliveries,
+    labels,
     review: { ...fallback.review, ...(candidate.review ?? {}) },
   };
 }
@@ -175,6 +282,11 @@ export function LabelLab({ onExit }: { onExit?: () => void | Promise<void> }) {
   const [dirty, setDirty] = useState(false);
   const [notice, setNotice] = useState("");
   const [error, setError] = useState("");
+  const [evidenceCaptureError, setEvidenceCaptureError] = useState<{
+    targetId: string;
+    kpiId: string;
+    message: string;
+  } | null>(null);
 
   const rubric = useMemo(
     () => getRubric(
@@ -219,6 +331,19 @@ export function LabelLab({ onExit }: { onExit?: () => void | Promise<void> }) {
   const selectedLabel = selectedKpi
     ? getLabel(document.labels, selectedTargetId, selectedKpi.id)
     : undefined;
+  const activeDiscipline = project?.discipline ?? uploadForm.discipline;
+  const selectedKpiAssessability = selectedKpi
+    ? kpiFootworkAssessability(selectedKpi, selectedDelivery, activeDiscipline)
+    : { assessable: true, state: "not_restricted" as const, reason: "" };
+  const canExplicitlyExcludeSelectedKpi =
+    selectedKpiAssessability.state === "excluded_mismatch" ||
+    selectedKpiAssessability.state === "excluded_unclear";
+  const selectedEvidenceFrames = evidenceFramesFor(
+    selectedLabel,
+    project?.fps ?? uploadForm.fps,
+  );
+  const rubricHasFootworkSpecificKpis = activeDiscipline === "batting" &&
+    rubric.kpis.some((kpi) => isFootworkRestrictedKpi(kpi));
   const score = useMemo(
     () =>
       project
@@ -229,7 +354,13 @@ export function LabelLab({ onExit }: { onExit?: () => void | Promise<void> }) {
   const issues = useMemo(
     () =>
       project
-        ? validateDocument(document, rubric, project.cameraAngle, project.durationMs)
+        ? validateDocument(
+            document,
+            rubric,
+            project.cameraAngle,
+            project.durationMs,
+            project.fps,
+          )
         : [],
     [document, project, rubric],
   );
@@ -238,6 +369,9 @@ export function LabelLab({ onExit }: { onExit?: () => void | Promise<void> }) {
   const filteredKpis = supportedKpis.filter((kpi) =>
     `${kpi.name} ${kpi.group}`.toLowerCase().includes(kpiSearch.toLowerCase()),
   );
+  const assessableKpiCount = supportedKpis.filter(
+    (kpi) => kpiFootworkAssessability(kpi, selectedDelivery, activeDiscipline).assessable,
+  ).length;
   const currentFrame = project
     ? Math.min(frameIndexForMs(project.durationMs, project.fps), frameIndexForMs(currentMs, project.fps))
     : 0;
@@ -324,7 +458,10 @@ export function LabelLab({ onExit }: { onExit?: () => void | Promise<void> }) {
           throw new Error(payload.error ?? "Could not open the project.");
         }
         setProject(payload.video);
-        const nextDocument = hydrateDocument(payload.video.annotations);
+        const nextDocument = hydrateDocument(
+          payload.video.annotations,
+          payload.video.fps,
+        );
         setDocument(nextDocument);
         setSelectedDeliveryId(nextDocument.deliveries[0]?.id ?? "");
         const nextRubric = getRubric(payload.video.discipline, payload.video.sex, {
@@ -503,6 +640,15 @@ export function LabelLab({ onExit }: { onExit?: () => void | Promise<void> }) {
     }));
   }
 
+  function updateDeliveryShotFootwork(id: string, shotFootwork: ShotFootwork) {
+    updateDocument((current) => ({
+      ...current,
+      deliveries: current.deliveries.map((delivery) =>
+        delivery.id === id ? { ...delivery, shotFootwork } : delivery,
+      ),
+    }));
+  }
+
   function removeDelivery(delivery: Delivery) {
     if (!window.confirm(`Remove delivery ${delivery.index} and all of its labels?`)) return;
     updateDocument((current) => ({
@@ -545,7 +691,7 @@ export function LabelLab({ onExit }: { onExit?: () => void | Promise<void> }) {
     setTimecodeDraft(null);
   }
 
-  function upsertLabel(kpi: KpiDefinition, patch: Partial<DeliveryLabel>) {
+  function upsertLabel(kpi: KpiDefinition, patch: LabelPatch) {
     const targetId = kpi.scope === "clip" ? "clip" : activeDeliveryId;
     if (!targetId) return setError("Select a delivery first.");
     updateDocument((current) => {
@@ -568,7 +714,77 @@ export function LabelLab({ onExit }: { onExit?: () => void | Promise<void> }) {
       visibility,
       ...(visibility === "visible"
         ? {}
-        : { score: null, confidence: null, evidenceMs: null }),
+        : { score: null, confidence: null, evidenceMs: null, evidenceFramesMs: [] }),
+    });
+  }
+
+  function addCurrentEvidenceFrame(kpi: KpiDefinition) {
+    if (!project || !selectedKpiAssessability.assessable) return;
+    const targetId = kpi.scope === "clip" ? "clip" : activeDeliveryId;
+    if (!targetId) return setError("Select a delivery first.");
+    const existing = getLabel(document.labels, targetId, kpi.id);
+    const frames = evidenceFramesFor(existing, project.fps);
+    const snappedMs = Math.round(frameTimeMs(currentFrame, project.fps));
+    setEvidenceCaptureError(null);
+    if (
+      kpi.scope === "delivery" &&
+      (!selectedDelivery ||
+        snappedMs < selectedDelivery.startMs ||
+        snappedMs > selectedDelivery.endMs)
+    ) {
+      setEvidenceCaptureError({
+        targetId,
+        kpiId: kpi.id,
+        message: selectedDelivery
+          ? `Current frame ${formatTime(snappedMs)} is outside delivery D${selectedDelivery.index} (${formatTime(selectedDelivery.startMs)}–${formatTime(selectedDelivery.endMs)}). Move inside the delivery before tagging evidence.`
+          : "Select a delivery before tagging delivery evidence.",
+      });
+      return;
+    }
+    const capturedFrame = frameIndexForMs(snappedMs, project.fps);
+    const alreadyTagged = frames.some(
+      (value) => frameIndexForMs(value, project.fps) === capturedFrame,
+    );
+    const nextFrames = alreadyTagged
+      ? frames
+      : [...frames, snappedMs].sort((left, right) => left - right);
+    upsertLabel(kpi, {
+      visibility: "visible",
+      evidenceMs: nextFrames[0] ?? snappedMs,
+      evidenceFramesMs: nextFrames,
+      confidence: existing?.confidence ?? 3,
+    });
+    setNotice(alreadyTagged ? "That frame is already tagged." : "Evidence frame added.");
+  }
+
+  function removeEvidenceFrame(kpi: KpiDefinition, frameToRemove: number) {
+    if (!project) return;
+    setEvidenceCaptureError(null);
+    const targetId = kpi.scope === "clip" ? "clip" : activeDeliveryId;
+    if (!targetId) return;
+    const existing = getLabel(document.labels, targetId, kpi.id);
+    const removeIndex = frameIndexForMs(frameToRemove, project.fps);
+    const nextFrames = evidenceFramesFor(existing, project.fps).filter(
+      (value) => frameIndexForMs(value, project.fps) !== removeIndex,
+    );
+    upsertLabel(kpi, {
+      evidenceMs: nextFrames[0] ?? null,
+      evidenceFramesMs: nextFrames,
+    });
+  }
+
+  function explicitlyExcludeForFootwork(kpi: KpiDefinition) {
+    const footwork = shotFootworkFor(selectedDelivery);
+    const requirementLabel = footworkRequirementFor(kpi) === "front_foot" ? "front-foot" : "back-foot";
+    upsertLabel(kpi, {
+      visibility: "not_applicable",
+      score: null,
+      confidence: null,
+      evidenceMs: null,
+      evidenceFramesMs: [],
+      note:
+        selectedLabel?.note ||
+        `Explicitly excluded by annotator: ${requirementLabel}-only KPI; shot footwork marked ${shotFootworkLabel(footwork).toLowerCase()}.`,
     });
   }
 
@@ -580,6 +796,7 @@ export function LabelLab({ onExit }: { onExit?: () => void | Promise<void> }) {
     setIsSaving(true);
     setError("");
     try {
+      const documentToSave = hydrateDocument(overrideDocument, project.fps);
       const response = await fetch(`/labelling/api/videos/${project.id}`, {
         method: "PUT",
         headers: {
@@ -596,7 +813,7 @@ export function LabelLab({ onExit }: { onExit?: () => void | Promise<void> }) {
           ageGroup: project.ageGroup,
           cameraAngle: project.cameraAngle,
           status,
-          annotations: overrideDocument,
+          annotations: documentToSave,
         }),
       });
       const payload = (await response.json()) as { video?: VideoProject; error?: string };
@@ -604,7 +821,7 @@ export function LabelLab({ onExit }: { onExit?: () => void | Promise<void> }) {
         throw new Error(payload.error ?? "Could not save this project.");
       }
       setProject(payload.video);
-      setDocument(hydrateDocument(payload.video.annotations));
+      setDocument(hydrateDocument(payload.video.annotations, payload.video.fps));
       setProjects((current) => [
         payload.video!,
         ...current.filter((item) => item.id !== payload.video!.id),
@@ -1057,7 +1274,15 @@ export function LabelLab({ onExit }: { onExit?: () => void | Promise<void> }) {
                 onClick={() => { setSelectedDeliveryId(delivery.id); seek(delivery.eventMs); }}
               >
                 <span className="delivery-index">D{String(delivery.index).padStart(2, "0")}</span>
-                <span><strong>{formatTime(delivery.startMs)} → {formatTime(delivery.endMs)}</strong><small>{eventName(project.discipline)} at {formatTime(delivery.eventMs)}</small></span>
+                <span>
+                  <strong>{formatTime(delivery.startMs)} → {formatTime(delivery.endMs)}</strong>
+                  <small>{eventName(project.discipline)} at {formatTime(delivery.eventMs)}</small>
+                  {project.discipline === "batting" && rubricHasFootworkSpecificKpis && (
+                    <small className={shotFootworkFor(delivery) ? "footwork-recorded" : "footwork-missing"}>
+                      Footwork: {shotFootworkLabel(shotFootworkFor(delivery))}
+                    </small>
+                  )}
+                </span>
                 <i className={segmentIssue ? "quality-bad" : "quality-good"}>{segmentIssue ? "!" : "✓"}</i>
               </button>
             );
@@ -1077,6 +1302,12 @@ export function LabelLab({ onExit }: { onExit?: () => void | Promise<void> }) {
                 <button type="button" className="seek-button" onClick={() => seek(selectedDelivery[field])}>↗</button>
               </div>
             ))}
+            {project.discipline === "batting" && rubricHasFootworkSpecificKpis && (
+              <ShotFootworkField
+                delivery={selectedDelivery}
+                onChange={(value) => updateDeliveryShotFootwork(selectedDelivery.id, value)}
+              />
+            )}
             <label className="field"><span>Outcome / delivery note</span><input value={selectedDelivery.outcome} onChange={(event) => updateDelivery(selectedDelivery.id, { outcome: event.target.value })} placeholder="e.g. cover drive, good length" /></label>
           </div>
         ) : null}
@@ -1104,6 +1335,13 @@ export function LabelLab({ onExit }: { onExit?: () => void | Promise<void> }) {
           ))}
           <button type="button" className="edit-segments" onClick={() => setStep("segment")}>Edit</button>
         </div>
+        {selectedDelivery && project.discipline === "batting" && rubricHasFootworkSpecificKpis && (
+          <ShotFootworkField
+            delivery={selectedDelivery}
+            compact
+            onChange={(value) => updateDeliveryShotFootwork(selectedDelivery.id, value)}
+          />
+        )}
         <div className="score-summary-card">
           <div><span>Technique score</span><strong>{score.activeWeight >= MIN_RATING_WEIGHT_PCT && score.score10 !== null ? score.score10.toFixed(1) : "—"}<small>/10</small></strong></div>
           <div><span>Label coverage</span><strong>{score.coveragePct.toFixed(0)}<small>%</small></strong></div>
@@ -1115,21 +1353,46 @@ export function LabelLab({ onExit }: { onExit?: () => void | Promise<void> }) {
         <div className="kpi-browser-heading">
           <span className="section-number">{rubric.label}</span>
           <h3>Observable KPIs</h3>
+          {selectedDelivery && rubricHasFootworkSpecificKpis && (
+            <p className="kpi-applicability-summary">
+              <strong>{assessableKpiCount}</strong> of {supportedKpis.length} assessable for D{selectedDelivery.index} · {shotFootworkLabel(shotFootworkFor(selectedDelivery))}
+            </p>
+          )}
           <input value={kpiSearch} onChange={(event) => setKpiSearch(event.target.value)} placeholder="Find a KPI" aria-label="Find a KPI" />
         </div>
         <div className="kpi-list">
           {filteredKpis.map((kpi) => {
             const targetId = kpi.scope === "clip" ? "clip" : activeDeliveryId;
             const label = getLabel(document.labels, targetId, kpi.id);
+            const applicability = kpiFootworkAssessability(
+              kpi,
+              selectedDelivery,
+              activeDiscipline,
+            );
             return (
               <button
                 type="button"
                 key={kpi.id}
-                className={`kpi-item ${selectedKpi?.id === kpi.id ? "kpi-item--active" : ""}`}
+                className={`kpi-item ${selectedKpi?.id === kpi.id ? "kpi-item--active" : ""} ${applicability.assessable ? "" : "kpi-item--excluded"}`}
                 onClick={() => setSelectedKpiId(kpi.id)}
               >
-                <span className={`label-state ${label ? `label-state--${label.visibility}` : ""}`}>{label ? (label.visibility === "visible" ? label.score ?? "·" : "×") : ""}</span>
-                <span><strong>{kpi.name}{kpi.master ? " ★" : ""}</strong><small>{kpi.group} · {kpi.weight}% {kpi.scope === "clip" ? "· clip-level" : ""}</small></span>
+                <span
+                  className={`label-state ${applicability.assessable
+                    ? label ? `label-state--${label.visibility}` : ""
+                    : "label-state--excluded"}`}
+                  aria-label={applicability.assessable
+                    ? undefined
+                    : "Excluded by shot-footwork applicability"}
+                >
+                  {applicability.assessable
+                    ? label ? (label.visibility === "visible" ? label.score ?? "·" : "×") : ""
+                    : "⊘"}
+                </span>
+                <span>
+                  <strong>{kpi.name}{kpi.master ? " ★" : ""}</strong>
+                  <small>{kpi.group} · {kpi.weight}% {kpi.scope === "clip" ? "· clip-level" : ""}</small>
+                  {!applicability.assessable && <small className="kpi-excluded-reason">Excluded · {applicability.state.replaceAll("_", " ")}</small>}
+                </span>
                 <i>›</i>
               </button>
             );
@@ -1149,6 +1412,18 @@ export function LabelLab({ onExit }: { onExit?: () => void | Promise<void> }) {
             {selectedKpi.scope === "clip" && (
               <div className="clip-scope-note"><strong>Clip-level comparison</strong><span>Use all {document.deliveries.length} deliveries. This score is exported once, not copied onto every ball.</span></div>
             )}
+            {!selectedKpiAssessability.assessable && (
+              <div className="applicability-callout" role="status">
+                <strong>KPI excluded for this delivery</strong>
+                <span>{selectedKpiAssessability.reason}</span>
+                {selectedLabel && <span>Any existing label remains visible below for audit and has not been deleted.</span>}
+                {canExplicitlyExcludeSelectedKpi && (
+                  <button type="button" onClick={() => explicitlyExcludeForFootwork(selectedKpi)}>
+                    Explicitly mark not applicable
+                  </button>
+                )}
+              </div>
+            )}
             <div className="rubric-callout rubric-callout--good"><span>{selectedKpi.tier === "foundation" ? "0 / 5 / 10 anchors" : selectedKpi.tier === "legacy" ? "10 / benchmark" : "Green / Amber / Red scoring guide"}</span><p>{selectedKpi.benchmark}</p></div>
             {selectedKpi.offCondition && <div className="rubric-callout rubric-callout--bad"><span>Lowest anchor</span><p>{selectedKpi.offCondition}</p></div>}
             <div className="rubric-observation"><strong>How to observe</strong><p>{selectedKpi.observation}</p></div>
@@ -1161,6 +1436,10 @@ export function LabelLab({ onExit }: { onExit?: () => void | Promise<void> }) {
                     type="button"
                     key={option.value}
                     className={selectedLabel?.visibility === option.value ? "active" : ""}
+                    disabled={
+                      !selectedKpiAssessability.assessable &&
+                      !(canExplicitlyExcludeSelectedKpi && option.value === "not_applicable")
+                    }
                     onClick={() => setVisibility(selectedKpi, option.value)}
                   ><strong>{option.label}</strong><small>{option.helper}</small></button>
                 ))}
@@ -1176,6 +1455,7 @@ export function LabelLab({ onExit }: { onExit?: () => void | Promise<void> }) {
                         type="button"
                         key={value}
                         className={selectedLabel?.score === value ? "active" : ""}
+                        disabled={!selectedKpiAssessability.assessable}
                         onClick={() => upsertLabel(selectedKpi, { visibility: "visible", score: value })}
                       >{value}</button>
                     ))}
@@ -1189,6 +1469,7 @@ export function LabelLab({ onExit }: { onExit?: () => void | Promise<void> }) {
                             type="button"
                             key={value}
                             className={selectedLabel?.categoricalBucket === value ? `active bucket-${value}` : ""}
+                            disabled={!selectedKpiAssessability.assessable}
                             onClick={() => upsertLabel(selectedKpi, { categoricalBucket: value })}
                           >{value}</button>
                         ))}
@@ -1198,13 +1479,61 @@ export function LabelLab({ onExit }: { onExit?: () => void | Promise<void> }) {
                   <p className="field-help">{selectedKpi.tier === "foundation" ? "Use the workbook’s explicit 0, 5 and 10 anchors; intermediate values remain an expert judgement." : "The workbook defines Green, Amber and Red descriptions but does not state a numeric mapping. Record both the source bucket and your 0–10 expert score."}</p>
                 </div>
                 <div className="annotation-section">
-                  <label className="annotation-label">3 · Evidence frame</label>
-                  <div className="evidence-row"><button type="button" className="evidence-capture" onClick={() => upsertLabel(selectedKpi, { visibility: "visible", evidenceMs: Math.round(currentMs), confidence: selectedLabel?.confidence ?? 3 })}>Use current frame</button><span><strong>{selectedLabel?.evidenceMs !== null && selectedLabel?.evidenceMs !== undefined ? formatTime(selectedLabel.evidenceMs) : "Not captured"}</strong><small>{selectedLabel?.evidenceMs !== null && selectedLabel?.evidenceMs !== undefined ? `Frame ${Math.round((selectedLabel.evidenceMs / 1000) * project.fps)}` : "Required for visible labels"}</small></span>{selectedLabel?.evidenceMs !== null && selectedLabel?.evidenceMs !== undefined && <button type="button" className="seek-button" onClick={() => seek(selectedLabel.evidenceMs!)}>↗</button>}</div>
+                  <label className="annotation-label">3 · Evidence frames <span>{selectedEvidenceFrames.length} tagged</span></label>
+                  <div className="evidence-toolbar">
+                    <button
+                      type="button"
+                      className="evidence-capture"
+                      disabled={!selectedKpiAssessability.assessable}
+                      onClick={() => addCurrentEvidenceFrame(selectedKpi)}
+                    >
+                      + Add current frame
+                    </button>
+                    <span>Frame-snapped · duplicates removed · earliest is primary</span>
+                  </div>
+                  {evidenceCaptureError?.targetId === selectedTargetId &&
+                    evidenceCaptureError.kpiId === selectedKpi.id && (
+                      <p className="evidence-inline-error" role="alert">
+                        {evidenceCaptureError.message}
+                      </p>
+                    )}
+                  {selectedEvidenceFrames.length ? (
+                    <ul className="evidence-tag-list" aria-label={`Tagged evidence frames for ${selectedKpi.name}`}>
+                      {selectedEvidenceFrames.map((timestampMs, index) => {
+                        const frame = frameIndexForMs(timestampMs, project.fps);
+                        return (
+                          <li key={frame}>
+                            <button
+                              type="button"
+                              className="evidence-jump"
+                              onClick={() => seek(timestampMs)}
+                              aria-label={`Jump to evidence frame ${frame} at ${formatTime(timestampMs)}`}
+                            >
+                              <strong>{formatTime(timestampMs)}</strong>
+                              <small>Frame {frame}</small>
+                            </button>
+                            {index === 0 && <span className="primary-evidence">Primary</span>}
+                            <button
+                              type="button"
+                              className="remove-evidence"
+                              disabled={!selectedKpiAssessability.assessable}
+                              onClick={() => removeEvidenceFrame(selectedKpi, timestampMs)}
+                              aria-label={`Remove evidence frame ${frame} at ${formatTime(timestampMs)}`}
+                            >
+                              ×
+                            </button>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  ) : (
+                    <p className="evidence-empty">No evidence frames tagged. Add at least one for a visible score.</p>
+                  )}
                 </div>
                 <div className="annotation-section">
                   <label className="annotation-label">4 · Confidence</label>
                   <div className="confidence-row">
-                    {[1, 2, 3, 4, 5].map((value) => <button type="button" key={value} className={selectedLabel?.confidence === value ? "active" : ""} onClick={() => upsertLabel(selectedKpi, { confidence: value })}>{value}<small>{value === 1 ? "low" : value === 5 ? "high" : ""}</small></button>)}
+                    {[1, 2, 3, 4, 5].map((value) => <button type="button" key={value} className={selectedLabel?.confidence === value ? "active" : ""} disabled={!selectedKpiAssessability.assessable} onClick={() => upsertLabel(selectedKpi, { confidence: value })}>{value}<small>{value === 1 ? "low" : value === 5 ? "high" : ""}</small></button>)}
                   </div>
                 </div>
               </>
@@ -1212,14 +1541,14 @@ export function LabelLab({ onExit }: { onExit?: () => void | Promise<void> }) {
               <div className="null-explanation"><strong>No score will be exported.</strong><span>Add a concrete reason below so missing data is never interpreted as a safe or good result.</span></div>
             )}
             <div className="annotation-section">
-              <label className="field"><span>Observable bucket</span><input value={selectedLabel?.categoricalBucket ?? ""} onChange={(event) => upsertLabel(selectedKpi, { categoricalBucket: event.target.value })} placeholder="e.g. narrow / good / wide" /></label>
-              <label className="field"><span>{selectedLabel && selectedLabel.visibility !== "visible" ? "Null reason" : "Evidence note"}</span><textarea value={selectedLabel?.note ?? ""} onChange={(event) => upsertLabel(selectedKpi, { note: event.target.value })} placeholder="Record only what is visible…" rows={3} /></label>
+              <label className="field"><span>Observable bucket</span><input value={selectedLabel?.categoricalBucket ?? ""} disabled={!selectedKpiAssessability.assessable} onChange={(event) => upsertLabel(selectedKpi, { categoricalBucket: event.target.value })} placeholder="e.g. narrow / good / wide" /></label>
+              <label className="field"><span>{selectedLabel && selectedLabel.visibility !== "visible" ? "Null reason" : "Evidence note"}</span><textarea value={selectedLabel?.note ?? ""} disabled={!selectedKpiAssessability.assessable && selectedLabel?.visibility !== "not_applicable"} onChange={(event) => upsertLabel(selectedKpi, { note: event.target.value })} placeholder="Record only what is visible…" rows={3} /></label>
             </div>
             <details className="model-compare">
               <summary>Compare a model prelabel <span>optional, never ground truth</span></summary>
               <div className="form-grid form-grid--two">
-                <label className="field"><span>Model score</span><input type="number" min="0" max="10" step="0.1" value={selectedLabel?.modelScore ?? ""} onChange={(event) => upsertLabel(selectedKpi, { modelScore: event.target.value === "" ? null : Number(event.target.value) })} /></label>
-                <label className="field"><span>Model version</span><input value={selectedLabel?.modelVersion ?? ""} onChange={(event) => upsertLabel(selectedKpi, { modelVersion: event.target.value })} placeholder="model-2026-08-a" /></label>
+                <label className="field"><span>Model score</span><input type="number" min="0" max="10" step="0.1" value={selectedLabel?.modelScore ?? ""} disabled={!selectedKpiAssessability.assessable} onChange={(event) => upsertLabel(selectedKpi, { modelScore: event.target.value === "" ? null : Number(event.target.value) })} /></label>
+                <label className="field"><span>Model version</span><input value={selectedLabel?.modelVersion ?? ""} disabled={!selectedKpiAssessability.assessable} onChange={(event) => upsertLabel(selectedKpi, { modelVersion: event.target.value })} placeholder="model-2026-08-a" /></label>
               </div>
               {selectedLabel?.modelScore !== null && selectedLabel?.modelScore !== undefined && selectedLabel.score !== null && <p>Absolute error: <strong>{Math.abs(selectedLabel.score - selectedLabel.modelScore).toFixed(1)}</strong></p>}
             </details>

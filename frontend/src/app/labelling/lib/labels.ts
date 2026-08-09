@@ -6,6 +6,26 @@ import {
   eventName,
   supportsAngle,
 } from "./rubric";
+import {
+  canonicalEvidenceTimestamps,
+  evidenceFrameIndices,
+  footworkApplicability,
+  footworkRequirementFor,
+  isFootworkApplicableForScoring,
+  isFootworkRestrictedKpi,
+  type FootworkApplicabilityState,
+  type ShotFootwork,
+} from "./training-contract";
+
+export {
+  canonicalEvidenceTimestamps,
+  evidenceFrameIndices,
+  footworkApplicability,
+  footworkRequirementFor,
+  isFootworkApplicableForScoring,
+  isFootworkRestrictedKpi,
+};
+export type { FootworkApplicabilityState, ShotFootwork };
 
 export type Visibility = "visible" | "occluded" | "low_quality" | "uncertain" | "not_applicable";
 
@@ -17,6 +37,7 @@ export interface DeliveryLabel {
   score: number | null;
   confidence: number | null;
   evidenceMs: number | null;
+  evidenceFramesMs?: number[];
   categoricalBucket: string;
   note: string;
   modelScore: number | null;
@@ -32,6 +53,7 @@ export interface Delivery {
   endMs: number;
   outcome: string;
   note: string;
+  shotFootwork?: ShotFootwork | null;
 }
 
 export interface ReviewState {
@@ -123,15 +145,17 @@ export function scoreDocument(
 
   for (const kpi of rubric.kpis) {
     if (!supportsAngle(kpi, angle)) continue;
-    const targetIds =
+    const targets =
       kpi.scope === "clip"
-        ? ["clip"]
-        : document.deliveries.map((delivery) => delivery.id);
-    expectedCells += targetIds.length;
+        ? [{ id: "clip", shotFootwork: null }]
+        : document.deliveries;
     const scores: number[] = [];
 
-    for (const targetId of targetIds) {
-      const label = getLabel(document.labels, targetId, kpi.id);
+    for (const target of targets) {
+      const applicability = footworkApplicability(kpi, target.shotFootwork);
+      if (!isFootworkApplicableForScoring(applicability)) continue;
+      expectedCells += 1;
+      const label = getLabel(document.labels, target.id, kpi.id);
       if (label) visibleCells += 1;
       if (label?.visibility === "visible" && label.score !== null) {
         scores.push(label.score);
@@ -161,6 +185,7 @@ export function validateDocument(
   rubric: Rubric,
   angle: CameraAngle,
   durationMs: number,
+  fps?: number,
 ): QualityIssue[] {
   const issues: QualityIssue[] = [];
   if (!document.review.annotator.trim()) {
@@ -220,14 +245,51 @@ export function validateDocument(
     }
   }
 
+  const footworkRestrictedKpis = rubric.kpis.filter(
+    (kpi) => supportsAngle(kpi, angle) && isFootworkRestrictedKpi(kpi),
+  );
+  if (footworkRestrictedKpis.length > 0) {
+    for (const delivery of document.deliveries) {
+      const applicability = footworkApplicability(
+        footworkRestrictedKpis[0],
+        delivery.shotFootwork,
+      );
+      if (applicability === "unresolved_missing") {
+        issues.push({
+          id: `shot-footwork-${delivery.id}`,
+          severity: "blocker",
+          message: `Delivery ${delivery.index} needs a shot-footwork decision before front/back-only KPIs can be assessed.`,
+          deliveryId: delivery.id,
+        });
+      } else if (applicability === "excluded_unclear") {
+        issues.push({
+          id: `shot-footwork-unclear-${delivery.id}`,
+          severity: "warning",
+          message: `Delivery ${delivery.index} is marked unclear; front/back-only KPI rows will be excluded from scoring and training.`,
+          deliveryId: delivery.id,
+        });
+      }
+    }
+  }
+
   for (const kpi of rubric.kpis) {
     if (!supportsAngle(kpi, angle)) continue;
     const targets =
       kpi.scope === "clip"
-        ? [{ id: "clip", index: 0, startMs: 0, endMs: durationMs }]
+        ? [
+            {
+              id: "clip",
+              index: 0,
+              startMs: 0,
+              endMs: durationMs,
+              shotFootwork: null,
+            },
+          ]
         : document.deliveries;
 
     for (const target of targets) {
+      const applicability = footworkApplicability(kpi, target.shotFootwork);
+      if (!isFootworkApplicableForScoring(applicability)) continue;
       const label = getLabel(document.labels, target.id, kpi.id);
       const deliveryName = kpi.scope === "clip" ? "clip-level" : `delivery ${target.index}`;
       if (!label) {
@@ -250,7 +312,8 @@ export function validateDocument(
             kpiId: kpi.id,
           });
         }
-        if (label.evidenceMs === null) {
+        const evidenceTimestamps = canonicalEvidenceTimestamps(label, fps);
+        if (evidenceTimestamps.length === 0) {
           issues.push({
             id: `evidence-${target.id}-${kpi.id}`,
             severity: "blocker",
@@ -259,13 +322,15 @@ export function validateDocument(
             kpiId: kpi.id,
           });
         } else if (
-          kpi.scope === "delivery" &&
-          (label.evidenceMs < target.startMs || label.evidenceMs > target.endMs)
+          evidenceTimestamps.some(
+            (timestampMs) =>
+              timestampMs < target.startMs || timestampMs > target.endMs,
+          )
         ) {
           issues.push({
             id: `evidence-range-${target.id}-${kpi.id}`,
             severity: "blocker",
-            message: `${kpi.name}'s evidence frame falls outside ${deliveryName}.`,
+            message: `${kpi.name} has evidence frames outside ${deliveryName}.`,
             deliveryId: target.id,
             kpiId: kpi.id,
           });
@@ -407,6 +472,11 @@ export const LABELS_CSV_COLUMNS = [
   "derived_scored_weight_pct",
   "label_completion_pct",
   "project_created_at",
+  "human_shot_footwork",
+  "kpi_footwork_applicability_state",
+  "human_evidence_timestamps_ms_json",
+  "human_evidence_frames_0based_json",
+  "human_evidence_count",
 ] as const;
 
 type LabelsCsvColumn = (typeof LABELS_CSV_COLUMNS)[number];
@@ -440,6 +510,23 @@ function rounded(value: number | null, decimals: number) {
   if (value === null || !Number.isFinite(value)) return "";
   const multiplier = 10 ** decimals;
   return Math.round(value * multiplier) / multiplier;
+}
+
+function footworkExclusionReason(
+  kpi: KpiDefinition,
+  state: FootworkApplicabilityState,
+  shotFootwork: ShotFootwork | null | undefined,
+) {
+  if (state === "unresolved_missing") {
+    return "Shot footwork is missing; resolve it before assessing this front/back-only KPI.";
+  }
+  if (state === "excluded_unclear") {
+    return "Shot footwork is explicitly unclear; this front/back-only KPI is excluded.";
+  }
+  if (state === "excluded_mismatch") {
+    return `KPI applicability is ${kpi.appliesTo}; delivery shot footwork is ${shotFootwork}.`;
+  }
+  return "";
 }
 
 function exportLabel(
@@ -512,20 +599,34 @@ export function buildLabelsCsv(
             endMs: "" as const,
             outcome: "",
             note: "",
+            shotFootwork: null,
           }]
         : deliveries;
 
     for (const target of targets) {
       const label = exportLabel(document.labels, target.id, kpi.id);
-      const visibility = supported ? label?.visibility ?? "not_assessed" : "wrong_angle";
+      const footworkState = footworkApplicability(kpi, target.shotFootwork);
+      const footworkApplicable = isFootworkApplicableForScoring(footworkState);
+      const humanLabelApplicable = supported && footworkApplicable;
+      const visibility = !supported
+        ? "wrong_angle"
+        : footworkState === "excluded_mismatch"
+          ? "footwork_mismatch"
+          : footworkState === "excluded_unclear"
+            ? "footwork_unclear"
+            : footworkState === "unresolved_missing"
+              ? "footwork_missing"
+              : label?.visibility ?? "not_assessed";
       const nullReason =
         !supported
           ? `Selected ${project.cameraAngle} view is not among the normalized source views: ${kpi.angles.join("|")}`
-          : label && label.visibility !== "visible"
-            ? label.note
-            : "";
+          : !footworkApplicable
+            ? footworkExclusionReason(kpi, footworkState, target.shotFootwork)
+            : label && label.visibility !== "visible"
+              ? label.note
+              : "";
       const hasHumanScore =
-        supported &&
+        humanLabelApplicable &&
         label?.visibility === "visible" &&
         typeof label.score === "number" &&
         Number.isFinite(label.score);
@@ -533,15 +634,33 @@ export function buildLabelsCsv(
         typeof label?.modelScore === "number" && Number.isFinite(label.modelScore);
       const humanScore = hasHumanScore ? label.score : null;
       const modelScore = hasModelScore ? label.modelScore : null;
+      const humanEvidenceTimestamps =
+        humanLabelApplicable && label?.visibility === "visible"
+          ? canonicalEvidenceTimestamps(label, project.fps)
+          : [];
+      const humanEvidenceFrames = evidenceFrameIndices(
+        humanEvidenceTimestamps,
+        project.fps,
+      );
+      const humanEvidenceMs = humanEvidenceTimestamps[0] ?? "";
+      const evidenceWithinTarget =
+        kpi.scope !== "delivery" ||
+        (typeof target.startMs === "number" &&
+          typeof target.endMs === "number" &&
+          humanEvidenceTimestamps.every(
+            (timestampMs) =>
+              timestampMs >= target.startMs && timestampMs <= target.endMs,
+          ));
       const trainingScoreEligible = Boolean(
+        humanLabelApplicable &&
         humanScore !== null &&
         humanScore >= 0 &&
         humanScore <= 10 &&
         typeof label?.confidence === "number" &&
         label.confidence >= 1 &&
         label.confidence <= 5 &&
-        typeof label.evidenceMs === "number" &&
-        Number.isFinite(label.evidenceMs),
+        humanEvidenceTimestamps.length > 0 &&
+        evidenceWithinTarget,
       );
       const modelError =
         humanScore !== null && modelScore !== null
@@ -549,24 +668,32 @@ export function buildLabelsCsv(
           : "";
       const humanLabelState = !supported
         ? "excluded_wrong_angle"
-        : !label
-          ? "unlabelled"
-          : label.visibility === "visible"
-            ? hasHumanScore
-              ? "human_scored"
-              : "human_score_missing"
-            : "human_null";
-      const humanEvidenceMs =
-        supported && label?.visibility === "visible" && label.evidenceMs !== null
-          ? label.evidenceMs
-          : "";
+        : footworkState === "excluded_mismatch"
+          ? "excluded_footwork_mismatch"
+          : footworkState === "excluded_unclear"
+            ? "excluded_footwork_unclear"
+            : footworkState === "unresolved_missing"
+              ? "unresolved_footwork_missing"
+              : !label
+                ? "unlabelled"
+                : label.visibility === "visible"
+                  ? hasHumanScore
+                    ? "human_scored"
+                    : "human_score_missing"
+                  : "human_null";
       const trainingRowStatus = !supported
         ? "exclude_wrong_angle"
-        : trainingScoreEligible
-          ? "ready_scored_label"
-          : label && label.visibility !== "visible" && label.note.trim()
-            ? "ready_null_label"
-            : "exclude_incomplete";
+        : footworkState === "excluded_mismatch"
+          ? "exclude_footwork_mismatch"
+          : footworkState === "excluded_unclear"
+            ? "exclude_footwork_unclear"
+            : footworkState === "unresolved_missing"
+              ? "exclude_footwork_missing"
+              : trainingScoreEligible
+                ? "ready_scored_label"
+                : label && label.visibility !== "visible" && label.note.trim()
+                  ? "ready_null_label"
+                  : "exclude_incomplete";
 
       rows.push({
         csv_schema_version: LABELS_CSV_SCHEMA_VERSION,
@@ -638,13 +765,17 @@ export function buildLabelsCsv(
         human_label_state: humanLabelState,
         visibility_status: visibility,
         null_reason: nullReason,
-        human_categorical_bucket: supported ? label?.categoricalBucket ?? "" : "",
+        human_categorical_bucket: humanLabelApplicable
+          ? label?.categoricalBucket ?? ""
+          : "",
         human_score_0_10: humanScore ?? "",
         human_confidence_1_5:
-          supported && label?.visibility === "visible" ? label.confidence : "",
+          humanLabelApplicable && label?.visibility === "visible"
+            ? label.confidence
+            : "",
         human_evidence_timestamp_ms: humanEvidenceMs,
         human_evidence_frame_0based: frameIndex(humanEvidenceMs, project.fps),
-        human_note: supported ? label?.note ?? "" : "",
+        human_note: humanLabelApplicable ? label?.note ?? "" : "",
         training_row_status: trainingRowStatus,
         training_score_eligible: trainingScoreEligible,
         annotator_id: document.review.annotator,
@@ -660,6 +791,13 @@ export function buildLabelsCsv(
         derived_scored_weight_pct: rounded(summary.activeWeight, 1),
         label_completion_pct: rounded(summary.coveragePct, 1),
         project_created_at: project.createdAt,
+        human_shot_footwork: target.shotFootwork ?? "",
+        kpi_footwork_applicability_state: footworkState,
+        human_evidence_timestamps_ms_json: JSON.stringify(
+          humanEvidenceTimestamps,
+        ),
+        human_evidence_frames_0based_json: JSON.stringify(humanEvidenceFrames),
+        human_evidence_count: humanEvidenceTimestamps.length,
       });
     }
   }
@@ -683,6 +821,7 @@ export function makeLabel(
     score: null,
     confidence: null,
     evidenceMs: null,
+    evidenceFramesMs: [],
     categoricalBucket: "",
     note: "",
     modelScore: null,
