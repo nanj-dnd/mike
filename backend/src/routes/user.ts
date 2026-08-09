@@ -36,6 +36,10 @@ import {
 } from "../lib/userDataExport";
 import { findProfileUserByEmail } from "../lib/userLookup";
 import { primaryFrontendUrl } from "../lib/frontendUrls";
+import {
+    AmpLabelLabPurgeError,
+    purgeAmpLabelLabAccount,
+} from "../lib/ampLabelLab";
 
 export const userRouter = Router();
 
@@ -1018,6 +1022,7 @@ userRouter.delete(
         const userEmail = res.locals.userEmail as string | undefined;
         const db = createServerSupabase();
         try {
+            await purgeAmpLabelLabAccount(res.locals.token as string);
             await deleteUserAccountData(db, userId, userEmail);
             const { error } = await db.auth.admin.deleteUser(userId);
             if (error)
@@ -1029,7 +1034,12 @@ userRouter.delete(
                 userId,
                 error: detail,
             });
-            res.status(500).json({ detail });
+            res.status(err instanceof AmpLabelLabPurgeError ? 502 : 500).json({
+                detail:
+                    err instanceof AmpLabelLabPurgeError
+                        ? "Account deletion was stopped because Label Lab data could not be purged. No Gavel account data was deleted; please try again."
+                        : detail,
+            });
         }
     },
 );

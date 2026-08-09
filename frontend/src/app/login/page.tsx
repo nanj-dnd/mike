@@ -10,6 +10,10 @@ import { SiteLogo } from "@/app/components/site-logo";
 import { useAuth } from "@/app/contexts/AuthContext";
 import { GoogleSignInButton } from "@/app/components/auth/GoogleSignInButton";
 import { MicrosoftSignInButton } from "@/app/components/auth/EnterpriseSsoButtons";
+import {
+  authPageHref,
+  authReturnPathFromLocation,
+} from "@/app/lib/authReturnPath";
 
 const authGlassCardClassName =
   "rounded-2xl border border-white/70 bg-white/72 p-8 shadow-[0_4px_14px_rgba(15,23,42,0.045),inset_0_1px_0_rgba(255,255,255,0.86),inset_0_-8px_18px_rgba(255,255,255,0.12)] backdrop-blur-2xl";
@@ -29,10 +33,15 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [returnTo, setReturnTo] = useState("/lawyering");
+
+  useEffect(() => {
+    setReturnTo(authReturnPathFromLocation());
+  }, []);
 
   useEffect(() => {
     if (!authLoading && isAuthenticated) {
-      router.replace("/lawyering");
+      router.replace(authReturnPathFromLocation());
     }
   }, [authLoading, isAuthenticated, router]);
 
@@ -49,7 +58,7 @@ export default function LoginPage() {
 
       if (error) throw error;
 
-      router.push("/lawyering");
+      router.push(authReturnPathFromLocation());
     } catch (error: unknown) {
       setError(
         error instanceof Error ? error.message : "Invalid email or password",
@@ -73,13 +82,16 @@ export default function LoginPage() {
             </h2>
             <div className={authToggleClassName}>
               <span className={authToggleActiveClassName}>Log in</span>
-              <Link href="/signup" className={authToggleInactiveClassName}>
+              <Link
+                href={authPageHref("/signup", returnTo)}
+                className={authToggleInactiveClassName}
+              >
                 Sign up
               </Link>
             </div>
           </div>
-          <GoogleSignInButton label="Continue with Google" />
-          <MicrosoftSignInButton label="Continue with Microsoft" />
+          <GoogleSignInButton label="Continue with Google" returnTo={returnTo} />
+          <MicrosoftSignInButton label="Continue with Microsoft" returnTo={returnTo} />
 
           <div className="my-4 flex items-center gap-3">
             <div className="h-px flex-1 bg-gray-200" />

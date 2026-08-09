@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { supabase } from "@/app/lib/supabase";
+import { safeAuthReturnPath } from "@/app/lib/authReturnPath";
 
 /**
  * "Continue with Microsoft" — Supabase's `azure` OAuth provider
@@ -18,7 +19,13 @@ import { supabase } from "@/app/lib/supabase";
 const microsoftSsoEnabled =
   process.env.NEXT_PUBLIC_MICROSOFT_SSO_ENABLED === "true";
 
-export function MicrosoftSignInButton({ label }: { label: string }) {
+export function MicrosoftSignInButton({
+  label,
+  returnTo = "/lawyering",
+}: {
+  label: string;
+  returnTo?: string;
+}) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -32,7 +39,7 @@ export function MicrosoftSignInButton({ label }: { label: string }) {
         provider: "azure",
         options: {
           scopes: "email openid profile",
-          redirectTo: `${window.location.origin}/lawyering`,
+          redirectTo: `${window.location.origin}${safeAuthReturnPath(returnTo)}`,
         },
       });
       if (error) throw error;

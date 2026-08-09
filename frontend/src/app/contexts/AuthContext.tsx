@@ -69,6 +69,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }, []);
 
     const signOut = async () => {
+        const controller = new AbortController();
+        const timeout = window.setTimeout(() => controller.abort(), 2_500);
+        try {
+            await fetch("/labelling/api/session", {
+                method: "DELETE",
+                credentials: "same-origin",
+                headers: { "X-AMP-Lab-CSRF": "1" },
+                signal: controller.signal,
+            });
+        } catch {
+            // The server-side account purge is authoritative; this is a
+            // best-effort browser cookie cleanup that must never block logout.
+        } finally {
+            window.clearTimeout(timeout);
+        }
         await supabase.auth.signOut({ scope: "local" });
         setUser(null);
     };

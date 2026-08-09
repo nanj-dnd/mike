@@ -1,0 +1,2581 @@
+{
+  "catalog_version": "0.1.0-provisional",
+  "generated_at": "2026-08-07T13:03:09+05:30",
+  "status": "provisional_requires_amp_domain_owner_approval",
+  "purpose": "Machine-readable KPI catalog for building a human-labeling dataset and evaluating video-analysis outputs.",
+  "source_selection": {
+    "primary_policy": "Use latest kpi scoring.xlsx as the provisional performance/injury schema because it explicitly defines the accuracy-first 720p, camera-routed, multi-delivery model. Do not silently merge the later age workbook because its KPI set and measurement assumptions conflict with the primary model.",
+    "sources": [
+      {
+        "path": "/Users/anshulanand/Documents/amp/kpi/latest kpi scoring.xlsx",
+        "role": "provisional_primary_accuracy_first_scoring",
+        "sheets_used": [
+          "Read Me",
+          "Multiple Deliveries",
+          "Batting — Men",
+          "Batting — Women",
+          "Pace — Men",
+          "Pace — Women",
+          "Spin — Men",
+          "Spin — Women",
+          "Injury Screening"
+        ],
+        "workbook_created_utc": "2026-07-02T11:38:10Z",
+        "workbook_modified_utc": "2026-07-02T11:38:10Z",
+        "creator": "openpyxl",
+        "filesystem_modified": "2026-07-02T17:09:35+05:30",
+        "sha256": "f1c0f70ddab1dee3686447818bba858c72ca0d505a56527240c305a4747d65e1"
+      },
+      {
+        "path": "/Users/anshulanand/Documents/amp/kpi/amp_kpi_full_age_sheets_FINAL.xlsx",
+        "role": "secondary_unapproved_age_sex_overlay",
+        "sheets_used": [
+          "How This Model Works",
+          "Age-Gender PHV Mapping",
+          "Female Model - Methodology",
+          "representative Pre-PHV/Circa-PHV/Post-PHV discipline sheets",
+          "Claude Prompt Template"
+        ],
+        "workbook_created_utc": "2026-06-02T12:51:18Z",
+        "workbook_modified_utc": "2026-07-16T08:30:13Z",
+        "creator": "openpyxl",
+        "filesystem_modified": "2026-07-16T14:02:59+05:30",
+        "sha256": "5e4b9c525a63e074c3feb2096981d8b1681cf71be55aec4f6ae5921da18d0338"
+      },
+      {
+        "path": "/Users/anshulanand/Documents/amp/kpi/amp context.xlsx",
+        "role": "secondary_profile_context_modifiers",
+        "sheets_used": [
+          "Read Me",
+          "Injury Context",
+          "Anthropometric Context"
+        ],
+        "workbook_created_utc": "2026-07-16T12:34:31Z",
+        "workbook_modified_utc": "2026-07-16T12:34:31Z",
+        "creator": "openpyxl",
+        "filesystem_modified": "2026-07-16T18:12:02+05:30",
+        "sha256": "ea56309d8c8cf87683a60545215765075f084a7afbe0d9053658f2bf720e1b91"
+      },
+      {
+        "path": "/Users/anshulanand/Documents/amp/kpi/injury + kpi.xlsx",
+        "role": "legacy_pre_accuracy_first_model",
+        "sheets_used": [
+          "Injury Risk Screening",
+          "Player Card Output",
+          "Claude Prompt Template"
+        ],
+        "workbook_created_utc": "2026-06-02T12:51:18Z",
+        "workbook_modified_utc": "2026-06-24T19:32:44Z",
+        "creator": "openpyxl",
+        "filesystem_modified": "2026-06-25T01:02:44+05:30",
+        "sha256": "37c0109c3f7b45fbfe3745b7be94b39c2f7695d06c17f9ad7c93980ff0ee6478"
+      }
+    ],
+    "precedence": [
+      "human adjudication guide approved by AMP biomechanics lead",
+      "accuracy-first primary workbook",
+      "approved compatible profile overlays",
+      "older/legacy workbooks"
+    ]
+  },
+  "normalization": {
+    "discipline_enum": [
+      "batting",
+      "pace",
+      "spin"
+    ],
+    "sex_model_enum": [
+      "men",
+      "women"
+    ],
+    "spin_type_profile_enum": [
+      "off_spin",
+      "leg_spin"
+    ],
+    "camera_angle_enum": [
+      "side",
+      "front",
+      "behind"
+    ],
+    "camera_angle_rule": "Determine angle before labeling. Score only KPIs whose allowed angle includes the observed angle; otherwise record null with null_reason=unsupported_camera_angle. Any/profile/computed are not camera views.",
+    "null_reason_enum": [
+      "unsupported_camera_angle",
+      "key_moment_not_visible",
+      "occluded",
+      "insufficient_resolution",
+      "delivery_not_detected",
+      "not_applicable_to_delivery",
+      "profile_metadata_missing",
+      "other"
+    ]
+  },
+  "score_model": {
+    "performance": {
+      "unit": "score_0_to_10",
+      "min": 0,
+      "max": 10,
+      "decimal_scores": "allowed_by_secondary_prompt_but_not_explicitly_defined_in_primary",
+      "per_delivery": true,
+      "anchors": {
+        "10": "The KPI-specific benchmark_10 field in this catalog.",
+        "5": "Secondary prompt only: acceptable but with clear room for improvement.",
+        "0_to_3": "Secondary prompt only: significant technical flaw requiring attention.",
+        "4_6_7_8_9": "No authoritative universal descriptors found; must be defined in the annotation handbook."
+      },
+      "anchor_source_note": "The primary workbook defines benchmark-as-10 and off-condition prose but not a complete numeric rubric. Generic 10/5/0-3 descriptors come from the secondary age workbook Claude Prompt Template."
+    },
+    "aggregation": {
+      "split_clip": "Detect each repeating action burst and cut approximately 2–3 seconds per delivery.",
+      "key_frames": {
+        "batting": [
+          "setup",
+          "top_of_backlift",
+          "stride",
+          "contact",
+          "finish"
+        ],
+        "bowling": [
+          "load",
+          "back_foot_contact",
+          "front_foot_contact",
+          "release",
+          "follow_through"
+        ]
+      },
+      "frames_per_delivery_target": "5–8",
+      "kpi_mean": "Arithmetic mean of visible per-delivery KPI scores; retain best and worst.",
+      "missing_kpi": "If never visible, primary workbook says redistribute its weight across visible KPIs; secondary prompt says proportionally. Exact denominator and minimum-coverage rule require owner approval.",
+      "weighted_contribution_formula": "(kpi_mean / 10) * effective_weight_pct",
+      "total_rating": "Sum weighted contributions, nominally out of 100.",
+      "consistency": "Derived from spread of per-delivery scores; no authoritative dispersion-to-0–10 formula found.",
+      "fatigue": "Compare early vs late deliveries; no authoritative split size or delta threshold found."
+    },
+    "injury": {
+      "scale": [
+        "GREEN",
+        "AMBER",
+        "RED"
+      ],
+      "per_delivery": true,
+      "aggregate": "Worst flag seen across deliveries for each marker: RED > AMBER > GREEN.",
+      "rating_effect": "Separate screening pass; must not change the performance rating.",
+      "overall_tier": {
+        "HIGH": "2 or more RED",
+        "MODERATE": "1 RED or 3 or more AMBER",
+        "LOW_MOD": "any AMBER",
+        "LOW": "otherwise"
+      },
+      "action": "Any RED, pain, or young-player spine flag routes to physio; screening aid only, not diagnosis."
+    }
+  },
+  "profile_routing": {
+    "discipline": {
+      "batting": "Use batting definition set.",
+      "pace": "Use sex-specific pace set.",
+      "spin": "Use unified spin set; off/leg type and variation are profile metadata, not inferred from vision."
+    },
+    "sex_model": {
+      "men": "Batting base + pace_men + unified spin.",
+      "women": "Batting base with female backlift benchmark variant + pace_women + unified spin. Primary workbook says spin is intentionally identical due limited female-specific evidence."
+    },
+    "age_primary_model": {
+      "performance_effect": "No approved age adjustment in the accuracy-first primary workbook.",
+      "injury_metadata_rule": "Young/Growing marker: SAFE adult; MONITOR age 18–21; HIGH age 15–18; if 15–18, escalate every spine flag one band.",
+      "boundary_issue": "Age 18 appears in both HIGH 15–18 and MONITOR 18–21; ages below 15 are not defined."
+    },
+    "age_gender_phv_overlay": {
+      "status": "not_applied_to_primary_catalog",
+      "reason": "Secondary workbook has a different KPI taxonomy and introduces exact degree/cm measurements that conflict with the primary 720p coarse-read rule.",
+      "mapping": [
+        {
+          "age_category": "U9",
+          "gender_label": "Girls",
+          "phv_stage": "Pre-PHV",
+          "sheet_route": "Open: M-U9 [Discipline] / F-U9 [Discipline]",
+          "rationale": "Well before growth spurt (girls PHV ~11-13). Movement-skill stage, not power.",
+          "confidence_or_caveat": "High.",
+          "source_row": 4
+        },
+        {
+          "age_category": "U9",
+          "gender_label": "Boys",
+          "phv_stage": "Pre-PHV",
+          "sheet_route": "Open: M-U9 [Discipline] / F-U9 [Discipline]",
+          "rationale": "Well before growth spurt (boys PHV ~12-14).",
+          "confidence_or_caveat": "High.",
+          "source_row": 5
+        },
+        {
+          "age_category": "U11",
+          "gender_label": "Girls",
+          "phv_stage": "Pre-PHV",
+          "sheet_route": "Open: M-U11 [Discipline] / F-U11 [Discipline]",
+          "rationale": "Usually pre-growth-spurt; check for early maturers (>7cm/yr growth) and drop to Circa if so.",
+          "confidence_or_caveat": "Moderate — PHV range for girls is 9-15.",
+          "source_row": 6
+        },
+        {
+          "age_category": "U11",
+          "gender_label": "Boys",
+          "phv_stage": "Pre-PHV",
+          "sheet_route": "Open: M-U11 [Discipline] / F-U11 [Discipline]",
+          "rationale": "Typically pre-growth-spurt for boys.",
+          "confidence_or_caveat": "High.",
+          "source_row": 7
+        },
+        {
+          "age_category": "U13",
+          "gender_label": "Girls",
+          "phv_stage": "Circa-PHV",
+          "sheet_route": "Open: F-U13 [Discipline]  (Circa-PHV)",
+          "rationale": "Peak growth-spurt window for girls — most sensitive band for this gender.",
+          "confidence_or_caveat": "Moderate-High.",
+          "source_row": 8
+        },
+        {
+          "age_category": "U13",
+          "gender_label": "Boys",
+          "phv_stage": "Pre-PHV (check individually)",
+          "sheet_route": "Open: M-U13 [Discipline]  (Pre-PHV — check individually)",
+          "rationale": "Boys' growth spurt starts later — most U13 boys still pre-PHV, but check for early maturers.",
+          "confidence_or_caveat": "Moderate — highest individual variation band for boys.",
+          "source_row": 9
+        },
+        {
+          "age_category": "U15",
+          "gender_label": "Girls",
+          "phv_stage": "Post-PHV",
+          "sheet_route": "Open: F-U15 [Discipline]  (Post-PHV — same as Pro)",
+          "rationale": "Growth spurt usually complete by 15 for girls.",
+          "confidence_or_caveat": "Moderate-High.",
+          "source_row": 10
+        },
+        {
+          "age_category": "U15",
+          "gender_label": "Boys",
+          "phv_stage": "Circa-PHV",
+          "sheet_route": "Open: M-U15 [Discipline]  (Circa-PHV)",
+          "rationale": "Peak growth-spurt window for boys — most sensitive band for this gender.",
+          "confidence_or_caveat": "Moderate-High.",
+          "source_row": 11
+        },
+        {
+          "age_category": "U17",
+          "gender_label": "Girls",
+          "phv_stage": "Post-PHV",
+          "sheet_route": "Open: F-U17 [Discipline]  (Post-PHV — same as Pro)",
+          "rationale": "Growth long completed; consolidating technical/physical development.",
+          "confidence_or_caveat": "High.",
+          "source_row": 12
+        },
+        {
+          "age_category": "U17",
+          "gender_label": "Boys",
+          "phv_stage": "Post-PHV",
+          "sheet_route": "Open: M-U17 [Discipline]  (Post-PHV — same as Pro)",
+          "rationale": "Growth mostly complete by 16-17 for most boys.",
+          "confidence_or_caveat": "Moderate-High — late maturers may still be Circa at 17.",
+          "source_row": 13
+        },
+        {
+          "age_category": "U19",
+          "gender_label": "Girls",
+          "phv_stage": "Post-PHV",
+          "sheet_route": "Open: F-U19 [Discipline]  (Post-PHV — same as Pro)",
+          "rationale": "Near-adult physical capacity.",
+          "confidence_or_caveat": "High.",
+          "source_row": 14
+        },
+        {
+          "age_category": "U19",
+          "gender_label": "Boys",
+          "phv_stage": "Post-PHV",
+          "sheet_route": "Open: M-U19 [Discipline]  (Post-PHV — same as Pro)",
+          "rationale": "Near-adult physical capacity.",
+          "confidence_or_caveat": "High.",
+          "source_row": 15
+        },
+        {
+          "age_category": "Pro",
+          "gender_label": "Women",
+          "phv_stage": "Fully Mature",
+          "sheet_route": "Open: F-Pro [Discipline]",
+          "rationale": "This is the reference standard every column was built against.",
+          "confidence_or_caveat": "High.",
+          "source_row": 16
+        },
+        {
+          "age_category": "Pro",
+          "gender_label": "Men",
+          "phv_stage": "Fully Mature",
+          "sheet_route": "Open: M-Pro [Discipline]",
+          "rationale": "This is the reference standard every column was built against.",
+          "confidence_or_caveat": "High.",
+          "source_row": 17
+        }
+      ],
+      "stage_representative_sheets": {
+        "men": {
+          "pre_phv": "M-U9 [Discipline]",
+          "circa_phv": "M-U15 [Discipline]",
+          "post_phv_or_pro": "M-Pro [Discipline]"
+        },
+        "women": {
+          "pre_phv": "F-U9 [Discipline]",
+          "circa_phv": "F-U13 [Discipline]",
+          "post_phv_or_pro": "F-Pro [Discipline]"
+        }
+      },
+      "threshold_variants_exact": [
+        {
+          "sex": "men",
+          "discipline": "batting",
+          "legacy_kpi_name": "Backlift Height",
+          "criteria": {
+            "pre_phv": {
+              "raw": "0=no backlift (<18° from vertical) 5=low backlift 8=medium 10=full high backlift above shoulder",
+              "source": {
+                "sheet": "M-U9 Batting",
+                "row": 10
+              }
+            },
+            "circa_phv": {
+              "raw": "0=no backlift (<24° from vertical) 5=low backlift 8=medium 10=full high backlift above shoulder",
+              "source": {
+                "sheet": "M-U15 Batting",
+                "row": 10
+              }
+            },
+            "post_phv_or_pro": {
+              "raw": "0=no backlift (<30° from vertical) 5=low backlift 8=medium 10=full high backlift above shoulder",
+              "source": {
+                "sheet": "M-Pro Batting",
+                "row": 10
+              }
+            }
+          }
+        },
+        {
+          "sex": "men",
+          "discipline": "batting",
+          "legacy_kpi_name": "Stride Length",
+          "criteria": {
+            "pre_phv": {
+              "raw": "0=no stride or excessive stride (>45cm) 5=slightly short/long 10=appropriate stride 30-30cm",
+              "source": {
+                "sheet": "M-U9 Batting",
+                "row": 16
+              }
+            },
+            "circa_phv": {
+              "raw": "0=no stride or excessive stride (>60cm) 5=slightly short/long 10=appropriate stride 30-40cm",
+              "source": {
+                "sheet": "M-U15 Batting",
+                "row": 16
+              }
+            },
+            "post_phv_or_pro": {
+              "raw": "0=no stride or excessive stride (>75cm) 5=slightly short/long 10=appropriate stride 30-50cm",
+              "source": {
+                "sheet": "M-Pro Batting",
+                "row": 16
+              }
+            }
+          }
+        },
+        {
+          "sex": "women",
+          "discipline": "batting",
+          "legacy_kpi_name": "Stride Length",
+          "criteria": {
+            "pre_phv": {
+              "raw": "0=no stride or excessive (>45cm) 5=slightly off 10=appropriate stride 30-30cm",
+              "source": {
+                "sheet": "F-U9 Batting",
+                "row": 16
+              }
+            },
+            "circa_phv": {
+              "raw": "0=no stride or excessive (>60cm) 5=slightly off 10=appropriate stride 30-40cm",
+              "source": {
+                "sheet": "F-U13 Batting",
+                "row": 16
+              }
+            },
+            "post_phv_or_pro": {
+              "raw": "0=no stride or excessive (>75cm) 5=slightly off 10=appropriate stride 30-50cm",
+              "source": {
+                "sheet": "F-Pro Batting",
+                "row": 16
+              }
+            }
+          }
+        },
+        {
+          "sex": "men",
+          "discipline": "pace",
+          "legacy_kpi_name": "Bowling Arm Height",
+          "criteria": {
+            "pre_phv": {
+              "raw": "0=slingy low arm <27° 5=medium (45-42°) 8=high (70-51°) 10=high arm >51° from horizontal",
+              "source": {
+                "sheet": "M-U9 Pace Bowling",
+                "row": 17
+              }
+            },
+            "circa_phv": {
+              "raw": "0=slingy low arm <36° 5=medium (45-56°) 8=high (70-68°) 10=high arm >68° from horizontal",
+              "source": {
+                "sheet": "M-U15 Pace Bowling",
+                "row": 17
+              }
+            },
+            "post_phv_or_pro": {
+              "raw": "0=slingy low arm <45° 5=medium (45-70°) 8=high (70-85°) 10=high arm >85° from horizontal",
+              "source": {
+                "sheet": "M-Pro Pace Bowling",
+                "row": 17
+              }
+            }
+          }
+        },
+        {
+          "sex": "men",
+          "discipline": "pace",
+          "legacy_kpi_name": "Lateral Trunk Flexion (Injury Flag)",
+          "criteria": {
+            "pre_phv": {
+              "raw": "0=extreme lateral flexion >24° (high injury risk) 5=moderate lateral flex 10=minimal lateral trunk bend — upright through delivery",
+              "source": {
+                "sheet": "M-U9 Pace Bowling",
+                "row": 26
+              }
+            },
+            "circa_phv": {
+              "raw": "0=extreme lateral flexion >20° (high injury risk) 5=moderate lateral flex 10=minimal lateral trunk bend — upright through delivery",
+              "source": {
+                "sheet": "M-U15 Pace Bowling",
+                "row": 26
+              }
+            },
+            "post_phv_or_pro": {
+              "raw": "0=extreme lateral flexion >30° (high injury risk) 5=moderate lateral flex 10=minimal lateral trunk bend — upright through delivery",
+              "source": {
+                "sheet": "M-Pro Pace Bowling",
+                "row": 26
+              }
+            }
+          }
+        },
+        {
+          "sex": "men",
+          "discipline": "pace",
+          "legacy_kpi_name": "Release Height Consistency",
+          "criteria": {
+            "pre_phv": {
+              "raw": "0=release varying >12cm across deliveries 5=some variation 10=consistent within 3cm",
+              "source": {
+                "sheet": "M-U9 Pace Bowling",
+                "row": 22
+              }
+            },
+            "circa_phv": {
+              "raw": "0=release varying >16cm across deliveries 5=some variation 10=consistent within 4cm",
+              "source": {
+                "sheet": "M-U15 Pace Bowling",
+                "row": 22
+              }
+            },
+            "post_phv_or_pro": {
+              "raw": "0=release varying >20cm across deliveries 5=some variation 10=consistent within 5cm",
+              "source": {
+                "sheet": "M-Pro Pace Bowling",
+                "row": 22
+              }
+            }
+          }
+        },
+        {
+          "sex": "women",
+          "discipline": "pace",
+          "legacy_kpi_name": "Bowling Arm Height",
+          "criteria": {
+            "pre_phv": {
+              "raw": "0=slingy low arm <27° 5=medium 8=high 10=high arm >51° from horizontal",
+              "source": {
+                "sheet": "F-U9 Pace Bowling",
+                "row": 17
+              }
+            },
+            "circa_phv": {
+              "raw": "0=slingy low arm <36° 5=medium 8=high 10=high arm >68° from horizontal",
+              "source": {
+                "sheet": "F-U13 Pace Bowling",
+                "row": 17
+              }
+            },
+            "post_phv_or_pro": {
+              "raw": "0=slingy low arm <45° 5=medium 8=high 10=high arm >85° from horizontal",
+              "source": {
+                "sheet": "F-Pro Pace Bowling",
+                "row": 17
+              }
+            }
+          }
+        },
+        {
+          "sex": "women",
+          "discipline": "pace",
+          "legacy_kpi_name": "Lateral Trunk Flexion (Injury Flag)",
+          "criteria": {
+            "pre_phv": {
+              "raw": "0=extreme lateral flexion >24° 5=moderate lateral flex 10=minimal lateral trunk bend",
+              "source": {
+                "sheet": "F-U9 Pace Bowling",
+                "row": 26
+              }
+            },
+            "circa_phv": {
+              "raw": "0=extreme lateral flexion >20° 5=moderate lateral flex 10=minimal lateral trunk bend",
+              "source": {
+                "sheet": "F-U13 Pace Bowling",
+                "row": 26
+              }
+            },
+            "post_phv_or_pro": {
+              "raw": "0=extreme lateral flexion >30° 5=moderate lateral flex 10=minimal lateral trunk bend",
+              "source": {
+                "sheet": "F-Pro Pace Bowling",
+                "row": 26
+              }
+            }
+          }
+        },
+        {
+          "sex": "women",
+          "discipline": "pace",
+          "legacy_kpi_name": "Release Height Consistency",
+          "criteria": {
+            "pre_phv": {
+              "raw": "0=varying >12cm across deliveries 5=some variation 10=consistent within 3cm",
+              "source": {
+                "sheet": "F-U9 Pace Bowling",
+                "row": 22
+              }
+            },
+            "circa_phv": {
+              "raw": "0=varying >16cm across deliveries 5=some variation 10=consistent within 4cm",
+              "source": {
+                "sheet": "F-U13 Pace Bowling",
+                "row": 22
+              }
+            },
+            "post_phv_or_pro": {
+              "raw": "0=varying >20cm across deliveries 5=some variation 10=consistent within 5cm",
+              "source": {
+                "sheet": "F-Pro Pace Bowling",
+                "row": 22
+              }
+            }
+          }
+        },
+        {
+          "sex": "men",
+          "discipline": "off_spin",
+          "legacy_kpi_name": "Release Height Consistency",
+          "criteria": {
+            "pre_phv": {
+              "raw": "0=release height varying widely 5=some variation 10=consistent release within 3cm",
+              "source": {
+                "sheet": "M-U9 Off-Spin",
+                "row": 22
+              }
+            },
+            "circa_phv": {
+              "raw": "0=release height varying widely 5=some variation 10=consistent release within 4cm",
+              "source": {
+                "sheet": "M-U15 Off-Spin",
+                "row": 22
+              }
+            },
+            "post_phv_or_pro": {
+              "raw": "0=release height varying widely 5=some variation 10=consistent release within 5cm",
+              "source": {
+                "sheet": "M-Pro Off-Spin",
+                "row": 22
+              }
+            }
+          }
+        },
+        {
+          "sex": "women",
+          "discipline": "off_spin",
+          "legacy_kpi_name": "Release Height Consistency",
+          "criteria": {
+            "pre_phv": {
+              "raw": "0=varying widely 5=some variation 10=consistent within 3cm",
+              "source": {
+                "sheet": "F-U9 Off-Spin",
+                "row": 22
+              }
+            },
+            "circa_phv": {
+              "raw": "0=varying widely 5=some variation 10=consistent within 4cm",
+              "source": {
+                "sheet": "F-U13 Off-Spin",
+                "row": 22
+              }
+            },
+            "post_phv_or_pro": {
+              "raw": "0=varying widely 5=some variation 10=consistent within 5cm",
+              "source": {
+                "sheet": "F-Pro Off-Spin",
+                "row": 22
+              }
+            }
+          }
+        },
+        {
+          "sex": "men",
+          "discipline": "leg_spin",
+          "legacy_kpi_name": "Release Height Consistency",
+          "criteria": {
+            "pre_phv": {
+              "raw": "0=very inconsistent 5=some variation 10=consistent within 3cm",
+              "source": {
+                "sheet": "M-U9 Leg-Spin",
+                "row": 22
+              }
+            },
+            "circa_phv": {
+              "raw": "0=very inconsistent 5=some variation 10=consistent within 4cm",
+              "source": {
+                "sheet": "M-U15 Leg-Spin",
+                "row": 22
+              }
+            },
+            "post_phv_or_pro": {
+              "raw": "0=very inconsistent 5=some variation 10=consistent within 5cm",
+              "source": {
+                "sheet": "M-Pro Leg-Spin",
+                "row": 22
+              }
+            }
+          }
+        },
+        {
+          "sex": "women",
+          "discipline": "leg_spin",
+          "legacy_kpi_name": "Release Height Consistency",
+          "criteria": {
+            "pre_phv": {
+              "raw": "0=very inconsistent 5=some variation 10=consistent within 3cm",
+              "source": {
+                "sheet": "F-U9 Leg-Spin",
+                "row": 22
+              }
+            },
+            "circa_phv": {
+              "raw": "0=very inconsistent 5=some variation 10=consistent within 4cm",
+              "source": {
+                "sheet": "F-U13 Leg-Spin",
+                "row": 22
+              }
+            },
+            "post_phv_or_pro": {
+              "raw": "0=very inconsistent 5=some variation 10=consistent within 5cm",
+              "source": {
+                "sheet": "F-Pro Leg-Spin",
+                "row": 22
+              }
+            }
+          }
+        }
+      ],
+      "declared_phv_target_notes_exact": [
+        {
+          "sex": "men",
+          "discipline": "pace",
+          "legacy_kpi_name": "Front Knee Brace",
+          "stage": "pre_phv",
+          "raw_criterion": "0=knee collapsing at delivery 5=partial brace 10=front knee bracing strongly, leg near straight — Loughborough: braced knee linked to ball speed  [Pre-PHV target: ~90-108° braced knee, per quantify column]",
+          "quantification_rule": "Detect front knee angle at delivery. Braced = ~170-180°. Collapsing = <150°.",
+          "source": {
+            "sheet": "M-U9 Pace Bowling",
+            "row": 14
+          }
+        },
+        {
+          "sex": "men",
+          "discipline": "pace",
+          "legacy_kpi_name": "Front Knee Brace",
+          "stage": "circa_phv",
+          "raw_criterion": "0=knee collapsing at delivery 5=partial brace 10=front knee bracing strongly, leg near straight — Loughborough: braced knee linked to ball speed  [Circa-PHV target: ~120-144° braced knee, per quantify column]",
+          "quantification_rule": "Detect front knee angle at delivery. Braced = ~170-180°. Collapsing = <150°.",
+          "source": {
+            "sheet": "M-U15 Pace Bowling",
+            "row": 14
+          }
+        },
+        {
+          "sex": "men",
+          "discipline": "pace",
+          "legacy_kpi_name": "Trunk Flexion Through Delivery",
+          "stage": "pre_phv",
+          "raw_criterion": "0=no trunk flexion, upright 5=slight flex 10=clear forward trunk flexion from front foot contact to release — Loughborough: KEY ball speed predictor  [Pre-PHV target: ~0-18° forward trunk flexion, per quantify column]",
+          "quantification_rule": "Detect spine/trunk angle change from front foot contact to release. Forward flex = positive. Flag extreme lateral flexion as injury risk.",
+          "source": {
+            "sheet": "M-U9 Pace Bowling",
+            "row": 15
+          }
+        },
+        {
+          "sex": "men",
+          "discipline": "pace",
+          "legacy_kpi_name": "Trunk Flexion Through Delivery",
+          "stage": "circa_phv",
+          "raw_criterion": "0=no trunk flexion, upright 5=slight flex 10=clear forward trunk flexion from front foot contact to release — Loughborough: KEY ball speed predictor  [Circa-PHV target: ~0-24° forward trunk flexion, per quantify column]",
+          "quantification_rule": "Detect spine/trunk angle change from front foot contact to release. Forward flex = positive. Flag extreme lateral flexion as injury risk.",
+          "source": {
+            "sheet": "M-U15 Pace Bowling",
+            "row": 15
+          }
+        },
+        {
+          "sex": "women",
+          "discipline": "pace",
+          "legacy_kpi_name": "Front Knee Brace",
+          "stage": "pre_phv",
+          "raw_criterion": "0=knee collapsing 5=partial brace 10=strong brace, leg near straight  [Pre-PHV target: ~90-108° braced knee, per quantify column]",
+          "quantification_rule": "Detect front knee angle at delivery; braced ~170-180°, collapsing <150°.",
+          "source": {
+            "sheet": "F-U9 Pace Bowling",
+            "row": 14
+          }
+        },
+        {
+          "sex": "women",
+          "discipline": "pace",
+          "legacy_kpi_name": "Front Knee Brace",
+          "stage": "circa_phv",
+          "raw_criterion": "0=knee collapsing 5=partial brace 10=strong brace, leg near straight  [Circa-PHV target: ~120-144° braced knee, per quantify column]",
+          "quantification_rule": "Detect front knee angle at delivery; braced ~170-180°, collapsing <150°.",
+          "source": {
+            "sheet": "F-U13 Pace Bowling",
+            "row": 14
+          }
+        }
+      ]
+    },
+    "anthropometric_context": {
+      "status": "secondary_context_not_part_of_base_score_until_validated",
+      "height_classes_cm": {
+        "men": {
+          "short": "<175",
+          "mid": "175-185",
+          "tall": "185-193",
+          "very_tall": ">193"
+        },
+        "women": {
+          "short": "<160",
+          "mid": "160-170",
+          "tall": "170-178",
+          "very_tall": ">178"
+        }
+      },
+      "weight_classes_kg_context_only": {
+        "men": {
+          "light": "<75",
+          "mid": "75-90",
+          "heavy": "90-100",
+          "very_heavy": ">100"
+        },
+        "women": {
+          "light": "<60",
+          "mid": "60-72",
+          "heavy": "72-82",
+          "very_heavy": ">82"
+        }
+      },
+      "rule": "Height may shift physical benchmarks. Weight is landing-load/injury context only and must not move technique benchmarks or the 0–100 score.",
+      "source": {
+        "workbook": "/Users/anshulanand/Documents/amp/kpi/amp context.xlsx",
+        "sheet": "Anthropometric Context",
+        "ranges": [
+          "A18:E23",
+          "A25:C30"
+        ]
+      }
+    }
+  },
+  "definitions": {
+    "batting": {
+      "applies_to_sexes": [
+        "men",
+        "women"
+      ],
+      "kpi_count": 17,
+      "weight_sum_pct": 100,
+      "female_specific_change": "Backlift Height benchmark rewards a slight lateral loop toward gully/slips; all weights and routing match men.",
+      "kpis": [
+        {
+          "id": "feet_width",
+          "number": 1,
+          "name": "Feet Width",
+          "source_name": "Feet Width",
+          "master_fundamental": false,
+          "stage": "STANCE & SETUP",
+          "weight_pct": 5,
+          "camera_angle_raw": "Side or Front",
+          "camera_angles": [
+            "side",
+            "front"
+          ],
+          "evidence_type": "single_frame",
+          "meaning": "Distance between the feet vs shoulder width.",
+          "benchmark_10": "Feet about shoulder-width to 1.3x shoulder-width apart.",
+          "off_condition": "Feet almost together (tips over) or splayed very wide (can't stride).",
+          "observable_check": "[1 FRAME] Setup still: compare the horizontal gap between the two feet to the shoulder width in the same frame. Bucket: narrow / good / wide. Two big landmarks — rock solid at 720p.",
+          "why_it_matters": "A base too narrow or too wide breaks balance before a ball is bowled.",
+          "source": {
+            "workbook": "/Users/anshulanand/Documents/amp/kpi/latest kpi scoring.xlsx",
+            "sheet": "Batting — Men",
+            "row": 5
+          },
+          "applies_to_sexes": [
+            "men",
+            "women"
+          ]
+        },
+        {
+          "id": "knee_bend_in_stance",
+          "number": 2,
+          "name": "Knee Bend in Stance",
+          "source_name": "Knee Bend in Stance",
+          "master_fundamental": false,
+          "stage": "STANCE & SETUP",
+          "weight_pct": 5,
+          "camera_angle_raw": "Side",
+          "camera_angles": [
+            "side"
+          ],
+          "evidence_type": "single_frame",
+          "meaning": "Are the knees softly bent, or locked / over-crouched.",
+          "benchmark_10": "Knees softly flexed, athletic, ready to move.",
+          "off_condition": "Legs locked dead straight, or squatting so low they can't move.",
+          "observable_check": "[1 FRAME] Setup still: front-leg angle bucket — stiff-straight / soft-bend (good) / deep crouch. Whole-leg angle, high contrast.",
+          "why_it_matters": "Straight legs can't push off; a deep crouch can't stride. Both kill first movement.",
+          "source": {
+            "workbook": "/Users/anshulanand/Documents/amp/kpi/latest kpi scoring.xlsx",
+            "sheet": "Batting — Men",
+            "row": 6
+          },
+          "applies_to_sexes": [
+            "men",
+            "women"
+          ]
+        },
+        {
+          "id": "upright_posture",
+          "number": 3,
+          "name": "Upright Posture",
+          "source_name": "Upright Posture",
+          "master_fundamental": false,
+          "stage": "STANCE & SETUP",
+          "weight_pct": 5,
+          "camera_angle_raw": "Side",
+          "camera_angles": [
+            "side"
+          ],
+          "evidence_type": "single_frame",
+          "meaning": "Is the spine tall and balanced, not hunched or leaning back.",
+          "benchmark_10": "Trunk upright or a slight forward tilt, balanced.",
+          "off_condition": "Hunched right over, or leaning back away from the ball.",
+          "observable_check": "[1 FRAME] Setup still: trunk line (hip-to-shoulder) vs vertical. Bucket: upright/slight-forward (good) / hunched / leaning back.",
+          "why_it_matters": "Posture sets where the head and weight go. Leaning back sends both the wrong way.",
+          "source": {
+            "workbook": "/Users/anshulanand/Documents/amp/kpi/latest kpi scoring.xlsx",
+            "sheet": "Batting — Men",
+            "row": 7
+          },
+          "applies_to_sexes": [
+            "men",
+            "women"
+          ]
+        },
+        {
+          "id": "head_over_the_base",
+          "number": 4,
+          "name": "Head Over the Base",
+          "source_name": "★ Head Over the Base",
+          "master_fundamental": true,
+          "stage": "STANCE & SETUP",
+          "weight_pct": 6,
+          "camera_angle_raw": "Side or Front",
+          "camera_angles": [
+            "side",
+            "front"
+          ],
+          "evidence_type": "single_frame",
+          "meaning": "Is the head stacked over the middle of the feet, not tipping out.",
+          "benchmark_10": "Head over the mid-point of the feet, level and centred.",
+          "off_condition": "Head leaning past the front foot or dropping to leg side before the ball.",
+          "observable_check": "[1 FRAME] Setup still: head blob vs the mid-point of the two feet. Over that point (good) / clearly outside the base. Head POSITION, never eyes.",
+          "why_it_matters": "A head starting outside the base is already falling — the root fault everything follows.",
+          "source": {
+            "workbook": "/Users/anshulanand/Documents/amp/kpi/latest kpi scoring.xlsx",
+            "sheet": "Batting — Men",
+            "row": 8
+          },
+          "applies_to_sexes": [
+            "men",
+            "women"
+          ]
+        },
+        {
+          "id": "backlift_height",
+          "number": 5,
+          "name": "Backlift Height",
+          "source_name": "Backlift Height",
+          "master_fundamental": false,
+          "stage": "BACKLIFT & TRIGGER",
+          "weight_pct": 7,
+          "camera_angle_raw": "Side",
+          "camera_angles": [
+            "side"
+          ],
+          "evidence_type": "single_frame",
+          "meaning": "How high the bat is lifted before the downswing.",
+          "benchmark_10": "Bat lifts to around waist-to-shoulder height or above at the top.",
+          "off_condition": "Almost no backlift (bat stays low) — no swing to hit with.",
+          "observable_check": "[1 FRAME] Top-of-backlift still: bat-tip height vs the body (bat is high contrast). Bucket: low (below waist) / medium / high (at/above shoulder).",
+          "why_it_matters": "No backlift means no swing and no power. Height is the most reliable backlift read.",
+          "source": {
+            "workbook": "/Users/anshulanand/Documents/amp/kpi/latest kpi scoring.xlsx",
+            "sheet": "Batting — Men",
+            "row": 10
+          },
+          "sex_variants": {
+            "women": {
+              "benchmark_10": "Bat lifts to around waist-to-shoulder height or above at the top. For women, a slight LATERAL loop of the backlift toward gully/slips is a positive, not a fault — female research links this lateral backlift to higher bat speed.",
+              "why_it_matters": "No backlift means no swing and no power. In women, a lateral backlift toward gully is specifically linked to more bat speed.",
+              "source": {
+                "workbook": "/Users/anshulanand/Documents/amp/kpi/latest kpi scoring.xlsx",
+                "sheet": "Batting — Women",
+                "row": 10
+              }
+            }
+          },
+          "applies_to_sexes": [
+            "men",
+            "women"
+          ]
+        },
+        {
+          "id": "set_still_at_release",
+          "number": 6,
+          "name": "Set & Still at Release",
+          "source_name": "Set & Still at Release",
+          "master_fundamental": false,
+          "stage": "BACKLIFT & TRIGGER",
+          "weight_pct": 5,
+          "camera_angle_raw": "Side or Front",
+          "camera_angles": [
+            "side",
+            "front"
+          ],
+          "evidence_type": "multi_frame",
+          "meaning": "Is the player set and balanced when the bowler releases.",
+          "benchmark_10": "Quiet and balanced at release; any trigger move is small and finished.",
+          "off_condition": "Still lunging or walking across when the ball is released.",
+          "observable_check": "[FRAMES] Compare the 2-3 frames around bowler release: is the whole body settled, or still making a LARGE movement? Gross body movement, not small sway.",
+          "why_it_matters": "If you're still moving when the ball is released, you're late. Set = ready.",
+          "source": {
+            "workbook": "/Users/anshulanand/Documents/amp/kpi/latest kpi scoring.xlsx",
+            "sheet": "Batting — Men",
+            "row": 11
+          },
+          "applies_to_sexes": [
+            "men",
+            "women"
+          ]
+        },
+        {
+          "id": "stride_direction",
+          "number": 7,
+          "name": "Stride Direction",
+          "source_name": "Stride Direction",
+          "master_fundamental": false,
+          "stage": "FRONT FOOT MOVEMENT",
+          "weight_pct": 7,
+          "camera_angle_raw": "Front",
+          "camera_angles": [
+            "front"
+          ],
+          "evidence_type": "multi_frame",
+          "meaning": "Does the front foot move toward the line of the ball or across the body.",
+          "benchmark_10": "Front foot strides toward the ball (roughly toward off stump for a straight ball).",
+          "off_condition": "Foot doesn't move, or steps across the body and closes the player off.",
+          "observable_check": "[FRAMES] Front-on: front-foot position before vs at the shot. Bucket: toward the ball / barely moves / across the body.",
+          "why_it_matters": "Where the foot goes decides whether you reach the ball or play around your pad.",
+          "source": {
+            "workbook": "/Users/anshulanand/Documents/amp/kpi/latest kpi scoring.xlsx",
+            "sheet": "Batting — Men",
+            "row": 13
+          },
+          "applies_to_sexes": [
+            "men",
+            "women"
+          ]
+        },
+        {
+          "id": "stride_length",
+          "number": 8,
+          "name": "Stride Length",
+          "source_name": "Stride Length",
+          "master_fundamental": false,
+          "stage": "FRONT FOOT MOVEMENT",
+          "weight_pct": 5,
+          "camera_angle_raw": "Side",
+          "camera_angles": [
+            "side"
+          ],
+          "evidence_type": "single_frame",
+          "meaning": "How far the front foot strides.",
+          "benchmark_10": "A clear, controlled stride, roughly knee-to-shin length toward the pitch.",
+          "off_condition": "No stride (stuck), or a huge overstretch that locks the body up.",
+          "observable_check": "[1 FRAME] At-shot still (side): gap between the two feet — none / short / good / overstretched.",
+          "why_it_matters": "Too short and you never reach it; too long and you can't adjust or balance.",
+          "source": {
+            "workbook": "/Users/anshulanand/Documents/amp/kpi/latest kpi scoring.xlsx",
+            "sheet": "Batting — Men",
+            "row": 14
+          },
+          "applies_to_sexes": [
+            "men",
+            "women"
+          ]
+        },
+        {
+          "id": "front_knee_bend_on_the_shot",
+          "number": 9,
+          "name": "Front Knee Bend on the Shot",
+          "source_name": "Front Knee Bend on the Shot",
+          "master_fundamental": false,
+          "stage": "FRONT FOOT MOVEMENT",
+          "weight_pct": 6,
+          "camera_angle_raw": "Side",
+          "camera_angles": [
+            "side"
+          ],
+          "evidence_type": "single_frame",
+          "meaning": "Does the front knee bend to keep the body driving forward.",
+          "benchmark_10": "Front knee flexes into a bent, driving position (~145-150 deg) on front-foot shots.",
+          "off_condition": "Front leg stays stiff so the body stalls, or the knee collapses right down.",
+          "observable_check": "[1 FRAME] Contact still (side): front-knee angle bucket — stiff-straight / good-bend (good) / collapsed.",
+          "why_it_matters": "A driving front knee keeps momentum going into the ball. A stiff leg stops it dead.",
+          "source": {
+            "workbook": "/Users/anshulanand/Documents/amp/kpi/latest kpi scoring.xlsx",
+            "sheet": "Batting — Men",
+            "row": 15
+          },
+          "applies_to_sexes": [
+            "men",
+            "women"
+          ]
+        },
+        {
+          "id": "body_moving_forward",
+          "number": 10,
+          "name": "Body Moving Forward",
+          "source_name": "Body Moving Forward",
+          "master_fundamental": false,
+          "stage": "FRONT FOOT MOVEMENT",
+          "weight_pct": 6,
+          "camera_angle_raw": "Side",
+          "camera_angles": [
+            "side"
+          ],
+          "evidence_type": "multi_frame",
+          "meaning": "Is the body travelling toward the ball, not falling back.",
+          "benchmark_10": "Hips and chest travel forward toward the ball from setup to contact.",
+          "off_condition": "Weight stays back or rocks backward onto a static/retreating base.",
+          "observable_check": "[FRAMES] Side: track the torso blob horizontally setup to contact. Clear forward shift (good) / static / moving back.",
+          "why_it_matters": "Getting the body forward turns a hard ball into an easy one and adds power.",
+          "source": {
+            "workbook": "/Users/anshulanand/Documents/amp/kpi/latest kpi scoring.xlsx",
+            "sheet": "Batting — Men",
+            "row": 16
+          },
+          "applies_to_sexes": [
+            "men",
+            "women"
+          ]
+        },
+        {
+          "id": "straight_bat_path",
+          "number": 11,
+          "name": "Straight Bat Path",
+          "source_name": "★-tier Straight Bat Path",
+          "master_fundamental": true,
+          "stage": "BAT PATH & CONTACT",
+          "weight_pct": 9,
+          "camera_angle_raw": "Behind or Side",
+          "camera_angles": [
+            "side",
+            "behind"
+          ],
+          "evidence_type": "multi_frame",
+          "meaning": "Does the bat come down straight in line, not slicing across the ball.",
+          "benchmark_10": "Downswing travels in a straight line down to the ball; full face comes through on line.",
+          "off_condition": "Bat swings across the line (in-to-out / out-to-in), face not behind the ball.",
+          "observable_check": "[FRAMES] Behind the stumps or square side-on: track the bat-tip path through the downswing. Straight down the line (good) / angled across.",
+          "why_it_matters": "A straight bat gives the biggest margin for error and the full face. Across = edges.",
+          "source": {
+            "workbook": "/Users/anshulanand/Documents/amp/kpi/latest kpi scoring.xlsx",
+            "sheet": "Batting — Men",
+            "row": 18
+          },
+          "applies_to_sexes": [
+            "men",
+            "women"
+          ]
+        },
+        {
+          "id": "contact_out_front_under_body",
+          "number": 12,
+          "name": "Contact Out Front / Under Body",
+          "source_name": "Contact Out Front / Under Body",
+          "master_fundamental": false,
+          "stage": "BAT PATH & CONTACT",
+          "weight_pct": 7,
+          "camera_angle_raw": "Side",
+          "camera_angles": [
+            "side"
+          ],
+          "evidence_type": "single_frame",
+          "meaning": "Is the ball met in a controlled position, not reaching or jammed in.",
+          "benchmark_10": "Ball met slightly in front on drives, or under the body on defence — arms controlled.",
+          "off_condition": "Ball met way out in front (reaching, arms locked) or jammed right under the body.",
+          "observable_check": "[1 FRAME] Contact still (side): hands/bat relative to the front foot and torso. Nicely in front / under body / reaching. Uses arm & bat position, NOT ball-on-bat.",
+          "why_it_matters": "Meeting the ball in the right place is where good head and footwork pay off.",
+          "source": {
+            "workbook": "/Users/anshulanand/Documents/amp/kpi/latest kpi scoring.xlsx",
+            "sheet": "Batting — Men",
+            "row": 19
+          },
+          "applies_to_sexes": [
+            "men",
+            "women"
+          ]
+        },
+        {
+          "id": "front_elbow_leading",
+          "number": 13,
+          "name": "Front Elbow Leading",
+          "source_name": "Front Elbow Leading",
+          "master_fundamental": false,
+          "stage": "BAT PATH & CONTACT",
+          "weight_pct": 4,
+          "camera_angle_raw": "Side or Front",
+          "camera_angles": [
+            "side",
+            "front"
+          ],
+          "evidence_type": "single_frame",
+          "meaning": "Is the front (top) elbow leading the hands on vertical-bat shots.",
+          "benchmark_10": "Front elbow up and leading toward the ball, hands following.",
+          "off_condition": "Front elbow low and tucked into the side — an all-hands jab.",
+          "observable_check": "[1 FRAME] Downswing/contact still: front-elbow height vs the shoulder. Elbow up & leading (good) / low & tucked.",
+          "why_it_matters": "A leading front elbow keeps the bat straight and the shot controlled.",
+          "source": {
+            "workbook": "/Users/anshulanand/Documents/amp/kpi/latest kpi scoring.xlsx",
+            "sheet": "Batting — Men",
+            "row": 20
+          },
+          "applies_to_sexes": [
+            "men",
+            "women"
+          ]
+        },
+        {
+          "id": "head_over_the_ball_at_contact",
+          "number": 14,
+          "name": "Head Over the Ball at Contact",
+          "source_name": "Head Over the Ball at Contact",
+          "master_fundamental": false,
+          "stage": "BAT PATH & CONTACT",
+          "weight_pct": 6,
+          "camera_angle_raw": "Side",
+          "camera_angles": [
+            "side"
+          ],
+          "evidence_type": "single_frame",
+          "meaning": "Is the head leaning into the line at contact, not pulling away.",
+          "benchmark_10": "Head forward, over or just inside the front knee, into the ball at contact.",
+          "off_condition": "Head pulls back or falls to leg side at contact — the 'head falling over' fault.",
+          "observable_check": "[1 FRAME] Contact still (side): head blob vs the front knee. Over/inside the knee (good) / behind it / fallen to leg side. Head POSITION vs a landmark.",
+          "why_it_matters": "The head at contact is the payoff of a still setup. If it falls here, the shot falls.",
+          "source": {
+            "workbook": "/Users/anshulanand/Documents/amp/kpi/latest kpi scoring.xlsx",
+            "sheet": "Batting — Men",
+            "row": 21
+          },
+          "applies_to_sexes": [
+            "men",
+            "women"
+          ]
+        },
+        {
+          "id": "follow_through_completion",
+          "number": 15,
+          "name": "Follow-Through Completion",
+          "source_name": "Follow-Through Completion",
+          "master_fundamental": false,
+          "stage": "FOLLOW-THROUGH & BALANCE",
+          "weight_pct": 5,
+          "camera_angle_raw": "Side",
+          "camera_angles": [
+            "side"
+          ],
+          "evidence_type": "multi_frame",
+          "meaning": "Does the bat finish the swing high, or get checked at contact.",
+          "benchmark_10": "Bat continues up into a full, high finish.",
+          "off_condition": "Swing stops dead at contact — a checked, jabby finish.",
+          "observable_check": "[FRAMES] Post-contact (side): does the bat-tip keep travelling up to a high finish, or stop near contact height?",
+          "why_it_matters": "A checked finish means the player didn't commit or lost balance mid-shot.",
+          "source": {
+            "workbook": "/Users/anshulanand/Documents/amp/kpi/latest kpi scoring.xlsx",
+            "sheet": "Batting — Men",
+            "row": 23
+          },
+          "applies_to_sexes": [
+            "men",
+            "women"
+          ]
+        },
+        {
+          "id": "balance_at_the_finish",
+          "number": 16,
+          "name": "Balance at the Finish",
+          "source_name": "Balance at the Finish",
+          "master_fundamental": false,
+          "stage": "FOLLOW-THROUGH & BALANCE",
+          "weight_pct": 6,
+          "camera_angle_raw": "Side or Front",
+          "camera_angles": [
+            "side",
+            "front"
+          ],
+          "evidence_type": "single_frame",
+          "meaning": "Is the player balanced and tall at the end of the shot.",
+          "benchmark_10": "Standing balanced and controlled at the finish — no toppling or extra steps.",
+          "off_condition": "Falling to one side, or stepping to catch balance after the shot.",
+          "observable_check": "[1 FRAME] Final still: whole body upright and stable, or leaning/stumbling/stepping? One of the easiest 720p reads.",
+          "why_it_matters": "A messy finish proves balance broke somewhere upstream — the summary check.",
+          "source": {
+            "workbook": "/Users/anshulanand/Documents/amp/kpi/latest kpi scoring.xlsx",
+            "sheet": "Batting — Men",
+            "row": 24
+          },
+          "applies_to_sexes": [
+            "men",
+            "women"
+          ]
+        },
+        {
+          "id": "same_shape_every_ball",
+          "number": 17,
+          "name": "Same Shape Every Ball",
+          "source_name": "Same Shape Every Ball",
+          "master_fundamental": false,
+          "stage": "REPEATABILITY (needs multiple deliveries)",
+          "weight_pct": 6,
+          "camera_angle_raw": "Any",
+          "camera_angles": [
+            "any"
+          ],
+          "evidence_type": "computed_across_deliveries",
+          "meaning": "Is the technique repeatable across the deliveries in the clip.",
+          "benchmark_10": "The scores above stay steady from delivery to delivery.",
+          "off_condition": "One clean ball then several loose ones — big swings between deliveries.",
+          "observable_check": "[COMPUTED] Not vision: measure how much each KPI score varies across the deliveries in the clip. Low variation = high score.",
+          "why_it_matters": "Consistency separates a player who looks good once from one you can trust. Only measurable because the clip has several balls.",
+          "source": {
+            "workbook": "/Users/anshulanand/Documents/amp/kpi/latest kpi scoring.xlsx",
+            "sheet": "Batting — Men",
+            "row": 26
+          },
+          "applies_to_sexes": [
+            "men",
+            "women"
+          ]
+        }
+      ]
+    },
+    "pace_men": {
+      "kpi_count": 13,
+      "weight_sum_pct": 100,
+      "kpis": [
+        {
+          "id": "run_up_speed",
+          "number": 1,
+          "name": "Run-Up Speed",
+          "source_name": "Run-Up Speed",
+          "master_fundamental": false,
+          "stage": "RUN-UP",
+          "weight_pct": 10,
+          "camera_angle_raw": "Side",
+          "camera_angles": [
+            "side"
+          ],
+          "evidence_type": "multi_frame",
+          "meaning": "Does the bowler run in with real, controlled speed.",
+          "benchmark_10": "A genuinely quick, smooth run-up (elite men ~5-7 m/s). Fastest bowlers have the quickest run-ups.",
+          "off_condition": "Walking or jogging in with little momentum.",
+          "observable_check": "[FRAMES] Side: how fast the body crosses the screen over the run-up. Bucket: walk / jog / fast. Gross whole-body speed.",
+          "why_it_matters": "Run-up speed is the biggest controllable source of pace — momentum you feed into the ball.",
+          "source": {
+            "workbook": "/Users/anshulanand/Documents/amp/kpi/latest kpi scoring.xlsx",
+            "sheet": "Pace — Men",
+            "row": 5
+          }
+        },
+        {
+          "id": "gathers_into_the_crease",
+          "number": 2,
+          "name": "Gathers Into the Crease",
+          "source_name": "Gathers Into the Crease",
+          "master_fundamental": false,
+          "stage": "RUN-UP",
+          "weight_pct": 5,
+          "camera_angle_raw": "Side",
+          "camera_angles": [
+            "side"
+          ],
+          "evidence_type": "multi_frame",
+          "meaning": "Is the bowler gathering/accelerating into delivery, not slowing.",
+          "benchmark_10": "Strides stay quick or quicken into the crease — no braking.",
+          "off_condition": "Visibly slowing down in the last few strides.",
+          "observable_check": "[FRAMES] Side: last 2 strides vs mid-run-up strides. Quick/gathering (good) / slowing.",
+          "why_it_matters": "Braking before delivery throws away the pace the run-up built.",
+          "source": {
+            "workbook": "/Users/anshulanand/Documents/amp/kpi/latest kpi scoring.xlsx",
+            "sheet": "Pace — Men",
+            "row": 6
+          }
+        },
+        {
+          "id": "bound_into_delivery",
+          "number": 3,
+          "name": "Bound Into Delivery",
+          "source_name": "Bound Into Delivery",
+          "master_fundamental": false,
+          "stage": "LOAD & BOUND",
+          "weight_pct": 6,
+          "camera_angle_raw": "Side",
+          "camera_angles": [
+            "side"
+          ],
+          "evidence_type": "single_frame",
+          "meaning": "Is there a clear bound/leap into the delivery stride.",
+          "benchmark_10": "A controlled bound with height and forward momentum into the crease.",
+          "off_condition": "A flat shuffle into the crease with no bound.",
+          "observable_check": "[1 FRAME] The frame where both feet are off the ground before the delivery stride. Present (good) / absent.",
+          "why_it_matters": "The bound sets up the whole delivery stride and load position.",
+          "source": {
+            "workbook": "/Users/anshulanand/Documents/amp/kpi/latest kpi scoring.xlsx",
+            "sheet": "Pace — Men",
+            "row": 8
+          }
+        },
+        {
+          "id": "side_on_at_the_load",
+          "number": 4,
+          "name": "Side-On at the Load",
+          "source_name": "Side-On at the Load",
+          "master_fundamental": false,
+          "stage": "LOAD & BOUND",
+          "weight_pct": 6,
+          "camera_angle_raw": "Side or Behind",
+          "camera_angles": [
+            "side",
+            "behind"
+          ],
+          "evidence_type": "single_frame",
+          "meaning": "Is the body side-on at back-foot landing, or already opened up.",
+          "benchmark_10": "Chest/shoulders turned side-on (or controlled front-on), lined up to deliver.",
+          "off_condition": "Body chaotically open or twisted at the load.",
+          "observable_check": "[1 FRAME] Back-foot-landing still: shoulder line vs the pitch direction. Side-on / front-on / twisted. (Also feeds the injury sheet.)",
+          "why_it_matters": "The load position sets whether the action is powerful and repeatable, or a mess.",
+          "source": {
+            "workbook": "/Users/anshulanand/Documents/amp/kpi/latest kpi scoring.xlsx",
+            "sheet": "Pace — Men",
+            "row": 9
+          }
+        },
+        {
+          "id": "front_foot_landing_position",
+          "number": 5,
+          "name": "Front Foot Landing Position",
+          "source_name": "Front Foot Landing Position",
+          "master_fundamental": false,
+          "stage": "DELIVERY STRIDE",
+          "weight_pct": 6,
+          "camera_angle_raw": "Front",
+          "camera_angles": [
+            "front"
+          ],
+          "evidence_type": "single_frame",
+          "meaning": "Where the front foot lands relative to the body line.",
+          "benchmark_10": "Front foot lands in line or slightly outside off — not across the body.",
+          "off_condition": "Front foot lands well across the body, closing the action off.",
+          "observable_check": "[1 FRAME] Front-on front-foot-contact still: front foot in line with the body or across it? Foot vs body midline.",
+          "why_it_matters": "Landing across the body forces the trunk to twist and cuts both pace and safety.",
+          "source": {
+            "workbook": "/Users/anshulanand/Documents/amp/kpi/latest kpi scoring.xlsx",
+            "sheet": "Pace — Men",
+            "row": 11
+          }
+        },
+        {
+          "id": "braced_front_leg",
+          "number": 6,
+          "name": "Braced Front Leg",
+          "source_name": "★ Braced Front Leg",
+          "master_fundamental": true,
+          "stage": "DELIVERY STRIDE",
+          "weight_pct": 14,
+          "camera_angle_raw": "Side",
+          "camera_angles": [
+            "side"
+          ],
+          "evidence_type": "single_frame",
+          "meaning": "Does the front leg stay strong at landing, or does the knee buckle.",
+          "benchmark_10": "Front leg lands and braces close to straight (knee stays above ~130 deg / under ~50 deg of bend).",
+          "off_condition": "Front knee keeps bending after landing — the body sinks instead of levering over.",
+          "observable_check": "[1 FRAME] Side, at release: front-knee angle — braced/straight (good) / collapsing. Big high-contrast joint. The most reliable pace read.",
+          "why_it_matters": "A braced front leg converts run-up speed into ball speed. A collapsing knee leaks it into the ground. Top validated speed driver.",
+          "source": {
+            "workbook": "/Users/anshulanand/Documents/amp/kpi/latest kpi scoring.xlsx",
+            "sheet": "Pace — Men",
+            "row": 12
+          }
+        },
+        {
+          "id": "forward_trunk_drive",
+          "number": 7,
+          "name": "Forward Trunk Drive",
+          "source_name": "Forward Trunk Drive",
+          "master_fundamental": false,
+          "stage": "DELIVERY STRIDE",
+          "weight_pct": 12,
+          "camera_angle_raw": "Side",
+          "camera_angles": [
+            "side"
+          ],
+          "evidence_type": "multi_frame",
+          "meaning": "Does the upper body fold forward powerfully through release.",
+          "benchmark_10": "Clear forward bend of the trunk from front-foot contact to release, driving the arm over.",
+          "off_condition": "Upper body stays upright/stiff or falls away sideways.",
+          "observable_check": "[FRAMES] Side: trunk line at front-foot contact vs release. Clear forward fold (good) / upright / falling away.",
+          "why_it_matters": "Trunk drive is one of the four validated pace predictors — the big engine the arm rides on.",
+          "source": {
+            "workbook": "/Users/anshulanand/Documents/amp/kpi/latest kpi scoring.xlsx",
+            "sheet": "Pace — Men",
+            "row": 13
+          }
+        },
+        {
+          "id": "arm_height_at_release",
+          "number": 8,
+          "name": "Arm Height at Release",
+          "source_name": "Arm Height at Release",
+          "master_fundamental": false,
+          "stage": "BOWLING ARM & ACTION",
+          "weight_pct": 9,
+          "camera_angle_raw": "Side",
+          "camera_angles": [
+            "side"
+          ],
+          "evidence_type": "single_frame",
+          "meaning": "Is the ball released from a high arm or a low sling.",
+          "benchmark_10": "Bowling arm high at release (ideally above ~70-85 deg from horizontal).",
+          "off_condition": "Low, slingy arm at release.",
+          "observable_check": "[1 FRAME] Release still (side): bowling-arm angle from horizontal — low sling / medium / high. Long high-contrast segment.",
+          "why_it_matters": "A high arm gives bounce and carry. One of the most reliable reads on the sheet.",
+          "source": {
+            "workbook": "/Users/anshulanand/Documents/amp/kpi/latest kpi scoring.xlsx",
+            "sheet": "Pace — Men",
+            "row": 15
+          }
+        },
+        {
+          "id": "delayed_arm",
+          "number": 9,
+          "name": "Delayed Arm",
+          "source_name": "Delayed Arm",
+          "master_fundamental": false,
+          "stage": "BOWLING ARM & ACTION",
+          "weight_pct": 8,
+          "camera_angle_raw": "Side",
+          "camera_angles": [
+            "side"
+          ],
+          "evidence_type": "single_frame",
+          "meaning": "Is the arm still back and lagging when the body has turned to the batter.",
+          "benchmark_10": "At the frame the hips/chest face the batter, the bowling arm is still well back before whipping over.",
+          "off_condition": "Arm already up/over as the hips turn — no lag, no whip.",
+          "observable_check": "[1 FRAME] Side, at the frame where hips face the batter: bowling arm still behind / below shoulder (good) or already vertical? Single-frame position, not motion tracking.",
+          "why_it_matters": "The lag-then-whip is where the last yards of pace come from. Arm-back angle is the single best speed predictor.",
+          "source": {
+            "workbook": "/Users/anshulanand/Documents/amp/kpi/latest kpi scoring.xlsx",
+            "sheet": "Pace — Men",
+            "row": 16
+          }
+        },
+        {
+          "id": "non_bowling_arm_pull",
+          "number": 10,
+          "name": "Non-Bowling Arm Pull",
+          "source_name": "Non-Bowling Arm Pull",
+          "master_fundamental": false,
+          "stage": "BOWLING ARM & ACTION",
+          "weight_pct": 6,
+          "camera_angle_raw": "Side",
+          "camera_angles": [
+            "side"
+          ],
+          "evidence_type": "multi_frame",
+          "meaning": "Does the front arm pull down hard to drive rotation.",
+          "benchmark_10": "Front arm pulls down and into the body sharply, driving the shoulders round.",
+          "off_condition": "Front arm drifts or flails with no clear pull-down.",
+          "observable_check": "[FRAMES] Side, load to release: does the front arm come down sharply into the body? Sharp pull (good) / drifting.",
+          "why_it_matters": "The front-arm pull can add up to ~13% of ball speed by driving rotation.",
+          "source": {
+            "workbook": "/Users/anshulanand/Documents/amp/kpi/latest kpi scoring.xlsx",
+            "sheet": "Pace — Men",
+            "row": 17
+          }
+        },
+        {
+          "id": "release_consistency",
+          "number": 11,
+          "name": "Release Consistency",
+          "source_name": "Release Consistency",
+          "master_fundamental": false,
+          "stage": "RELEASE POINT (needs multiple deliveries)",
+          "weight_pct": 5,
+          "camera_angle_raw": "Side",
+          "camera_angles": [
+            "side"
+          ],
+          "evidence_type": "computed_across_deliveries",
+          "meaning": "Is the ball released from the same point every ball.",
+          "benchmark_10": "Release point (hand height) stays about the same across the deliveries.",
+          "off_condition": "Release point wanders from ball to ball.",
+          "observable_check": "[COMPUTED across deliveries] Compare the hand height at release across the deliveries in the clip. Consistent (good) / variable.",
+          "why_it_matters": "A repeatable release is what turns pace into control and wickets.",
+          "source": {
+            "workbook": "/Users/anshulanand/Documents/amp/kpi/latest kpi scoring.xlsx",
+            "sheet": "Pace — Men",
+            "row": 19
+          }
+        },
+        {
+          "id": "follow_through_direction",
+          "number": 12,
+          "name": "Follow-Through Direction",
+          "source_name": "Follow-Through Direction",
+          "master_fundamental": false,
+          "stage": "FOLLOW-THROUGH",
+          "weight_pct": 8,
+          "camera_angle_raw": "Side",
+          "camera_angles": [
+            "side"
+          ],
+          "evidence_type": "multi_frame",
+          "meaning": "Does the bowler finish toward the batter or fall away.",
+          "benchmark_10": "Body continues toward the batter after release, controlled.",
+          "off_condition": "Falls away to the side or off the pitch.",
+          "observable_check": "[FRAMES] Post-release: body carries on toward the batter or veers sideways? Gross body-direction read.",
+          "why_it_matters": "Falling away wastes energy sideways and feeds the injury markers.",
+          "source": {
+            "workbook": "/Users/anshulanand/Documents/amp/kpi/latest kpi scoring.xlsx",
+            "sheet": "Pace — Men",
+            "row": 21
+          }
+        },
+        {
+          "id": "landing_balance",
+          "number": 13,
+          "name": "Landing Balance",
+          "source_name": "Landing Balance",
+          "master_fundamental": false,
+          "stage": "FOLLOW-THROUGH",
+          "weight_pct": 5,
+          "camera_angle_raw": "Side",
+          "camera_angles": [
+            "side"
+          ],
+          "evidence_type": "single_frame",
+          "meaning": "Is the finish controlled or a stumble.",
+          "benchmark_10": "Controlled, balanced landing after delivery.",
+          "off_condition": "Stumbling, over-running, stepping off the pitch.",
+          "observable_check": "[1 FRAME] Final still: whole-body balance — controlled / stumbling.",
+          "why_it_matters": "A controlled finish means the energy went down the pitch, and it's safer on the body.",
+          "source": {
+            "workbook": "/Users/anshulanand/Documents/amp/kpi/latest kpi scoring.xlsx",
+            "sheet": "Pace — Men",
+            "row": 22
+          }
+        }
+      ]
+    },
+    "pace_women": {
+      "kpi_count": 13,
+      "weight_sum_pct": 100,
+      "key_difference": "Trunk Drive Through the Ball scores rotation-through from front or side, not men’s forward trunk flexion; Run-Up Speed and Side-On at the Load receive higher weights.",
+      "kpis": [
+        {
+          "id": "run_up_speed",
+          "number": 1,
+          "name": "Run-Up Speed",
+          "source_name": "Run-Up Speed",
+          "master_fundamental": false,
+          "stage": "RUN-UP",
+          "weight_pct": 12,
+          "camera_angle_raw": "Side",
+          "camera_angles": [
+            "side"
+          ],
+          "evidence_type": "multi_frame",
+          "meaning": "Does the bowler run in with real, controlled speed.",
+          "benchmark_10": "A genuinely quick, smooth run-up. In WOMEN this is the single strongest driver of ball speed — run-up speed tracks release speed very closely (r≈0.75), stronger than in men.",
+          "off_condition": "Walking or jogging in with little momentum.",
+          "observable_check": "[FRAMES] Side: how fast the body crosses the screen over the run-up. Bucket: walk / jog / fast. Gross whole-body speed.",
+          "why_it_matters": "For female bowlers, run-up speed is THE number-one controllable source of pace. Weighted highest here for that reason.",
+          "source": {
+            "workbook": "/Users/anshulanand/Documents/amp/kpi/latest kpi scoring.xlsx",
+            "sheet": "Pace — Women",
+            "row": 5
+          }
+        },
+        {
+          "id": "gathers_into_the_crease",
+          "number": 2,
+          "name": "Gathers Into the Crease",
+          "source_name": "Gathers Into the Crease",
+          "master_fundamental": false,
+          "stage": "RUN-UP",
+          "weight_pct": 4,
+          "camera_angle_raw": "Side",
+          "camera_angles": [
+            "side"
+          ],
+          "evidence_type": "multi_frame",
+          "meaning": "Is the bowler gathering/accelerating into delivery, not slowing.",
+          "benchmark_10": "Strides stay quick or quicken into the crease — no braking.",
+          "off_condition": "Visibly slowing down in the last few strides.",
+          "observable_check": "[FRAMES] Side: last 2 strides vs mid-run-up strides. Quick/gathering (good) / slowing.",
+          "why_it_matters": "Braking before delivery throws away the pace the run-up built.",
+          "source": {
+            "workbook": "/Users/anshulanand/Documents/amp/kpi/latest kpi scoring.xlsx",
+            "sheet": "Pace — Women",
+            "row": 6
+          }
+        },
+        {
+          "id": "bound_into_delivery",
+          "number": 3,
+          "name": "Bound Into Delivery",
+          "source_name": "Bound Into Delivery",
+          "master_fundamental": false,
+          "stage": "LOAD & BOUND",
+          "weight_pct": 6,
+          "camera_angle_raw": "Side",
+          "camera_angles": [
+            "side"
+          ],
+          "evidence_type": "single_frame",
+          "meaning": "Is there a clear bound/leap into the delivery stride.",
+          "benchmark_10": "A controlled bound with height and forward momentum into the crease.",
+          "off_condition": "A flat shuffle into the crease with no bound.",
+          "observable_check": "[1 FRAME] The frame where both feet are off the ground before the delivery stride. Present (good) / absent.",
+          "why_it_matters": "The bound sets up the whole delivery stride and load position.",
+          "source": {
+            "workbook": "/Users/anshulanand/Documents/amp/kpi/latest kpi scoring.xlsx",
+            "sheet": "Pace — Women",
+            "row": 8
+          }
+        },
+        {
+          "id": "side_on_at_the_load",
+          "number": 4,
+          "name": "Side-On at the Load",
+          "source_name": "Side-On at the Load",
+          "master_fundamental": false,
+          "stage": "LOAD & BOUND",
+          "weight_pct": 8,
+          "camera_angle_raw": "Side or Behind",
+          "camera_angles": [
+            "side",
+            "behind"
+          ],
+          "evidence_type": "single_frame",
+          "meaning": "Is the body side-on at back-foot landing, or already opened up.",
+          "benchmark_10": "Chest/shoulders clearly side-on at back-foot landing. In WOMEN, being more side-on at back-foot contact is linked to faster bowling (it allows a bigger hip-shoulder separation).",
+          "off_condition": "Body chaotically open or twisted at the load.",
+          "observable_check": "[1 FRAME] Back-foot-landing still: shoulder line vs the pitch direction. Side-on / front-on / twisted. (Also feeds the injury sheet.)",
+          "why_it_matters": "Female-specific: faster women's pace bowlers are more side-on at the load. Weighted up vs the men's model.",
+          "source": {
+            "workbook": "/Users/anshulanand/Documents/amp/kpi/latest kpi scoring.xlsx",
+            "sheet": "Pace — Women",
+            "row": 9
+          }
+        },
+        {
+          "id": "front_foot_landing_position",
+          "number": 5,
+          "name": "Front Foot Landing Position",
+          "source_name": "Front Foot Landing Position",
+          "master_fundamental": false,
+          "stage": "DELIVERY STRIDE",
+          "weight_pct": 6,
+          "camera_angle_raw": "Front",
+          "camera_angles": [
+            "front"
+          ],
+          "evidence_type": "single_frame",
+          "meaning": "Where the front foot lands relative to the body line.",
+          "benchmark_10": "Front foot lands in line or slightly outside off — not across the body.",
+          "off_condition": "Front foot lands well across the body, closing the action off.",
+          "observable_check": "[1 FRAME] Front-on front-foot-contact still: front foot in line with the body or across it? Foot vs body midline.",
+          "why_it_matters": "Landing across the body forces the trunk to twist and cuts both pace and safety.",
+          "source": {
+            "workbook": "/Users/anshulanand/Documents/amp/kpi/latest kpi scoring.xlsx",
+            "sheet": "Pace — Women",
+            "row": 11
+          }
+        },
+        {
+          "id": "braced_front_leg",
+          "number": 6,
+          "name": "Braced Front Leg",
+          "source_name": "★ Braced Front Leg",
+          "master_fundamental": true,
+          "stage": "DELIVERY STRIDE",
+          "weight_pct": 14,
+          "camera_angle_raw": "Side",
+          "camera_angles": [
+            "side"
+          ],
+          "evidence_type": "single_frame",
+          "meaning": "Does the front leg stay strong at landing, or does the knee buckle.",
+          "benchmark_10": "Front leg lands and braces close to straight (knee stays above ~130 deg / under ~50 deg of bend).",
+          "off_condition": "Front knee keeps bending after landing — the body sinks instead of levering over.",
+          "observable_check": "[1 FRAME] Side, at release: front-knee angle — braced/straight (good) / collapsing. Big high-contrast joint. The most reliable pace read.",
+          "why_it_matters": "A braced front leg converts run-up speed into ball speed. A collapsing knee leaks it into the ground. Top validated speed driver.",
+          "source": {
+            "workbook": "/Users/anshulanand/Documents/amp/kpi/latest kpi scoring.xlsx",
+            "sheet": "Pace — Women",
+            "row": 12
+          }
+        },
+        {
+          "id": "trunk_drive_through_the_ball",
+          "number": 7,
+          "name": "Trunk Drive Through the Ball",
+          "source_name": "Trunk Drive Through the Ball",
+          "master_fundamental": false,
+          "stage": "DELIVERY STRIDE",
+          "weight_pct": 12,
+          "camera_angle_raw": "Front or Side",
+          "camera_angles": [
+            "side",
+            "front"
+          ],
+          "evidence_type": "multi_frame",
+          "meaning": "Does the upper body fold forward powerfully through release.",
+          "benchmark_10": "The trunk drives powerfully through release. In WOMEN, pace comes more from the trunk ROTATING through the delivery than from folding forward — reward the chest turning through toward the batter; do NOT penalise a more upright, rotational action.",
+          "off_condition": "No drive at all — trunk stiff and static, neither folding nor rotating through.",
+          "observable_check": "[FRAMES] Front-on where possible: does the chest/trunk rotate through toward the batter from front-foot contact to release? Clear rotation-through (good) / stiff, no turn. KEY female difference: score ROTATION, not forward fold (forward fold does not predict pace in women).",
+          "why_it_matters": "The single biggest male-female difference in pace: forward trunk flexion predicts pace in men, but in WOMEN it's trunk rotation. Scored the female way here.",
+          "source": {
+            "workbook": "/Users/anshulanand/Documents/amp/kpi/latest kpi scoring.xlsx",
+            "sheet": "Pace — Women",
+            "row": 13
+          }
+        },
+        {
+          "id": "arm_height_at_release",
+          "number": 8,
+          "name": "Arm Height at Release",
+          "source_name": "Arm Height at Release",
+          "master_fundamental": false,
+          "stage": "BOWLING ARM & ACTION",
+          "weight_pct": 9,
+          "camera_angle_raw": "Side",
+          "camera_angles": [
+            "side"
+          ],
+          "evidence_type": "single_frame",
+          "meaning": "Is the ball released from a high arm or a low sling.",
+          "benchmark_10": "Bowling arm high at release (ideally above ~70-85 deg from horizontal).",
+          "off_condition": "Low, slingy arm at release.",
+          "observable_check": "[1 FRAME] Release still (side): bowling-arm angle from horizontal — low sling / medium / high. Long high-contrast segment.",
+          "why_it_matters": "A high arm gives bounce and carry. One of the most reliable reads on the sheet.",
+          "source": {
+            "workbook": "/Users/anshulanand/Documents/amp/kpi/latest kpi scoring.xlsx",
+            "sheet": "Pace — Women",
+            "row": 15
+          }
+        },
+        {
+          "id": "delayed_arm",
+          "number": 9,
+          "name": "Delayed Arm",
+          "source_name": "Delayed Arm",
+          "master_fundamental": false,
+          "stage": "BOWLING ARM & ACTION",
+          "weight_pct": 8,
+          "camera_angle_raw": "Side",
+          "camera_angles": [
+            "side"
+          ],
+          "evidence_type": "single_frame",
+          "meaning": "Is the arm still back and lagging when the body has turned to the batter.",
+          "benchmark_10": "At the frame the hips/chest face the batter, the bowling arm is still well back before whipping over.",
+          "off_condition": "Arm already up/over as the hips turn — no lag, no whip.",
+          "observable_check": "[1 FRAME] Side, at the frame where hips face the batter: bowling arm still behind / below shoulder (good) or already vertical? Single-frame position, not motion tracking.",
+          "why_it_matters": "The lag-then-whip is where the last yards of pace come from. Arm-back angle is the single best speed predictor.",
+          "source": {
+            "workbook": "/Users/anshulanand/Documents/amp/kpi/latest kpi scoring.xlsx",
+            "sheet": "Pace — Women",
+            "row": 16
+          }
+        },
+        {
+          "id": "non_bowling_arm_pull",
+          "number": 10,
+          "name": "Non-Bowling Arm Pull",
+          "source_name": "Non-Bowling Arm Pull",
+          "master_fundamental": false,
+          "stage": "BOWLING ARM & ACTION",
+          "weight_pct": 5,
+          "camera_angle_raw": "Side",
+          "camera_angles": [
+            "side"
+          ],
+          "evidence_type": "multi_frame",
+          "meaning": "Does the front arm pull down hard to drive rotation.",
+          "benchmark_10": "Front arm pulls down and into the body sharply, driving the shoulders round.",
+          "off_condition": "Front arm drifts or flails with no clear pull-down.",
+          "observable_check": "[FRAMES] Side, load to release: does the front arm come down sharply into the body? Sharp pull (good) / drifting.",
+          "why_it_matters": "The front-arm pull can add up to ~13% of ball speed by driving rotation.",
+          "source": {
+            "workbook": "/Users/anshulanand/Documents/amp/kpi/latest kpi scoring.xlsx",
+            "sheet": "Pace — Women",
+            "row": 17
+          }
+        },
+        {
+          "id": "release_consistency",
+          "number": 11,
+          "name": "Release Consistency",
+          "source_name": "Release Consistency",
+          "master_fundamental": false,
+          "stage": "RELEASE POINT (needs multiple deliveries)",
+          "weight_pct": 4,
+          "camera_angle_raw": "Side",
+          "camera_angles": [
+            "side"
+          ],
+          "evidence_type": "computed_across_deliveries",
+          "meaning": "Is the ball released from the same point every ball.",
+          "benchmark_10": "Release point (hand height) stays about the same across the deliveries.",
+          "off_condition": "Release point wanders from ball to ball.",
+          "observable_check": "[COMPUTED across deliveries] Compare the hand height at release across the deliveries in the clip. Consistent (good) / variable.",
+          "why_it_matters": "A repeatable release is what turns pace into control and wickets.",
+          "source": {
+            "workbook": "/Users/anshulanand/Documents/amp/kpi/latest kpi scoring.xlsx",
+            "sheet": "Pace — Women",
+            "row": 19
+          }
+        },
+        {
+          "id": "follow_through_direction",
+          "number": 12,
+          "name": "Follow-Through Direction",
+          "source_name": "Follow-Through Direction",
+          "master_fundamental": false,
+          "stage": "FOLLOW-THROUGH",
+          "weight_pct": 8,
+          "camera_angle_raw": "Side",
+          "camera_angles": [
+            "side"
+          ],
+          "evidence_type": "multi_frame",
+          "meaning": "Does the bowler finish toward the batter or fall away.",
+          "benchmark_10": "Body continues toward the batter after release, controlled.",
+          "off_condition": "Falls away to the side or off the pitch.",
+          "observable_check": "[FRAMES] Post-release: body carries on toward the batter or veers sideways? Gross body-direction read.",
+          "why_it_matters": "Falling away wastes energy sideways and feeds the injury markers.",
+          "source": {
+            "workbook": "/Users/anshulanand/Documents/amp/kpi/latest kpi scoring.xlsx",
+            "sheet": "Pace — Women",
+            "row": 21
+          }
+        },
+        {
+          "id": "landing_balance",
+          "number": 13,
+          "name": "Landing Balance",
+          "source_name": "Landing Balance",
+          "master_fundamental": false,
+          "stage": "FOLLOW-THROUGH",
+          "weight_pct": 4,
+          "camera_angle_raw": "Side",
+          "camera_angles": [
+            "side"
+          ],
+          "evidence_type": "single_frame",
+          "meaning": "Is the finish controlled or a stumble.",
+          "benchmark_10": "Controlled, balanced landing after delivery.",
+          "off_condition": "Stumbling, over-running, stepping off the pitch.",
+          "observable_check": "[1 FRAME] Final still: whole-body balance — controlled / stumbling.",
+          "why_it_matters": "A controlled finish means the energy went down the pitch, and it's safer on the body.",
+          "source": {
+            "workbook": "/Users/anshulanand/Documents/amp/kpi/latest kpi scoring.xlsx",
+            "sheet": "Pace — Women",
+            "row": 22
+          }
+        }
+      ]
+    },
+    "spin": {
+      "applies_to_sexes": [
+        "men",
+        "women"
+      ],
+      "sex_models_identical_in_primary": true,
+      "kpi_count": 11,
+      "weight_sum_pct": 100,
+      "kpis": [
+        {
+          "id": "side_on_coil_at_load",
+          "number": 1,
+          "name": "Side-On Coil at Load",
+          "source_name": "★ Side-On Coil at Load",
+          "master_fundamental": true,
+          "stage": "LOAD & COIL",
+          "weight_pct": 16,
+          "camera_angle_raw": "Side or Behind",
+          "camera_angles": [
+            "side",
+            "behind"
+          ],
+          "evidence_type": "single_frame",
+          "meaning": "Do the shoulders turn side-on and coil before release, using the body.",
+          "benchmark_10": "Chest and shoulders turn side-on and coil at the load, winding the body up to unwind through the ball.",
+          "off_condition": "Body stays open/front-on — an all-arm push with no coil.",
+          "observable_check": "[1 FRAME] Back-foot-landing/load still: shoulder line vs the pitch direction. Side-on/coiled (good) / open/front-on.",
+          "why_it_matters": "Coil is the store of energy the whole delivery unwinds from. Weak, flat spin almost always traces back to no coil.",
+          "source": {
+            "workbook": "/Users/anshulanand/Documents/amp/kpi/latest kpi scoring.xlsx",
+            "sheet": "Spin — Men",
+            "row": 5
+          },
+          "applies_to_sexes": [
+            "men",
+            "women"
+          ]
+        },
+        {
+          "id": "front_foot_landing",
+          "number": 2,
+          "name": "Front Foot Landing",
+          "source_name": "Front Foot Landing",
+          "master_fundamental": false,
+          "stage": "PIVOT & STRIDE",
+          "weight_pct": 6,
+          "camera_angle_raw": "Front",
+          "camera_angles": [
+            "front"
+          ],
+          "evidence_type": "single_frame",
+          "meaning": "Does the front foot land balanced, not wide or across.",
+          "benchmark_10": "Front foot lands stable and roughly straight, letting the body rotate over it.",
+          "off_condition": "Front foot lands very wide or across the body.",
+          "observable_check": "[1 FRAME] Front-on front-foot-contact still: foot position vs body midline — balanced / wide / across.",
+          "why_it_matters": "A balanced front foot is the platform the pivot turns on.",
+          "source": {
+            "workbook": "/Users/anshulanand/Documents/amp/kpi/latest kpi scoring.xlsx",
+            "sheet": "Spin — Men",
+            "row": 7
+          },
+          "applies_to_sexes": [
+            "men",
+            "women"
+          ]
+        },
+        {
+          "id": "front_knee_stability",
+          "number": 3,
+          "name": "Front Knee Stability",
+          "source_name": "Front Knee Stability",
+          "master_fundamental": false,
+          "stage": "PIVOT & STRIDE",
+          "weight_pct": 10,
+          "camera_angle_raw": "Side",
+          "camera_angles": [
+            "side"
+          ],
+          "evidence_type": "single_frame",
+          "meaning": "Does the front leg stay stable as a pivot, or collapse.",
+          "benchmark_10": "Front leg braces to give a stable pivot for the body to rotate over.",
+          "off_condition": "Front knee collapses, killing the pivot and drive.",
+          "observable_check": "[1 FRAME] Contact still (side): front-knee angle — stable/braced (good) / collapsing.",
+          "why_it_matters": "A stable front leg turns coil into revs. A collapsing one is the start of falling away.",
+          "source": {
+            "workbook": "/Users/anshulanand/Documents/amp/kpi/latest kpi scoring.xlsx",
+            "sheet": "Spin — Men",
+            "row": 8
+          },
+          "applies_to_sexes": [
+            "men",
+            "women"
+          ]
+        },
+        {
+          "id": "body_pivot_drive_forward",
+          "number": 4,
+          "name": "Body Pivot & Drive Forward",
+          "source_name": "Body Pivot & Drive Forward",
+          "master_fundamental": false,
+          "stage": "PIVOT & STRIDE",
+          "weight_pct": 14,
+          "camera_angle_raw": "Side",
+          "camera_angles": [
+            "side"
+          ],
+          "evidence_type": "multi_frame",
+          "meaning": "Does the body pivot over the front leg and drive toward the batter.",
+          "benchmark_10": "Body rotates over a braced front leg and drives forward toward the batter.",
+          "off_condition": "Body falls away to the side instead of driving through.",
+          "observable_check": "[FRAMES] Load to follow-through: torso drives forward toward the batter or veers sideways?",
+          "why_it_matters": "The pivot-and-drive turns coil into revs and pace. Falling away is the most common spin fault.",
+          "source": {
+            "workbook": "/Users/anshulanand/Documents/amp/kpi/latest kpi scoring.xlsx",
+            "sheet": "Spin — Men",
+            "row": 9
+          },
+          "applies_to_sexes": [
+            "men",
+            "women"
+          ]
+        },
+        {
+          "id": "arm_height_at_release",
+          "number": 5,
+          "name": "Arm Height at Release",
+          "source_name": "Arm Height at Release",
+          "master_fundamental": false,
+          "stage": "BOWLING ARM & SHOULDER",
+          "weight_pct": 12,
+          "camera_angle_raw": "Side",
+          "camera_angles": [
+            "side"
+          ],
+          "evidence_type": "single_frame",
+          "meaning": "Is the arm high at release.",
+          "benchmark_10": "Arm high at release. (Off-spinners tend to release from a higher arm than leg-spinners — bowler type comes from the player profile, not vision.)",
+          "off_condition": "Low, short-arm push at release.",
+          "observable_check": "[1 FRAME] Release still (side): arm angle — low / medium / high. Long high-contrast segment.",
+          "why_it_matters": "A high arm gives flight, bounce and over-spin. The easiest reliable spin read.",
+          "source": {
+            "workbook": "/Users/anshulanand/Documents/amp/kpi/latest kpi scoring.xlsx",
+            "sheet": "Spin — Men",
+            "row": 11
+          },
+          "applies_to_sexes": [
+            "men",
+            "women"
+          ]
+        },
+        {
+          "id": "full_shoulder_rotation",
+          "number": 6,
+          "name": "Full Shoulder Rotation",
+          "source_name": "Full Shoulder Rotation",
+          "master_fundamental": false,
+          "stage": "BOWLING ARM & SHOULDER",
+          "weight_pct": 10,
+          "camera_angle_raw": "Side or Front",
+          "camera_angles": [
+            "side",
+            "front"
+          ],
+          "evidence_type": "single_frame",
+          "meaning": "Do the shoulders rotate all the way through the delivery.",
+          "benchmark_10": "Front shoulder finishes pointing at or past the batter — a full turn.",
+          "off_condition": "Restricted, short shoulder turn — the ball is pushed, not spun.",
+          "observable_check": "[1 FRAME] Follow-through still: front shoulder pointing at/past the batter (full, good) or still side-on (restricted)? Single-frame position.",
+          "why_it_matters": "Full shoulder rotation is what actually spins the ball once the coil is there.",
+          "source": {
+            "workbook": "/Users/anshulanand/Documents/amp/kpi/latest kpi scoring.xlsx",
+            "sheet": "Spin — Men",
+            "row": 12
+          },
+          "applies_to_sexes": [
+            "men",
+            "women"
+          ]
+        },
+        {
+          "id": "non_bowling_arm_pull_down",
+          "number": 7,
+          "name": "Non-Bowling Arm Pull-Down",
+          "source_name": "Non-Bowling Arm Pull-Down",
+          "master_fundamental": false,
+          "stage": "BOWLING ARM & SHOULDER",
+          "weight_pct": 6,
+          "camera_angle_raw": "Side",
+          "camera_angles": [
+            "side"
+          ],
+          "evidence_type": "multi_frame",
+          "meaning": "Does the front arm pull down to drive the rotation.",
+          "benchmark_10": "Front arm pulls down sharply into the body, driving the shoulders round.",
+          "off_condition": "Front arm drifts with no clear pull.",
+          "observable_check": "[FRAMES] Load to release: does the front arm come down sharply? Sharp pull (good) / drifting.",
+          "why_it_matters": "The front-arm pull-down is what powers the shoulder rotation.",
+          "source": {
+            "workbook": "/Users/anshulanand/Documents/amp/kpi/latest kpi scoring.xlsx",
+            "sheet": "Spin — Men",
+            "row": 13
+          },
+          "applies_to_sexes": [
+            "men",
+            "women"
+          ]
+        },
+        {
+          "id": "loop_flight",
+          "number": 8,
+          "name": "Loop & Flight",
+          "source_name": "Loop & Flight",
+          "master_fundamental": false,
+          "stage": "FLIGHT",
+          "weight_pct": 14,
+          "camera_angle_raw": "Side",
+          "camera_angles": [
+            "side"
+          ],
+          "evidence_type": "multi_frame",
+          "meaning": "Does the ball leave with clear over-spin so it loops up above the eyeline.",
+          "benchmark_10": "The ball is given air — it loops up above the bowler's release height before pitching, not fired flat.",
+          "off_condition": "Flat, darted trajectory with no loop.",
+          "observable_check": "[FRAMES] Side, plain background: track the ball's path over the post-release frames. Clear upward loop (good) / flat. The one flight cue a phone can read.",
+          "why_it_matters": "Loop is the visible proof the ball is spun. (Exact seam, grip and 'dip in degrees' are NOT scored — a phone can't see them.)",
+          "source": {
+            "workbook": "/Users/anshulanand/Documents/amp/kpi/latest kpi scoring.xlsx",
+            "sheet": "Spin — Men",
+            "row": 15
+          },
+          "applies_to_sexes": [
+            "men",
+            "women"
+          ]
+        },
+        {
+          "id": "same_action_every_ball",
+          "number": 9,
+          "name": "Same Action Every Ball",
+          "source_name": "Same Action Every Ball",
+          "master_fundamental": false,
+          "stage": "DISGUISE & FINISH",
+          "weight_pct": 6,
+          "camera_angle_raw": "Side",
+          "camera_angles": [
+            "side"
+          ],
+          "evidence_type": "computed_across_deliveries",
+          "meaning": "Does every ball look the same, so variations are hidden.",
+          "benchmark_10": "Run-up, arm and body look identical ball to ball, so variations can't be read.",
+          "off_condition": "A visible change in run-up or arm that telegraphs the variation.",
+          "observable_check": "[COMPUTED across deliveries] Compare the action across the deliveries in the clip. Identical (good) / visible tell. Judges the ACTION, not the grip. The only variation cue that is 720p-visible.",
+          "why_it_matters": "Disguise is what makes spin dangerous. A readable action is easy to line up.",
+          "source": {
+            "workbook": "/Users/anshulanand/Documents/amp/kpi/latest kpi scoring.xlsx",
+            "sheet": "Spin — Men",
+            "row": 17
+          },
+          "applies_to_sexes": [
+            "men",
+            "women"
+          ]
+        },
+        {
+          "id": "follow_through_direction",
+          "number": 10,
+          "name": "Follow-Through Direction",
+          "source_name": "Follow-Through Direction",
+          "master_fundamental": false,
+          "stage": "DISGUISE & FINISH",
+          "weight_pct": 3,
+          "camera_angle_raw": "Side",
+          "camera_angles": [
+            "side"
+          ],
+          "evidence_type": "multi_frame",
+          "meaning": "Does the bowler finish toward the batter.",
+          "benchmark_10": "Body finishes toward the batter, controlled.",
+          "off_condition": "Falls away sideways.",
+          "observable_check": "[FRAMES] Post-release: body direction toward batter vs sideways.",
+          "why_it_matters": "A controlled finish means the drive went down the pitch.",
+          "source": {
+            "workbook": "/Users/anshulanand/Documents/amp/kpi/latest kpi scoring.xlsx",
+            "sheet": "Spin — Men",
+            "row": 18
+          },
+          "applies_to_sexes": [
+            "men",
+            "women"
+          ]
+        },
+        {
+          "id": "balance_at_finish",
+          "number": 11,
+          "name": "Balance at Finish",
+          "source_name": "Balance at Finish",
+          "master_fundamental": false,
+          "stage": "DISGUISE & FINISH",
+          "weight_pct": 3,
+          "camera_angle_raw": "Side",
+          "camera_angles": [
+            "side"
+          ],
+          "evidence_type": "single_frame",
+          "meaning": "Is the finish balanced.",
+          "benchmark_10": "Balanced, controlled finish.",
+          "off_condition": "Stumbling or falling away at the end.",
+          "observable_check": "[1 FRAME] Final still: whole-body balance — controlled / stumbling.",
+          "why_it_matters": "A messy finish shows the pivot and drive broke down.",
+          "source": {
+            "workbook": "/Users/anshulanand/Documents/amp/kpi/latest kpi scoring.xlsx",
+            "sheet": "Spin — Men",
+            "row": 19
+          },
+          "applies_to_sexes": [
+            "men",
+            "women"
+          ]
+        }
+      ]
+    },
+    "injury": {
+      "applies_to_sexes": [
+        "men",
+        "women"
+      ],
+      "marker_count": 8,
+      "markers": [
+        {
+          "id": "sideways_back_lean",
+          "number": 1,
+          "name": "Sideways Back Lean",
+          "source_name": "★ Sideways Back Lean",
+          "master_marker": true,
+          "group": "PACE — LOWER-BACK / SPINE  (highest-incidence, most serious)",
+          "discipline": "Pace",
+          "meaning": "How far the trunk leans sideways (away from the bowling arm) around release.",
+          "flag_thresholds_raw": "SAFE <15 deg · MONITOR 15-25 deg · HIGH >25 deg.",
+          "camera_angle_raw": "Side or Front",
+          "camera_angles": [
+            "side",
+            "front"
+          ],
+          "evidence_type": "single_frame",
+          "observable_check": "[1 FRAME] At release: coarse sideways tilt of the trunk line vs vertical. Bucket into the three bands.",
+          "why_it_matters": "Strongest predictor of lower-back stress fractures in fast bowlers. Female bowlers carry high lumbar-stress risk too — same marker, watch it for both.",
+          "aggregation": "worst_flag_across_deliveries",
+          "source": {
+            "workbook": "/Users/anshulanand/Documents/amp/kpi/latest kpi scoring.xlsx",
+            "sheet": "Injury Screening",
+            "row": 5
+          }
+        },
+        {
+          "id": "twisting_back_mixed_action",
+          "number": 2,
+          "name": "Twisting Back (Mixed Action)",
+          "source_name": "Twisting Back (Mixed Action)",
+          "master_marker": false,
+          "group": "PACE — LOWER-BACK / SPINE  (highest-incidence, most serious)",
+          "discipline": "Pace",
+          "meaning": "Do the shoulders re-align from side-on back toward front-on after the back foot lands.",
+          "flag_thresholds_raw": "SAFE little change · MONITOR some · HIGH clear twist (hip-shoulder gap >40 deg).",
+          "camera_angle_raw": "Behind only",
+          "camera_angles": [
+            "behind"
+          ],
+          "evidence_type": "multi_frame",
+          "observable_check": "[FRAMES] Behind the bowler: shoulder line at back-foot contact vs front-foot contact. Little change (safe) / clear re-alignment (risk). NEEDS a behind angle — skip otherwise.",
+          "why_it_matters": "The mixed action is the best-known cause of career-ending lumbar stress fractures, worst in teens of both sexes.",
+          "aggregation": "worst_flag_across_deliveries",
+          "source": {
+            "workbook": "/Users/anshulanand/Documents/amp/kpi/latest kpi scoring.xlsx",
+            "sheet": "Injury Screening",
+            "row": 6
+          }
+        },
+        {
+          "id": "over_arching_the_back",
+          "number": 3,
+          "name": "Over-Arching the Back",
+          "source_name": "Over-Arching the Back",
+          "master_marker": false,
+          "group": "PACE — LOWER-BACK / SPINE  (highest-incidence, most serious)",
+          "discipline": "Pace",
+          "meaning": "Does the lower back arch backward (hyperextend) at front-foot contact.",
+          "flag_thresholds_raw": "SAFE neutral/stacked · MONITOR mild arch · HIGH pronounced backward arch.",
+          "camera_angle_raw": "Side only",
+          "camera_angles": [
+            "side"
+          ],
+          "evidence_type": "single_frame",
+          "observable_check": "[1 FRAME] Front-foot-contact still (side): trunk stacked upright (safe) or clearly arched back (risk)? NEEDS a clean side angle.",
+          "why_it_matters": "Arching + twisting + side-lean together fracture the vulnerable part of the lower-spine bone over time.",
+          "aggregation": "worst_flag_across_deliveries",
+          "source": {
+            "workbook": "/Users/anshulanand/Documents/amp/kpi/latest kpi scoring.xlsx",
+            "sheet": "Injury Screening",
+            "row": 7
+          }
+        },
+        {
+          "id": "front_knee_collapse",
+          "number": 4,
+          "name": "Front Knee Collapse",
+          "source_name": "Front Knee Collapse",
+          "master_marker": false,
+          "group": "PACE — LANDING LOAD",
+          "discipline": "Pace",
+          "meaning": "Does the front knee buckle at landing instead of bracing.",
+          "flag_thresholds_raw": "SAFE braced/near-straight · MONITOR mild bend · HIGH collapsing.",
+          "camera_angle_raw": "Side",
+          "camera_angles": [
+            "side"
+          ],
+          "evidence_type": "single_frame",
+          "observable_check": "[1 FRAME] Front-foot-contact still (side): front-knee angle — braced (safe) / collapsing (risk).",
+          "why_it_matters": "A collapsing knee dumps 5-8x body-weight of landing shock up into the spine and lower limb.",
+          "aggregation": "worst_flag_across_deliveries",
+          "source": {
+            "workbook": "/Users/anshulanand/Documents/amp/kpi/latest kpi scoring.xlsx",
+            "sheet": "Injury Screening",
+            "row": 9
+          }
+        },
+        {
+          "id": "rigid_landing_no_give",
+          "number": 5,
+          "name": "Rigid Landing (No Give)",
+          "source_name": "Rigid Landing (No Give)",
+          "master_marker": false,
+          "group": "PACE — LANDING LOAD",
+          "discipline": "Pace",
+          "meaning": "Does the front leg slam down rigid, or absorb the landing.",
+          "flag_thresholds_raw": "SAFE absorbed give · MONITOR firm · HIGH rigid, jarring.",
+          "camera_angle_raw": "Side",
+          "camera_angles": [
+            "side"
+          ],
+          "evidence_type": "multi_frame",
+          "observable_check": "[FRAMES] Around landing (side): does the ankle/knee visibly give and absorb, or land stiff? Absorbed (safe) / rigid (risk).",
+          "why_it_matters": "A rigid landing sends the full landing shock straight into the spine instead of absorbing it.",
+          "aggregation": "worst_flag_across_deliveries",
+          "source": {
+            "workbook": "/Users/anshulanand/Documents/amp/kpi/latest kpi scoring.xlsx",
+            "sheet": "Injury Screening",
+            "row": 10
+          }
+        },
+        {
+          "id": "falling_away_at_the_finish",
+          "number": 6,
+          "name": "Falling Away at the Finish",
+          "source_name": "Falling Away at the Finish",
+          "master_marker": false,
+          "group": "ALL — SHARED & MODIFIERS",
+          "discipline": "Pace / Spin",
+          "meaning": "Does the body fall away to the side after release rather than driving through.",
+          "flag_thresholds_raw": "SAFE drives toward batter · MONITOR mild drift · HIGH clear fall-away.",
+          "camera_angle_raw": "Side",
+          "camera_angles": [
+            "side"
+          ],
+          "evidence_type": "multi_frame",
+          "observable_check": "[FRAMES] Post-release: body direction toward batter vs sideways.",
+          "why_it_matters": "Falling away twists and side-loads the back on every ball, and costs pace too.",
+          "aggregation": "worst_flag_across_deliveries",
+          "source": {
+            "workbook": "/Users/anshulanand/Documents/amp/kpi/latest kpi scoring.xlsx",
+            "sheet": "Injury Screening",
+            "row": 12
+          }
+        },
+        {
+          "id": "worse_when_tired",
+          "number": 7,
+          "name": "Worse When Tired",
+          "source_name": "Worse When Tired",
+          "master_marker": false,
+          "group": "ALL — SHARED & MODIFIERS",
+          "discipline": "All",
+          "meaning": "Do the markers above get WORSE across the deliveries (early balls vs late balls).",
+          "flag_thresholds_raw": "SAFE stable · MONITOR mild drift · HIGH clearly worse on later deliveries.",
+          "camera_angle_raw": "Any",
+          "camera_angles": [
+            "any"
+          ],
+          "evidence_type": "computed_across_deliveries",
+          "observable_check": "[COMPUTED] Compare the flags on the first deliveries vs the last deliveries in the clip. Getting worse late = risk.",
+          "why_it_matters": "Most injuries happen tired. A riskier action on later balls is a live warning. This is exactly why the clip holds several deliveries.",
+          "aggregation": "worst_flag_across_deliveries",
+          "source": {
+            "workbook": "/Users/anshulanand/Documents/amp/kpi/latest kpi scoring.xlsx",
+            "sheet": "Injury Screening",
+            "row": 13
+          }
+        },
+        {
+          "id": "young_growing_player",
+          "number": 8,
+          "name": "Young / Growing Player",
+          "source_name": "Young / Growing Player",
+          "master_marker": false,
+          "group": "ALL — SHARED & MODIFIERS",
+          "discipline": "All",
+          "meaning": "Context flag from the player's age, not the video.",
+          "flag_thresholds_raw": "SAFE adult · MONITOR 18-21 · HIGH 15-18 (growing skeleton). If flagged, treat every back marker one band harsher.",
+          "camera_angle_raw": "Profile",
+          "camera_angles": [],
+          "evidence_type": "profile_metadata",
+          "observable_check": "[METADATA] Not vision — set from the player's age. If 15-18, escalate every spine flag one band.",
+          "why_it_matters": "Adolescents are the highest-risk group for lumbar stress fractures, both boys and girls.",
+          "aggregation": "worst_flag_across_deliveries",
+          "source": {
+            "workbook": "/Users/anshulanand/Documents/amp/kpi/latest kpi scoring.xlsx",
+            "sheet": "Injury Screening",
+            "row": 14
+          }
+        }
+      ],
+      "session_summary_source": {
+        "workbook": "/Users/anshulanand/Documents/amp/kpi/latest kpi scoring.xlsx",
+        "sheet": "Injury Screening",
+        "rows": {
+          "red_count": 16,
+          "amber_count": 17,
+          "overall_tier": 18,
+          "priority_flag": 19,
+          "recommended_action": 20
+        }
+      }
+    }
+  },
+  "data_inventory": {
+    "labeled_tabular_files_found": [],
+    "labeled_tabular_file_count": 0,
+    "candidate_unlabeled_videos": [
+      "/Users/anshulanand/Documents/amp/amp demo video.mp4",
+      "/Users/anshulanand/Documents/amp/clips/cover drive.mov",
+      "/Users/anshulanand/Documents/amp/clips/loft.mov",
+      "/Users/anshulanand/Documents/amp/design/amp languages.mov"
+    ],
+    "finding": "No CSV, TSV, JSON, JSONL, or Parquet label examples were found under the AMP workspace. The workbooks contain definitions and blank score-entry/formula cells, not a labeled ground-truth dataset."
+  },
+  "known_ambiguities_and_risks": [
+    {
+      "id": "source_of_truth_conflict",
+      "severity": "blocking_for_training",
+      "detail": "The file named latest kpi scoring.xlsx is the clearest accuracy-first architecture, but amp_kpi_full_age_sheets_FINAL.xlsx has a later modification timestamp and a different KPI taxonomy. AMP must approve a single versioned ontology before annotation begins."
+    },
+    {
+      "id": "incomplete_numeric_rubrics",
+      "severity": "blocking_for_inter_annotator_reliability",
+      "detail": "Primary KPIs specify benchmark_10 and an off-condition but do not define reproducible anchors for every score 0–9. Freehand 0–10 labels will drift between annotators."
+    },
+    {
+      "id": "age_model_conflicts_with_720p_rule",
+      "severity": "high",
+      "detail": "The age workbook asks for exact centimetre/degree thresholds, seam/finger/wrist/eyes/contact reads, while the primary workbook explicitly excludes such fake precision at 720p."
+    },
+    {
+      "id": "age_threshold_internal_contradictions",
+      "severity": "high",
+      "detail": "Examples: U9/Circa front-knee target notes say approximately 90–108°/120–144° while the same row quantifier says braced 170–180° and collapsing <150°; U9 batting stride says 30–30cm; male U9 arm-height ranges contain reversed intervals 45–42° and 70–51°."
+    },
+    {
+      "id": "computed_kpis_underdefined",
+      "severity": "high",
+      "detail": "Same Shape Every Ball, Release Consistency, Same Action Every Ball, and Worse When Tired lack minimum delivery counts, normalization, variance/delta formulas, and confidence thresholds."
+    },
+    {
+      "id": "missingness_and_coverage",
+      "severity": "high",
+      "detail": "Proportional weight redistribution can make ratings with very different camera coverage look comparable. A coverage percentage and minimum required angle set should accompany every rating."
+    },
+    {
+      "id": "injury_screening_boundary_conflicts",
+      "severity": "high",
+      "detail": "Age 18 overlaps HIGH and MONITOR. Ages below 15 are not categorized by the primary age marker. Lateral-back thresholds differ between primary and age workbooks."
+    },
+    {
+      "id": "no_ground_truth_examples",
+      "severity": "blocking_for_accuracy_claims",
+      "detail": "No labeled examples, double-annotation records, adjudication outcomes, or held-out validation set were found. The platform can create labels, but cannot claim accuracy until compared against expert ground truth."
+    },
+    {
+      "id": "camera_angle_classifier_undefined",
+      "severity": "medium",
+      "detail": "Allowed angle names exist, but angle confidence, mixed/oblique views, mirrored footage, handedness normalization, camera height, distance, and occlusion rules are not defined."
+    },
+    {
+      "id": "medical_scope",
+      "severity": "high",
+      "detail": "Outputs must remain injury-risk screening and referral guidance, never diagnosis, clearance, or guaranteed injury prevention."
+    }
+  ],
+  "recommended_label_record_required_fields": [
+    "schema_version",
+    "video_id",
+    "delivery_id",
+    "player_id_pseudonymous",
+    "discipline",
+    "sex_model",
+    "age_years",
+    "age_band",
+    "handedness",
+    "spin_type_if_applicable",
+    "camera_angle",
+    "camera_angle_confidence",
+    "key_moment",
+    "frame_start_ms",
+    "frame_end_ms",
+    "kpi_id",
+    "score_0_to_10_or_null",
+    "injury_flag_or_null",
+    "null_reason",
+    "annotator_id",
+    "annotation_pass",
+    "observation",
+    "evidence_frame_ms",
+    "confidence",
+    "adjudication_status",
+    "adjudicated_value",
+    "source_kpi_catalog_hash"
+  ]
+}

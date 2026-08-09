@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { supabase } from "@/app/lib/supabase";
+import { safeAuthReturnPath } from "@/app/lib/authReturnPath";
 
 /**
  * "Continue with Google" — Supabase OAuth (PKCE, detectSessionInUrl
@@ -10,7 +11,13 @@ import { supabase } from "@/app/lib/supabase";
  * client; the button is harmless to render before that's configured, it
  * will just surface Supabase's "provider not enabled" error on click.
  */
-export function GoogleSignInButton({ label }: { label: string }) {
+export function GoogleSignInButton({
+  label,
+  returnTo = "/lawyering",
+}: {
+  label: string;
+  returnTo?: string;
+}) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -21,7 +28,7 @@ export function GoogleSignInButton({ label }: { label: string }) {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
-          redirectTo: `${window.location.origin}/lawyering`,
+          redirectTo: `${window.location.origin}${safeAuthReturnPath(returnTo)}`,
         },
       });
       if (error) throw error;
