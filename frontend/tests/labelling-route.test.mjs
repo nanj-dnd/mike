@@ -45,7 +45,7 @@ test("tiered catalog contains the complete validated KPI set", async () => {
     }
 });
 
-test("CSV v2, precise timing and scrollable KPI editing remain present", async () => {
+test("CSV v2, human context, precise timing and scrollable KPI editing remain present", async () => {
     const [labels, component, styles] = await Promise.all([
         read("../src/app/labelling/lib/labels.ts"),
         read("../src/app/labelling/LabelLab.tsx"),
@@ -56,6 +56,10 @@ test("CSV v2, precise timing and scrollable KPI editing remain present", async (
     assert.match(component, /2-second window · 1 ms steps/);
     assert.match(component, /−10 ms/);
     assert.match(component, /\+1 frame/);
+    assert.match(component, /Multiple people are visible/);
+    assert.match(component, /subjectFocusDescription/);
+    assert.match(component, /Batting shot type/);
+    assert.match(component, /SHOT_TYPE_OPTIONS/);
     assert.match(styles, /\.amp-labelling \.annotation-scroll\s*\{[^}]*overflow-y:\s*auto/s);
     assert.match(styles, /\.amp-labelling \.annotation-panel/);
 });
