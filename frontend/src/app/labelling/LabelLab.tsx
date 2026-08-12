@@ -49,7 +49,15 @@ import {
   footworkRequirementFor,
   isFootworkApplicableForScoring,
   isFootworkRestrictedKpi,
+  normalizeDeliveryShotMetadata,
+  normalizeShotType,
+  normalizeSubjectFocusMetadata,
+  normalizeSubjectFocusRole,
+  SHOT_TYPE_VALUES,
+  SUBJECT_FOCUS_ROLE_VALUES,
+  type ShotType,
   type ShotFootwork,
+  type SubjectFocusRole,
 } from "./lib/training-contract";
 
 type WorkflowStep = "setup" | "segment" | "label" | "review";
@@ -62,6 +70,45 @@ const SHOT_FOOTWORK_OPTIONS: { value: ShotFootwork; label: string }[] = [
   { value: "unclear", label: "Unclear" },
 ];
 
+const SUBJECT_FOCUS_LABELS: Record<SubjectFocusRole, string> = {
+  batter: "Batter",
+  bowler: "Bowler",
+  non_striker: "Non-striker",
+  wicketkeeper: "Wicketkeeper",
+  fielder: "Fielder",
+  umpire: "Umpire",
+  other: "Other role",
+  unclear: "Unclear",
+};
+const SUBJECT_FOCUS_OPTIONS = SUBJECT_FOCUS_ROLE_VALUES.map((value) => ({
+  value,
+  label: SUBJECT_FOCUS_LABELS[value],
+}));
+
+const SHOT_TYPE_LABELS: Record<ShotType, string> = {
+  defensive: "Defensive",
+  straight_drive: "Straight drive",
+  cover_drive: "Cover drive",
+  on_drive: "On drive",
+  square_drive: "Square drive",
+  cut: "Cut",
+  pull: "Pull",
+  hook: "Hook",
+  flick: "Flick",
+  leg_glance: "Leg glance",
+  sweep: "Sweep",
+  reverse_sweep: "Reverse sweep",
+  paddle_scoop: "Paddle / scoop",
+  lofted_shot: "Lofted shot",
+  leave: "Leave",
+  other: "Other",
+  unclear: "Unclear",
+};
+const SHOT_TYPE_OPTIONS = SHOT_TYPE_VALUES.map((value) => ({
+  value,
+  label: SHOT_TYPE_LABELS[value],
+}));
+
 function shotFootworkFor(delivery?: Delivery): ShotFootwork | null {
   const value = delivery?.shotFootwork;
   return SHOT_FOOTWORK_OPTIONS.some((option) => option.value === value)
@@ -71,6 +118,14 @@ function shotFootworkFor(delivery?: Delivery): ShotFootwork | null {
 
 function shotFootworkLabel(value: ShotFootwork | null) {
   return SHOT_FOOTWORK_OPTIONS.find((option) => option.value === value)?.label ?? "Not selected";
+}
+
+function shotTypeFor(delivery?: Delivery): ShotType | null {
+  return normalizeShotType(delivery?.shotType);
+}
+
+function shotTypeLabel(value: ShotType | null) {
+  return SHOT_TYPE_OPTIONS.find((option) => option.value === value)?.label ?? "Not selected";
 }
 
 function kpiFootworkAssessability(
@@ -131,6 +186,124 @@ function ShotFootworkField({
       {!compact && (
         <small>
           Choose from the footage; never infer it. “Unclear” explicitly excludes front/back-only KPIs.
+        </small>
+      )}
+    </fieldset>
+  );
+}
+
+function SubjectFocusField({
+  review,
+  onMultiplePeopleChange,
+  onRoleChange,
+  onDescriptionChange,
+}: {
+  review: ReviewState;
+  onMultiplePeopleChange: (value: boolean) => void;
+  onRoleChange: (value: SubjectFocusRole | null) => void;
+  onDescriptionChange: (value: string) => void;
+}) {
+  return (
+    <fieldset className="subject-focus-card">
+      <legend>
+        Human subject focus <em>human selected</em>
+      </legend>
+      <label className="subject-focus-toggle">
+        <input
+          type="checkbox"
+          checked={review.multiplePeopleVisible}
+          onChange={(event) => onMultiplePeopleChange(event.target.checked)}
+        />
+        <span>
+          <strong>Multiple people are visible</strong>
+          <small>Turn this on when the model could follow the wrong person.</small>
+        </span>
+      </label>
+      {review.multiplePeopleVisible && (
+        <div className="subject-focus-details">
+          <label className="field">
+            <span>Person to analyse</span>
+            <select
+              value={review.subjectFocusRole ?? ""}
+              onChange={(event) =>
+                onRoleChange(normalizeSubjectFocusRole(event.target.value))
+              }
+              aria-describedby="subject-focus-help"
+            >
+              <option value="">Select their cricket role</option>
+              {SUBJECT_FOCUS_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="field">
+            <span>Identifying description <em>no names</em></span>
+            <input
+              value={review.subjectFocusDescription}
+              onChange={(event) => onDescriptionChange(event.target.value)}
+              placeholder="e.g. batter in navy shirt, nearest the camera"
+              aria-describedby="subject-focus-help"
+              maxLength={240}
+            />
+          </label>
+        </div>
+      )}
+      <small id="subject-focus-help" className="human-choice-help">
+        Select from the footage—never infer identity. Describe visible clothing or position so another annotator can follow the same person.
+      </small>
+    </fieldset>
+  );
+}
+
+function ShotTypeField({
+  delivery,
+  compact = false,
+  onChange,
+  onOtherChange,
+}: {
+  delivery: Delivery;
+  compact?: boolean;
+  onChange: (value: ShotType | null) => void;
+  onOtherChange: (value: string) => void;
+}) {
+  const value = shotTypeFor(delivery);
+  return (
+    <fieldset className={`shot-type-field ${compact ? "shot-type-field--compact" : ""}`}>
+      <legend>
+        Batting shot type <em>human selected</em>
+      </legend>
+      <label className="field">
+        <span>Shot played</span>
+        <select
+          value={value ?? ""}
+          onChange={(event) => onChange(normalizeShotType(event.target.value))}
+          aria-describedby={compact ? undefined : "shot-type-help"}
+        >
+          <option value="">Select shot type</option>
+          {SHOT_TYPE_OPTIONS.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </select>
+      </label>
+      {value === "other" && (
+        <label className="field shot-type-other">
+          <span>Other shot description</span>
+          <input
+            value={delivery.shotTypeOther ?? ""}
+            onChange={(event) => onOtherChange(event.target.value)}
+            placeholder="Describe the shot observed"
+            aria-describedby={compact ? undefined : "shot-type-help"}
+            maxLength={160}
+          />
+        </label>
+      )}
+      {!compact && (
+        <small id="shot-type-help" className="human-choice-help">
+          Choose the observed shot; do not derive it from footwork or outcome. Use “Unclear” when the footage does not support a confident choice.
         </small>
       )}
     </fieldset>
@@ -231,6 +404,7 @@ function hydrateDocument(value: unknown, fps?: number): AnnotationDocument {
     ? candidate.deliveries.map((delivery) => ({
         ...delivery,
         shotFootwork: shotFootworkFor(delivery),
+        ...normalizeDeliveryShotMetadata(delivery),
       }))
     : [];
   const labels = Array.isArray(candidate.labels)
@@ -243,11 +417,15 @@ function hydrateDocument(value: unknown, fps?: number): AnnotationDocument {
         };
       })
     : [];
+  const review = { ...fallback.review, ...(candidate.review ?? {}) };
   return {
     schemaVersion: "amp-labels-long-v1",
     deliveries,
     labels,
-    review: { ...fallback.review, ...(candidate.review ?? {}) },
+    review: {
+      ...review,
+      ...normalizeSubjectFocusMetadata(review),
+    },
   };
 }
 
@@ -360,6 +538,7 @@ export function LabelLab({ onExit }: { onExit?: () => void | Promise<void> }) {
             project.cameraAngle,
             project.durationMs,
             project.fps,
+            project.discipline,
           )
         : [],
     [document, project, rubric],
@@ -605,10 +784,26 @@ export function LabelLab({ onExit }: { onExit?: () => void | Promise<void> }) {
     setDirty(true);
   }
 
-  function updateReview(key: keyof ReviewState, value: string) {
+  function updateReview<K extends keyof ReviewState>(key: K, value: ReviewState[K]) {
     updateDocument((current) => ({
       ...current,
       review: { ...current.review, [key]: value },
+    }));
+  }
+
+  function updateMultiplePeopleVisible(multiplePeopleVisible: boolean) {
+    updateDocument((current) => ({
+      ...current,
+      review: {
+        ...current.review,
+        multiplePeopleVisible,
+        subjectFocusRole: multiplePeopleVisible
+          ? current.review.subjectFocusRole
+          : null,
+        subjectFocusDescription: multiplePeopleVisible
+          ? current.review.subjectFocusDescription
+          : "",
+      },
     }));
   }
 
@@ -623,6 +818,8 @@ export function LabelLab({ onExit }: { onExit?: () => void | Promise<void> }) {
       endMs: Math.min(project.durationMs, Math.round(anchor + 1200)),
       outcome: "",
       note: "",
+      shotType: null,
+      shotTypeOther: "",
     };
     updateDocument((current) => ({
       ...current,
@@ -645,6 +842,21 @@ export function LabelLab({ onExit }: { onExit?: () => void | Promise<void> }) {
       ...current,
       deliveries: current.deliveries.map((delivery) =>
         delivery.id === id ? { ...delivery, shotFootwork } : delivery,
+      ),
+    }));
+  }
+
+  function updateDeliveryShotType(id: string, shotType: ShotType | null) {
+    updateDocument((current) => ({
+      ...current,
+      deliveries: current.deliveries.map((delivery) =>
+        delivery.id === id
+          ? {
+              ...delivery,
+              shotType,
+              shotTypeOther: shotType === "other" ? delivery.shotTypeOther ?? "" : "",
+            }
+          : delivery,
       ),
     }));
   }
@@ -1232,6 +1444,12 @@ export function LabelLab({ onExit }: { onExit?: () => void | Promise<void> }) {
             </select>
           </label>
         </div>
+        <SubjectFocusField
+          review={document.review}
+          onMultiplePeopleChange={updateMultiplePeopleVisible}
+          onRoleChange={(value) => updateReview("subjectFocusRole", value)}
+          onDescriptionChange={(value) => updateReview("subjectFocusDescription", value)}
+        />
         <div className="inline-actions">
           <button className="secondary-button" type="button" onClick={() => void saveProject()} disabled={isSaving}>{isSaving ? "Saving…" : "Save setup"}</button>
           <button className="primary-button" type="button" onClick={() => setStep("segment")}>Continue to segmentation →</button>
@@ -1256,6 +1474,12 @@ export function LabelLab({ onExit }: { onExit?: () => void | Promise<void> }) {
           <button className="primary-button" type="button" onClick={addDelivery}>+ Add delivery here</button>
         </div>
         {videoWorkspace()}
+        <SubjectFocusField
+          review={document.review}
+          onMultiplePeopleChange={updateMultiplePeopleVisible}
+          onRoleChange={(value) => updateReview("subjectFocusRole", value)}
+          onDescriptionChange={(value) => updateReview("subjectFocusDescription", value)}
+        />
         <p className="keyboard-hint"><kbd>Space</kbd> play / pause <kbd>←</kbd><kbd>→</kbd> or <kbd>,</kbd><kbd>.</kbd> one frame <kbd>Shift</kbd> + arrow ten frames</p>
       </div>
       <aside className="delivery-panel">
@@ -1277,6 +1501,11 @@ export function LabelLab({ onExit }: { onExit?: () => void | Promise<void> }) {
                 <span>
                   <strong>{formatTime(delivery.startMs)} → {formatTime(delivery.endMs)}</strong>
                   <small>{eventName(project.discipline)} at {formatTime(delivery.eventMs)}</small>
+                  {project.discipline === "batting" && (
+                    <small className={shotTypeFor(delivery) ? "shot-type-recorded" : "shot-type-missing"}>
+                      Shot: {shotTypeLabel(shotTypeFor(delivery))}
+                    </small>
+                  )}
                   {project.discipline === "batting" && rubricHasFootworkSpecificKpis && (
                     <small className={shotFootworkFor(delivery) ? "footwork-recorded" : "footwork-missing"}>
                       Footwork: {shotFootworkLabel(shotFootworkFor(delivery))}
@@ -1302,13 +1531,22 @@ export function LabelLab({ onExit }: { onExit?: () => void | Promise<void> }) {
                 <button type="button" className="seek-button" onClick={() => seek(selectedDelivery[field])}>↗</button>
               </div>
             ))}
+            {project.discipline === "batting" && (
+              <ShotTypeField
+                delivery={selectedDelivery}
+                onChange={(value) => updateDeliveryShotType(selectedDelivery.id, value)}
+                onOtherChange={(value) =>
+                  updateDelivery(selectedDelivery.id, { shotTypeOther: value })
+                }
+              />
+            )}
             {project.discipline === "batting" && rubricHasFootworkSpecificKpis && (
               <ShotFootworkField
                 delivery={selectedDelivery}
                 onChange={(value) => updateDeliveryShotFootwork(selectedDelivery.id, value)}
               />
             )}
-            <label className="field"><span>Outcome / delivery note</span><input value={selectedDelivery.outcome} onChange={(event) => updateDelivery(selectedDelivery.id, { outcome: event.target.value })} placeholder="e.g. cover drive, good length" /></label>
+            <label className="field"><span>Outcome / delivery note</span><input value={selectedDelivery.outcome} onChange={(event) => updateDelivery(selectedDelivery.id, { outcome: event.target.value })} placeholder="e.g. boundary, beaten, miscued" /></label>
           </div>
         ) : null}
         <div className="panel-footer">
@@ -1335,6 +1573,16 @@ export function LabelLab({ onExit }: { onExit?: () => void | Promise<void> }) {
           ))}
           <button type="button" className="edit-segments" onClick={() => setStep("segment")}>Edit</button>
         </div>
+        {selectedDelivery && project.discipline === "batting" && (
+          <ShotTypeField
+            delivery={selectedDelivery}
+            compact
+            onChange={(value) => updateDeliveryShotType(selectedDelivery.id, value)}
+            onOtherChange={(value) =>
+              updateDelivery(selectedDelivery.id, { shotTypeOther: value })
+            }
+          />
+        )}
         {selectedDelivery && project.discipline === "batting" && rubricHasFootworkSpecificKpis && (
           <ShotFootworkField
             delivery={selectedDelivery}

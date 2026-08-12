@@ -50,6 +50,24 @@ Only two exact workbook applicability values alter scoring:
 
 Missing footwork is a review blocker only when the active rubric and camera angle contain front/back-only delivery KPIs. `unclear` is a valid exportable human judgement and produces a warning, but its restricted KPI rows are excluded from scoring. Known mismatches are explicit excluded rows and do not require a KPI label. Stale labels remain in the saved annotation JSON for auditability, but their human score, confidence, bucket, evidence, and note are suppressed from training CSV fields whenever the row is excluded by footwork.
 
+## Human subject focus
+
+The project-level focus contract is repeated on every CSV row:
+
+- `human_multiple_people_visible` is `true` only when the annotator explicitly records that multiple people are visible;
+- `human_subject_focus_role` is one of `batter`, `bowler`, `non_striker`, `wicketkeeper`, `fielder`, `umpire`, `other`, or `unclear`; and
+- `human_subject_focus_description` is the annotator's concrete visual description of the target person.
+
+When multiple people are visible, both the role and a non-empty description are required. `unclear` is a valid explicit role choice, but it still needs a description so the footage remains tied to one target. Missing either field blocks review and gives every CSV row `training_row_status=exclude_incomplete` with `training_score_eligible=false`. When multiple people are not visible, role and description export blank. Legacy annotations without these fields safely normalize to `false`, blank, and blank.
+
+## Human batting shot type
+
+Every batting delivery requires an explicit `human_shot_type`. This follows the existing delivery-level validation pattern: shot type changes how footage should be grouped and interpreted, so silently leaving it absent would make otherwise complete KPI rows ambiguous. The allowed codes are:
+
+`defensive`, `straight_drive`, `cover_drive`, `on_drive`, `square_drive`, `cut`, `pull`, `hook`, `flick`, `leg_glance`, `sweep`, `reverse_sweep`, `paddle_scoop`, `lofted_shot`, `leave`, `other`, and `unclear`.
+
+`unclear` is a valid explicit human choice and remains training-eligible when the rest of the row is complete. `other` requires a non-empty `human_shot_type_other` description; the custom field is blank for every other code. Missing shot type, or missing custom text for `other`, blocks review and makes every KPI row for that delivery `exclude_incomplete`. Clip-scoped and non-batting rows leave both shot fields blank. Legacy batting deliveries without shot type still export safely, but remain incomplete until a human labels them. Legacy callers of validation that do not supply a discipline retain the earlier validation behavior.
+
 ## Null and uncertainty semantics
 
 - `visibility_status=visible` requires `human_score_0_10`, `human_confidence_1_5`, and evidence time/frame.
@@ -81,4 +99,4 @@ The catalog has nine male routes and 131 unique KPI IDs. Foundation uses explici
 
 ## File format
 
-The browser download is UTF-8 with a BOM for spreadsheet compatibility. Records use RFC-4180 quoting and CRLF row endings; embedded commas, quotes, and line breaks are escaped. Column order is version-locked in `LABELS_CSV_COLUMNS` for v2. The five shot-footwork and multi-evidence fields were appended after the original v2 columns, so every pre-existing column retains its name and ordinal position.
+The browser download is UTF-8 with a BOM for spreadsheet compatibility. Records use RFC-4180 quoting and CRLF row endings; embedded commas, quotes, and line breaks are escaped. Column order is version-locked in `LABELS_CSV_COLUMNS` for v2. The five shot-footwork/multi-evidence fields and the five subject-focus/shot-type fields were appended after the original v2 columns, so every pre-existing column retains its name and ordinal position.

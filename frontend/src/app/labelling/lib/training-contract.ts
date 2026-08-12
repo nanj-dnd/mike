@@ -4,6 +4,50 @@ export type ShotFootwork =
   | "both"
   | "unclear";
 
+export const SUBJECT_FOCUS_ROLE_VALUES = [
+  "batter",
+  "bowler",
+  "non_striker",
+  "wicketkeeper",
+  "fielder",
+  "umpire",
+  "other",
+  "unclear",
+] as const;
+export type SubjectFocusRole = (typeof SUBJECT_FOCUS_ROLE_VALUES)[number];
+
+export const SHOT_TYPE_VALUES = [
+  "defensive",
+  "straight_drive",
+  "cover_drive",
+  "on_drive",
+  "square_drive",
+  "cut",
+  "pull",
+  "hook",
+  "flick",
+  "leg_glance",
+  "sweep",
+  "reverse_sweep",
+  "paddle_scoop",
+  "lofted_shot",
+  "leave",
+  "other",
+  "unclear",
+] as const;
+export type ShotType = (typeof SHOT_TYPE_VALUES)[number];
+
+export interface SubjectFocusMetadata {
+  multiplePeopleVisible?: boolean;
+  subjectFocusRole?: SubjectFocusRole | null;
+  subjectFocusDescription?: string;
+}
+
+export interface DeliveryShotMetadata {
+  shotType?: ShotType | null;
+  shotTypeOther?: string;
+}
+
 export type FootworkApplicabilityState =
   | "not_restricted"
   | "applicable"
@@ -23,6 +67,73 @@ interface EvidenceLabel {
 
 const FRONT_FOOT_ONLY = "Front-Foot Only";
 const BACK_FOOT_ONLY = "Back-Foot Only";
+
+export function normalizeSubjectFocusRole(
+  value: unknown,
+): SubjectFocusRole | null {
+  return SUBJECT_FOCUS_ROLE_VALUES.includes(value as SubjectFocusRole)
+    ? (value as SubjectFocusRole)
+    : null;
+}
+
+export function normalizeShotType(value: unknown): ShotType | null {
+  return SHOT_TYPE_VALUES.includes(value as ShotType)
+    ? (value as ShotType)
+    : null;
+}
+
+export function normalizeSubjectFocusMetadata(
+  value: SubjectFocusMetadata | null | undefined,
+) {
+  const multiplePeopleVisible = value?.multiplePeopleVisible === true;
+  return {
+    multiplePeopleVisible,
+    subjectFocusRole: multiplePeopleVisible
+      ? normalizeSubjectFocusRole(value?.subjectFocusRole)
+      : null,
+    subjectFocusDescription:
+      multiplePeopleVisible && typeof value?.subjectFocusDescription === "string"
+        ? value.subjectFocusDescription.trim()
+        : "",
+  };
+}
+
+export function normalizeDeliveryShotMetadata(
+  value: DeliveryShotMetadata | null | undefined,
+) {
+  const shotType = normalizeShotType(value?.shotType);
+  return {
+    shotType,
+    shotTypeOther:
+      shotType === "other" && typeof value?.shotTypeOther === "string"
+        ? value.shotTypeOther.trim()
+        : "",
+  };
+}
+
+export function isSubjectFocusComplete(
+  value: SubjectFocusMetadata | null | undefined,
+) {
+  const normalized = normalizeSubjectFocusMetadata(value);
+  return (
+    !normalized.multiplePeopleVisible ||
+    (normalized.subjectFocusRole !== null &&
+      normalized.subjectFocusDescription.trim().length > 0)
+  );
+}
+
+export function isDeliveryShotComplete(
+  value: DeliveryShotMetadata | null | undefined,
+  discipline?: string,
+) {
+  if (discipline !== "batting") return true;
+  const normalized = normalizeDeliveryShotMetadata(value);
+  return (
+    normalized.shotType !== null &&
+    (normalized.shotType !== "other" ||
+      normalized.shotTypeOther.trim().length > 0)
+  );
+}
 
 export function footworkRequirementFor(
   kpi: FootworkApplicableKpi,

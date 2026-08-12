@@ -11,10 +11,22 @@ import {
   evidenceFrameIndices,
   footworkApplicability,
   footworkRequirementFor,
+  isDeliveryShotComplete,
   isFootworkApplicableForScoring,
   isFootworkRestrictedKpi,
+  isSubjectFocusComplete,
+  normalizeDeliveryShotMetadata,
+  normalizeShotType,
+  normalizeSubjectFocusMetadata,
+  normalizeSubjectFocusRole,
+  SHOT_TYPE_VALUES,
+  SUBJECT_FOCUS_ROLE_VALUES,
+  type DeliveryShotMetadata,
   type FootworkApplicabilityState,
+  type ShotType,
   type ShotFootwork,
+  type SubjectFocusMetadata,
+  type SubjectFocusRole,
 } from "./training-contract";
 
 export {
@@ -22,10 +34,25 @@ export {
   evidenceFrameIndices,
   footworkApplicability,
   footworkRequirementFor,
+  isDeliveryShotComplete,
   isFootworkApplicableForScoring,
   isFootworkRestrictedKpi,
+  isSubjectFocusComplete,
+  normalizeDeliveryShotMetadata,
+  normalizeShotType,
+  normalizeSubjectFocusMetadata,
+  normalizeSubjectFocusRole,
+  SHOT_TYPE_VALUES,
+  SUBJECT_FOCUS_ROLE_VALUES,
 };
-export type { FootworkApplicabilityState, ShotFootwork };
+export type {
+  DeliveryShotMetadata,
+  FootworkApplicabilityState,
+  ShotFootwork,
+  ShotType,
+  SubjectFocusMetadata,
+  SubjectFocusRole,
+};
 
 export type Visibility = "visible" | "occluded" | "low_quality" | "uncertain" | "not_applicable";
 
@@ -54,6 +81,8 @@ export interface Delivery {
   outcome: string;
   note: string;
   shotFootwork?: ShotFootwork | null;
+  shotType?: ShotType | null;
+  shotTypeOther?: string;
 }
 
 export interface ReviewState {
@@ -68,6 +97,9 @@ export interface ReviewState {
   phvStage: string;
   heightCm: string;
   weightKg: string;
+  multiplePeopleVisible: boolean;
+  subjectFocusRole: SubjectFocusRole | null;
+  subjectFocusDescription: string;
 }
 
 export interface AnnotationDocument {
@@ -106,6 +138,9 @@ export const EMPTY_REVIEW: ReviewState = {
   phvStage: "",
   heightCm: "",
   weightKg: "",
+  multiplePeopleVisible: false,
+  subjectFocusRole: null,
+  subjectFocusDescription: "",
 };
 
 export const MIN_RATING_WEIGHT_PCT = 50;
@@ -186,6 +221,7 @@ export function validateDocument(
   angle: CameraAngle,
   durationMs: number,
   fps?: number,
+  discipline?: Discipline,
 ): QualityIssue[] {
   const issues: QualityIssue[] = [];
   if (!document.review.annotator.trim()) {
@@ -201,6 +237,23 @@ export function validateDocument(
       severity: "blocker",
       message: "Add a capture-session ID so dataset splits stay player/session safe.",
     });
+  }
+  if (document.review.multiplePeopleVisible === true) {
+    const focus = normalizeSubjectFocusMetadata(document.review);
+    if (focus.subjectFocusRole === null) {
+      issues.push({
+        id: "subject-focus-role-required",
+        severity: "blocker",
+        message: "Choose the role of the person being labelled in this video.",
+      });
+    }
+    if (!focus.subjectFocusDescription.trim()) {
+      issues.push({
+        id: "subject-focus-description-required",
+        severity: "blocker",
+        message: "Describe how to identify the person being labelled in this video.",
+      });
+    }
   }
   if (document.deliveries.length === 0) {
     issues.push({
@@ -230,6 +283,24 @@ export function validateDocument(
         message: `Delivery ${delivery.index} needs valid start, event and end markers.`,
         deliveryId: delivery.id,
       });
+    }
+    if (discipline === "batting") {
+      const shot = normalizeDeliveryShotMetadata(delivery);
+      if (shot.shotType === null) {
+        issues.push({
+          id: `shot-type-${delivery.id}`,
+          severity: "blocker",
+          message: `Delivery ${delivery.index} needs a human shot-type choice.`,
+          deliveryId: delivery.id,
+        });
+      } else if (shot.shotType === "other" && !shot.shotTypeOther.trim()) {
+        issues.push({
+          id: `shot-type-other-${delivery.id}`,
+          severity: "blocker",
+          message: `Delivery ${delivery.index} needs a description for the Other shot type.`,
+          deliveryId: delivery.id,
+        });
+      }
     }
   }
 
@@ -477,6 +548,11 @@ export const LABELS_CSV_COLUMNS = [
   "human_evidence_timestamps_ms_json",
   "human_evidence_frames_0based_json",
   "human_evidence_count",
+  "human_multiple_people_visible",
+  "human_subject_focus_role",
+  "human_subject_focus_description",
+  "human_shot_type",
+  "human_shot_type_other",
 ] as const;
 
 type LabelsCsvColumn = (typeof LABELS_CSV_COLUMNS)[number];
@@ -586,6 +662,8 @@ export function buildLabelsCsv(
   const datasetGroupKey = [project.playerRef, document.review.captureSession]
     .filter(Boolean)
     .join("::");
+  const subjectFocus = normalizeSubjectFocusMetadata(document.review);
+  const subjectFocusComplete = isSubjectFocusComplete(document.review);
 
   for (const kpi of rubric.kpis) {
     const supported = supportsAngle(kpi, project.cameraAngle);
@@ -600,11 +678,21 @@ export function buildLabelsCsv(
             outcome: "",
             note: "",
             shotFootwork: null,
+            shotType: null,
+            shotTypeOther: "",
           }]
         : deliveries;
 
     for (const target of targets) {
       const label = exportLabel(document.labels, target.id, kpi.id);
+      const shot = normalizeDeliveryShotMetadata(target);
+      const deliveryShotComplete = isDeliveryShotComplete(
+        target,
+        project.discipline,
+      );
+      const rowContextComplete =
+        subjectFocusComplete &&
+        (kpi.scope !== "delivery" || deliveryShotComplete);
       const footworkState = footworkApplicability(kpi, target.shotFootwork);
       const footworkApplicable = isFootworkApplicableForScoring(footworkState);
       const humanLabelApplicable = supported && footworkApplicable;
@@ -652,6 +740,7 @@ export function buildLabelsCsv(
               timestampMs >= target.startMs && timestampMs <= target.endMs,
           ));
       const trainingScoreEligible = Boolean(
+        rowContextComplete &&
         humanLabelApplicable &&
         humanScore !== null &&
         humanScore >= 0 &&
@@ -681,19 +770,21 @@ export function buildLabelsCsv(
                     ? "human_scored"
                     : "human_score_missing"
                   : "human_null";
-      const trainingRowStatus = !supported
-        ? "exclude_wrong_angle"
-        : footworkState === "excluded_mismatch"
-          ? "exclude_footwork_mismatch"
-          : footworkState === "excluded_unclear"
-            ? "exclude_footwork_unclear"
-            : footworkState === "unresolved_missing"
-              ? "exclude_footwork_missing"
-              : trainingScoreEligible
-                ? "ready_scored_label"
-                : label && label.visibility !== "visible" && label.note.trim()
-                  ? "ready_null_label"
-                  : "exclude_incomplete";
+      const trainingRowStatus = !rowContextComplete
+        ? "exclude_incomplete"
+        : !supported
+          ? "exclude_wrong_angle"
+          : footworkState === "excluded_mismatch"
+            ? "exclude_footwork_mismatch"
+            : footworkState === "excluded_unclear"
+              ? "exclude_footwork_unclear"
+              : footworkState === "unresolved_missing"
+                ? "exclude_footwork_missing"
+                : trainingScoreEligible
+                  ? "ready_scored_label"
+                  : label && label.visibility !== "visible" && label.note.trim()
+                    ? "ready_null_label"
+                    : "exclude_incomplete";
 
       rows.push({
         csv_schema_version: LABELS_CSV_SCHEMA_VERSION,
@@ -798,6 +889,20 @@ export function buildLabelsCsv(
         ),
         human_evidence_frames_0based_json: JSON.stringify(humanEvidenceFrames),
         human_evidence_count: humanEvidenceTimestamps.length,
+        human_multiple_people_visible: subjectFocus.multiplePeopleVisible,
+        human_subject_focus_role: subjectFocus.subjectFocusRole ?? "",
+        human_subject_focus_description:
+          subjectFocus.subjectFocusDescription,
+        human_shot_type:
+          project.discipline === "batting" && kpi.scope === "delivery"
+            ? shot.shotType ?? ""
+            : "",
+        human_shot_type_other:
+          project.discipline === "batting" &&
+          kpi.scope === "delivery" &&
+          shot.shotType === "other"
+            ? shot.shotTypeOther
+            : "",
       });
     }
   }

@@ -127,6 +127,7 @@ const deliveries = [
         outcome: "",
         note: "",
         shotFootwork: "front_foot",
+        shotType: "cover_drive",
     },
     {
         id: "d-back",
@@ -137,6 +138,8 @@ const deliveries = [
         outcome: "",
         note: "",
         shotFootwork: "back_foot",
+        shotType: "other",
+        shotTypeOther: "Late ramp over the keeper",
     },
     {
         id: "d-both",
@@ -147,6 +150,7 @@ const deliveries = [
         outcome: "",
         note: "",
         shotFootwork: "both",
+        shotType: "lofted_shot",
     },
     {
         id: "d-unclear",
@@ -157,6 +161,7 @@ const deliveries = [
         outcome: "",
         note: "",
         shotFootwork: "unclear",
+        shotType: "unclear",
     },
     {
         id: "d-missing",
@@ -166,6 +171,7 @@ const deliveries = [
         endMs: 5000,
         outcome: "",
         note: "",
+        shotType: "defensive",
     },
 ];
 
@@ -248,6 +254,93 @@ test("exact workbook footwork rules cover front, back, both, mismatch, unclear a
     );
 });
 
+test("focus and batting-shot codes normalize without inference", () => {
+    assert.deepEqual(contract.SUBJECT_FOCUS_ROLE_VALUES, [
+        "batter",
+        "bowler",
+        "non_striker",
+        "wicketkeeper",
+        "fielder",
+        "umpire",
+        "other",
+        "unclear",
+    ]);
+    assert.deepEqual(contract.SHOT_TYPE_VALUES, [
+        "defensive",
+        "straight_drive",
+        "cover_drive",
+        "on_drive",
+        "square_drive",
+        "cut",
+        "pull",
+        "hook",
+        "flick",
+        "leg_glance",
+        "sweep",
+        "reverse_sweep",
+        "paddle_scoop",
+        "lofted_shot",
+        "leave",
+        "other",
+        "unclear",
+    ]);
+    assert.equal(contract.normalizeSubjectFocusRole("unclear"), "unclear");
+    assert.equal(contract.normalizeSubjectFocusRole("coach"), null);
+    assert.equal(contract.normalizeShotType("unclear"), "unclear");
+    assert.equal(contract.normalizeShotType("cover drive"), null);
+    assert.deepEqual(
+        contract.normalizeSubjectFocusMetadata({
+            multiplePeopleVisible: false,
+            subjectFocusRole: "batter",
+            subjectFocusDescription: "blue helmet",
+        }),
+        {
+            multiplePeopleVisible: false,
+            subjectFocusRole: null,
+            subjectFocusDescription: "",
+        },
+    );
+    assert.deepEqual(
+        contract.normalizeDeliveryShotMetadata({
+            shotType: "other",
+            shotTypeOther: "Upper cut",
+        }),
+        { shotType: "other", shotTypeOther: "Upper cut" },
+    );
+    assert.deepEqual(
+        contract.normalizeDeliveryShotMetadata({
+            shotType: "cover_drive",
+            shotTypeOther: "stale custom value",
+        }),
+        { shotType: "cover_drive", shotTypeOther: "" },
+    );
+    assert.equal(
+        contract.isSubjectFocusComplete({
+            multiplePeopleVisible: true,
+            subjectFocusRole: "unclear",
+            subjectFocusDescription: "nearest player",
+        }),
+        true,
+    );
+    assert.equal(
+        contract.isSubjectFocusComplete({
+            multiplePeopleVisible: true,
+            subjectFocusRole: "batter",
+            subjectFocusDescription: "   ",
+        }),
+        false,
+    );
+    assert.equal(
+        contract.isDeliveryShotComplete({ shotType: "unclear" }, "batting"),
+        true,
+    );
+    assert.equal(
+        contract.isDeliveryShotComplete({ shotType: "other" }, "batting"),
+        false,
+    );
+    assert.equal(contract.isDeliveryShotComplete({}, "pace"), true);
+});
+
 test("foundation batting and every bowling route have no exact footwork requirement", async () => {
     const catalog = JSON.parse(
         await readFile(
@@ -317,6 +410,11 @@ test("CSV appends compatible footwork and multi-evidence fields while preserving
             "human_evidence_timestamps_ms_json",
             "human_evidence_frames_0based_json",
             "human_evidence_count",
+            "human_multiple_people_visible",
+            "human_subject_focus_role",
+            "human_subject_focus_description",
+            "human_shot_type",
+            "human_shot_type_other",
         ],
     );
 
@@ -330,6 +428,11 @@ test("CSV appends compatible footwork and multi-evidence fields while preserving
     assert.equal(front.human_evidence_count, "2");
     assert.equal(front.human_evidence_timestamp_ms, "520");
     assert.equal(front.human_evidence_frame_0based, "13");
+    assert.equal(front.human_multiple_people_visible, "false");
+    assert.equal(front.human_subject_focus_role, "");
+    assert.equal(front.human_subject_focus_description, "");
+    assert.equal(front.human_shot_type, "cover_drive");
+    assert.equal(front.human_shot_type_other, "");
 
     const legacy = records.find(
         (record) => record.delivery_id === "d-front" && record.kpi_id === unrestricted.id,
@@ -350,6 +453,8 @@ test("CSV appends compatible footwork and multi-evidence fields while preserving
     assert.equal(mismatch.human_note, "");
     assert.equal(mismatch.human_score_0_10, "");
     assert.equal(mismatch.human_evidence_timestamps_ms_json, "[]");
+    assert.equal(mismatch.human_shot_type, "other");
+    assert.equal(mismatch.human_shot_type_other, "Late ramp over the keeper");
     assert.equal(
         document.labels.find((entry) => entry.id === mismatch.label_id).score,
         8,
@@ -368,6 +473,8 @@ test("CSV appends compatible footwork and multi-evidence fields while preserving
     assert.equal(clip.target_scope, "clip");
     assert.equal(clip.human_shot_footwork, "");
     assert.equal(clip.kpi_footwork_applicability_state, "not_restricted");
+    assert.equal(clip.human_shot_type, "");
+    assert.equal(clip.human_shot_type_other, "");
 });
 
 test("scoring ignores stale labels on mismatched, unclear and missing footwork", () => {
@@ -424,5 +531,191 @@ test("validation blocks missing footwork, warns on unclear and rejects any out-o
         !labels
             .validateDocument(document, unrestrictedRubric, "side", 5000, 25)
             .some((issue) => issue.id.startsWith("shot-footwork-")),
+    );
+});
+
+test("validation requires an identifiable target when multiple people are visible", () => {
+    const document = documentForTest();
+    document.review.multiplePeopleVisible = true;
+    document.review.subjectFocusRole = null;
+    document.review.subjectFocusDescription = "";
+
+    let issues = labels.validateDocument(
+        document,
+        rubric,
+        "side",
+        5000,
+        25,
+        "batting",
+    );
+    assert.ok(issues.some((issue) => issue.id === "subject-focus-role-required"));
+    assert.ok(
+        issues.some((issue) => issue.id === "subject-focus-description-required"),
+    );
+
+    document.review.subjectFocusRole = "unclear";
+    document.review.subjectFocusDescription = "player nearest the camera";
+    issues = labels.validateDocument(
+        document,
+        rubric,
+        "side",
+        5000,
+        25,
+        "batting",
+    );
+    assert.ok(!issues.some((issue) => issue.id.startsWith("subject-focus-")));
+
+    document.review.multiplePeopleVisible = false;
+    document.review.subjectFocusRole = null;
+    document.review.subjectFocusDescription = "";
+    issues = labels.validateDocument(
+        document,
+        rubric,
+        "side",
+        5000,
+        25,
+        "batting",
+    );
+    assert.ok(!issues.some((issue) => issue.id.startsWith("subject-focus-")));
+});
+
+test("batting requires a shot choice, accepts unclear, and requires text for Other", () => {
+    const document = documentForTest();
+    let issues = labels.validateDocument(
+        document,
+        rubric,
+        "side",
+        5000,
+        25,
+        "batting",
+    );
+    assert.ok(!issues.some((issue) => issue.id.startsWith("shot-type-")));
+
+    const front = document.deliveries.find((delivery) => delivery.id === "d-front");
+    const back = document.deliveries.find((delivery) => delivery.id === "d-back");
+    front.shotType = null;
+    back.shotTypeOther = "";
+    issues = labels.validateDocument(
+        document,
+        rubric,
+        "side",
+        5000,
+        25,
+        "batting",
+    );
+    assert.ok(issues.some((issue) => issue.id === "shot-type-d-front"));
+    assert.ok(issues.some((issue) => issue.id === "shot-type-other-d-back"));
+    assert.ok(!issues.some((issue) => issue.id === "shot-type-d-unclear"));
+
+    const legacyCallerIssues = labels.validateDocument(
+        document,
+        rubric,
+        "side",
+        5000,
+        25,
+    );
+    assert.ok(
+        !legacyCallerIssues.some((issue) => issue.id.startsWith("shot-type-")),
+    );
+    const bowlingIssues = labels.validateDocument(
+        document,
+        rubric,
+        "side",
+        5000,
+        25,
+        "pace",
+    );
+    assert.ok(!bowlingIssues.some((issue) => issue.id.startsWith("shot-type-")));
+});
+
+test("CSV marks missing focus or batting-shot context incomplete without dropping rows", () => {
+    const document = documentForTest();
+    document.review.multiplePeopleVisible = true;
+    document.review.subjectFocusRole = null;
+    document.review.subjectFocusDescription = "";
+
+    let records = csvRecords(labels.buildLabelsCsv(project, document, rubric));
+    assert.equal(records.length, deliveries.length * rubric.kpis.length);
+    assert.ok(
+        records.every(
+            (record) =>
+                record.training_row_status === "exclude_incomplete" &&
+                record.training_score_eligible === "false",
+        ),
+    );
+    assert.ok(
+        records.every(
+            (record) =>
+                record.human_multiple_people_visible === "true" &&
+                record.human_subject_focus_role === "" &&
+                record.human_subject_focus_description === "",
+        ),
+    );
+
+    document.review.subjectFocusRole = "batter";
+    document.review.subjectFocusDescription = "blue helmet at the crease";
+    document.deliveries.find((delivery) => delivery.id === "d-front").shotType = null;
+    records = csvRecords(labels.buildLabelsCsv(project, document, rubric));
+    const missingShotRows = records.filter(
+        (record) => record.delivery_id === "d-front",
+    );
+    assert.ok(missingShotRows.length > 0);
+    assert.ok(
+        missingShotRows.every(
+            (record) =>
+                record.training_row_status === "exclude_incomplete" &&
+                record.training_score_eligible === "false" &&
+                record.human_shot_type === "",
+        ),
+    );
+    const explicitUnclear = records.find(
+        (record) =>
+            record.delivery_id === "d-unclear" &&
+            record.kpi_id === unrestricted.id,
+    );
+    assert.equal(explicitUnclear.human_shot_type, "unclear");
+    assert.equal(explicitUnclear.training_row_status, "ready_scored_label");
+    assert.equal(explicitUnclear.training_score_eligible, "true");
+    assert.equal(explicitUnclear.human_subject_focus_role, "batter");
+    assert.equal(
+        explicitUnclear.human_subject_focus_description,
+        "blue helmet at the crease",
+    );
+});
+
+test("legacy annotations export safe focus/shot defaults", () => {
+    const document = documentForTest();
+    delete document.review.multiplePeopleVisible;
+    delete document.review.subjectFocusRole;
+    delete document.review.subjectFocusDescription;
+    for (const delivery of document.deliveries) {
+        delete delivery.shotType;
+        delete delivery.shotTypeOther;
+    }
+
+    const records = csvRecords(labels.buildLabelsCsv(project, document, rubric));
+    assert.ok(records.length > 0);
+    assert.ok(
+        records.every(
+            (record) =>
+                record.human_multiple_people_visible === "false" &&
+                record.human_subject_focus_role === "" &&
+                record.human_subject_focus_description === "",
+        ),
+    );
+    assert.ok(
+        records
+            .filter((record) => record.target_scope === "delivery")
+            .every(
+                (record) =>
+                    record.human_shot_type === "" &&
+                    record.human_shot_type_other === "" &&
+                    record.training_row_status === "exclude_incomplete",
+            ),
+    );
+    assert.ok(
+        !labels
+            .validateDocument(document, rubric, "side", 5000, 25)
+            .some((issue) => issue.id.startsWith("shot-type-")),
     );
 });
