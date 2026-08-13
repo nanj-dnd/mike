@@ -7,6 +7,7 @@ export type AthleteSex = "male" | "female";
 export type KpiScope = "delivery" | "clip";
 export type KpiTier = "foundation" | "development" | "performance";
 export type BattingMode = "pace" | "spin";
+export type BattingModeRubrics = Record<BattingMode, Rubric>;
 
 interface LegacySourceKpi {
   id: string;
@@ -347,6 +348,16 @@ export function getRubric(
     sourceWorkbookSha256: route.source_workbook_sha256,
     sourceSheet: route.source_sheet,
     kpis: convertTiered(route.kpis),
+  };
+}
+
+export function getBattingModeRubrics(
+  sex: AthleteSex,
+  options: Omit<RubricOptions, "battingMode"> = {},
+): BattingModeRubrics {
+  return {
+    pace: getRubric("batting", sex, { ...options, battingMode: "pace" }),
+    spin: getRubric("batting", sex, { ...options, battingMode: "spin" }),
   };
 }
 

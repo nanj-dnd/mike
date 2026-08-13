@@ -415,6 +415,8 @@ test("CSV appends compatible footwork and multi-evidence fields while preserving
             "human_subject_focus_description",
             "human_shot_type",
             "human_shot_type_other",
+            "human_bowling_type_faced",
+            "bowling_type_faced_source",
         ],
     );
 
@@ -718,4 +720,264 @@ test("legacy annotations export safe focus/shot defaults", () => {
             .validateDocument(document, rubric, "side", 5000, 25)
             .some((issue) => issue.id.startsWith("shot-type-")),
     );
+});
+
+test("bowling-faced routing blocks missing choices and isolates mixed rubric rows", () => {
+    const paceKpi = { ...unrestricted, id: "pace-kpi", variant: "pace" };
+    const spinKpi = { ...unrestricted, id: "spin-kpi", variant: "spin" };
+    const paceRubric = { ...rubric, id: "pace-route", routeKey: "batting.performance.pace", kpis: [paceKpi] };
+    const spinRubric = { ...rubric, id: "spin-route", routeKey: "batting.performance.spin", kpis: [spinKpi] };
+    const routing = {
+        discipline: "batting",
+        battingRubrics: { pace: paceRubric, spin: spinRubric },
+    };
+    const document = documentForTest();
+    document.deliveries = document.deliveries.slice(0, 2);
+    document.deliveries[0].bowlingTypeFaced = "pace";
+    document.deliveries[0].bowlingTypeFacedSource = "delivery";
+    document.deliveries[1].bowlingTypeFaced = "spin";
+    document.deliveries[1].bowlingTypeFacedSource = "legacy_review_fallback";
+    document.labels = [
+        label(document.deliveries[0].id, paceKpi.id, document.deliveries[0].eventMs),
+        label(document.deliveries[0].id, spinKpi.id, document.deliveries[0].eventMs),
+        label(document.deliveries[1].id, spinKpi.id, document.deliveries[1].eventMs),
+    ];
+
+    const summary = labels.scoreDocument(document, paceRubric, "side", routing);
+    assert.equal(summary.score10, null);
+    assert.equal(summary.expectedCells, 2);
+    assert.equal(summary.activeWeight, 50);
+
+    const records = csvRecords(
+        labels.buildLabelsCsv(project, document, paceRubric, routing),
+    );
+    assert.deepEqual(
+        records.map((record) => [record.delivery_id, record.kpi_id, record.route_key]),
+        [
+            ["d-front", "pace-kpi", "batting.performance.pace"],
+            ["d-back", "spin-kpi", "batting.performance.spin"],
+        ],
+    );
+    assert.equal(records[0].human_bowling_type_faced, "pace");
+    assert.equal(records[0].bowling_type_faced_source, "delivery");
+    assert.equal(records[1].human_bowling_type_faced, "spin");
+    assert.equal(records[1].bowling_type_faced_source, "legacy_review_fallback");
+
+    document.deliveries[1].bowlingTypeFaced = null;
+    const issues = labels.validateDocument(
+        document,
+        paceRubric,
+        "side",
+        5000,
+        25,
+        routing,
+    );
+    assert.ok(issues.some((issue) => issue.id === "bowling-type-faced-d-back"));
+});
+
+test("legacy bowling faced hydrates only when the delivery field is absent", () => {
+    assert.deepEqual(
+        labels.normalizeDeliveryBowlingTypeFaced({}, "spin"),
+        {
+            bowlingTypeFaced: "spin",
+            bowlingTypeFacedSource: "legacy_review_fallback",
+        },
+    );
+    assert.deepEqual(
+        labels.normalizeDeliveryBowlingTypeFaced({ bowlingTypeFaced: null }, "spin"),
+        { bowlingTypeFaced: null, bowlingTypeFacedSource: undefined },
+    );
+    assert.deepEqual(
+        labels.normalizeDeliveryBowlingTypeFaced({ bowlingTypeFaced: "pace" }, "spin"),
+        { bowlingTypeFaced: "pace", bowlingTypeFacedSource: "delivery" },
+    );
+    assert.deepEqual(
+        labels.normalizeDeliveryBowlingTypeFaced(
+            {
+                bowlingTypeFaced: "spin",
+                bowlingTypeFacedSource: "legacy_review_fallback",
+            },
+            "pace",
+        ),
+        {
+            bowlingTypeFaced: "spin",
+            bowlingTypeFacedSource: "legacy_review_fallback",
+        },
+    );
+});
+
+test("performance routing retains unresolved rows without assigning a false route", () => {
+    const paceKpi = { ...unrestricted, id: "pace-route-kpi", variant: "pace" };
+    const spinKpi = { ...unrestricted, id: "spin-route-kpi", variant: "spin" };
+    const paceRubric = {
+        ...rubric,
+        id: "performance-pace",
+        routeKey: "batting.performance.pace",
+        kpis: [paceKpi],
+    };
+    const spinRubric = {
+        ...rubric,
+        id: "performance-spin",
+        routeKey: "batting.performance.spin",
+        kpis: [spinKpi],
+    };
+    const routing = {
+        discipline: "batting",
+        battingRubrics: { pace: paceRubric, spin: spinRubric },
+    };
+    const document = documentForTest();
+    document.deliveries = document.deliveries.slice(0, 2);
+    document.deliveries[0].bowlingTypeFaced = "pace";
+    document.deliveries[0].bowlingTypeFacedSource = "delivery";
+    document.deliveries[1].bowlingTypeFaced = null;
+    document.labels = [
+        label("d-front", paceKpi.id, 500),
+        label("d-back", paceKpi.id, 1500),
+    ];
+
+    const records = csvRecords(
+        labels.buildLabelsCsv(project, document, paceRubric, routing),
+    );
+    const paceRow = records.find((record) => record.delivery_id === "d-front");
+    const unresolvedRow = records.find((record) => record.delivery_id === "d-back");
+    assert.equal(paceRow.route_key, "batting.performance.pace");
+    assert.equal(unresolvedRow.route_key, "");
+    assert.equal(unresolvedRow.rubric_id, "");
+    assert.equal(unresolvedRow.human_label_state, "unresolved_bowling_type_faced");
+    assert.equal(unresolvedRow.training_score_eligible, "false");
+    assert.equal(unresolvedRow.training_row_status, "exclude_bowling_type_faced_missing");
+    assert.ok(
+        labels
+            .validateDocument(document, paceRubric, "side", 5000, 25, routing)
+            .some((issue) => issue.id === "bowling-type-faced-d-back"),
+    );
+
+    document.deliveries[0].bowlingTypeFaced = null;
+    const allUnresolved = csvRecords(
+        labels.buildLabelsCsv(project, document, paceRubric, routing),
+    );
+    assert.equal(allUnresolved.length, 2);
+    assert.ok(allUnresolved.every((record) => record.route_key === ""));
+});
+
+test("shared batting routes do not duplicate delivery rows", () => {
+    const sharedKpi = { ...unrestricted, id: "shared-kpi" };
+    const sharedRubric = {
+        ...rubric,
+        id: "batting-development-shared",
+        routeKey: "batting.development.all",
+        kpis: [sharedKpi],
+    };
+    const routing = {
+        discipline: "batting",
+        battingRubrics: { pace: sharedRubric, spin: sharedRubric },
+    };
+    const document = documentForTest();
+    document.deliveries = document.deliveries.slice(0, 3);
+    document.deliveries[0].bowlingTypeFaced = "pace";
+    document.deliveries[1].bowlingTypeFaced = "spin";
+    document.deliveries[2].bowlingTypeFaced = null;
+
+    const records = csvRecords(
+        labels.buildLabelsCsv(project, document, sharedRubric, routing),
+    );
+    assert.deepEqual(
+        records.map((record) => record.delivery_id),
+        ["d-front", "d-back", "d-both"],
+    );
+});
+
+test("clip labels require three same-mode deliveries and same-mode evidence", () => {
+    const paceClipKpi = {
+        ...unrestricted,
+        id: "pace-clip",
+        name: "Pace consistency",
+        scope: "clip",
+        variant: "pace",
+        weight: 100,
+    };
+    const spinKpi = { ...unrestricted, id: "spin-only", variant: "spin", weight: 100 };
+    const paceRubric = {
+        ...rubric,
+        id: "pace-clip-route",
+        routeKey: "batting.performance.pace",
+        kpis: [paceClipKpi],
+    };
+    const spinRubric = {
+        ...rubric,
+        id: "spin-delivery-route",
+        routeKey: "batting.performance.spin",
+        kpis: [spinKpi],
+    };
+    const routing = {
+        discipline: "batting",
+        battingRubrics: { pace: paceRubric, spin: spinRubric },
+    };
+    const document = documentForTest();
+    document.deliveries = document.deliveries.slice(0, 3);
+    document.deliveries[0].bowlingTypeFaced = "pace";
+    document.deliveries[1].bowlingTypeFaced = "pace";
+    document.deliveries[2].bowlingTypeFaced = "spin";
+    document.labels = [label("clip", paceClipKpi.id, 2500)];
+
+    const underMinimumIssues = labels.validateDocument(
+        document,
+        paceRubric,
+        "side",
+        5000,
+        25,
+        routing,
+    );
+    assert.ok(
+        underMinimumIssues.some((issue) => issue.id === "consistency-minimum-pace"),
+    );
+    assert.ok(
+        underMinimumIssues.some((issue) => issue.id === "evidence-range-clip-pace-clip"),
+    );
+    let paceClipRow = csvRecords(
+        labels.buildLabelsCsv(project, document, paceRubric, routing),
+    ).find((record) => record.kpi_id === paceClipKpi.id);
+    assert.equal(paceClipRow.training_score_eligible, "false");
+    assert.equal(
+        paceClipRow.training_row_status,
+        "exclude_insufficient_mode_deliveries",
+    );
+    assert.equal(labels.scoreDocument(document, paceRubric, "side", routing).activeWeight, 0);
+
+    const thirdPace = {
+        ...document.deliveries[2],
+        id: "d-pace-three",
+        index: 4,
+        startMs: 3100,
+        eventMs: 3500,
+        endMs: 4000,
+        bowlingTypeFaced: "pace",
+        bowlingTypeFacedSource: "delivery",
+    };
+    document.deliveries.push(thirdPace);
+    paceClipRow = csvRecords(
+        labels.buildLabelsCsv(project, document, paceRubric, routing),
+    ).find((record) => record.kpi_id === paceClipKpi.id);
+    assert.equal(paceClipRow.training_score_eligible, "false");
+    assert.equal(
+        paceClipRow.training_row_status,
+        "exclude_evidence_outside_mode_deliveries",
+    );
+
+    document.labels = [label("clip", paceClipKpi.id, 3500)];
+    const resolvedIssues = labels.validateDocument(
+        document,
+        paceRubric,
+        "side",
+        5000,
+        25,
+        routing,
+    );
+    assert.ok(!resolvedIssues.some((issue) => issue.id === "consistency-minimum-pace"));
+    assert.ok(!resolvedIssues.some((issue) => issue.id === "evidence-range-clip-pace-clip"));
+    paceClipRow = csvRecords(
+        labels.buildLabelsCsv(project, document, paceRubric, routing),
+    ).find((record) => record.kpi_id === paceClipKpi.id);
+    assert.equal(paceClipRow.training_score_eligible, "true");
+    assert.equal(paceClipRow.training_row_status, "ready_scored_label");
 });

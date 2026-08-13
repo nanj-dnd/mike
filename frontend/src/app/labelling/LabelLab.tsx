@@ -10,15 +10,19 @@ import {
 } from "react";
 import {
   buildLabelsCsv,
+  battingRubricRouting,
   emptyDocument,
   getLabel,
   LABELS_CSV_SCHEMA_VERSION,
   MIN_RATING_WEIGHT_PCT,
   labelKey,
   makeLabel,
+  normalizeBowlingTypeFaced,
+  normalizeDeliveryBowlingTypeFaced,
   scoreDocument,
   validateDocument,
   type AnnotationDocument,
+  type BowlingTypeFaced,
   type Delivery,
   type DeliveryLabel,
   type ReviewState,
@@ -128,6 +132,47 @@ function shotTypeLabel(value: ShotType | null) {
   return SHOT_TYPE_OPTIONS.find((option) => option.value === value)?.label ?? "Not selected";
 }
 
+function bowlingTypeFacedFor(delivery?: Delivery): BowlingTypeFaced | null {
+  return normalizeBowlingTypeFaced(delivery?.bowlingTypeFaced);
+}
+
+function legacyBowlingTypeFaced(value: unknown): BattingMode | null {
+  return normalizeBowlingTypeFaced(value);
+}
+
+function BowlingTypeFacedField({
+  delivery,
+  compact = false,
+  onChange,
+}: {
+  delivery: Delivery;
+  compact?: boolean;
+  onChange: (value: BattingMode | null) => void;
+}) {
+  const value = bowlingTypeFacedFor(delivery);
+  return (
+    <fieldset className={`bowling-faced-field ${compact ? "bowling-faced-field--compact" : ""}`}>
+      <legend>Bowling faced <em>human selected</em></legend>
+      <div className="bowling-faced-options">
+        {(["pace", "spin"] as const).map((option) => (
+          <button
+            type="button"
+            key={option}
+            className={value === option ? "active" : ""}
+            aria-pressed={value === option}
+            onClick={() => onChange(value === option ? null : option)}
+          >
+            {option === "pace" ? "Pace" : "Spin"}
+          </button>
+        ))}
+      </div>
+      {!compact && (
+        <small>Choose for this delivery from the footage; this selects its KPI route.</small>
+      )}
+    </fieldset>
+  );
+}
+
 function kpiFootworkAssessability(
   kpi: KpiDefinition,
   delivery: Delivery | undefined,
@@ -135,6 +180,13 @@ function kpiFootworkAssessability(
 ) {
   if (discipline !== "batting") {
     return { assessable: true, state: "not_restricted" as const, reason: "" };
+  }
+  if (delivery && !bowlingTypeFacedFor(delivery)) {
+    return {
+      assessable: false,
+      state: "unresolved_bowling_type" as const,
+      reason: "Choose Pace or Spin for this delivery before assessing its routed KPIs.",
+    };
   }
 
   const footwork = shotFootworkFor(delivery);
@@ -371,6 +423,8 @@ const STEPS: { id: WorkflowStep; number: string; label: string }[] = [
   { id: "review", number: "04", label: "Review & export" },
 ];
 
+const DELETE_REPORT_CONFIRMATION = "DELETE";
+
 const AGE_OPTIONS = [
   { value: "u9", label: "U9" },
   { value: "u11", label: "U11" },
@@ -400,12 +454,17 @@ function hydrateDocument(value: unknown, fps?: number): AnnotationDocument {
   const fallback = emptyDocument();
   if (!value || typeof value !== "object") return fallback;
   const candidate = value as Partial<AnnotationDocument>;
+  const review = { ...fallback.review, ...(candidate.review ?? {}) };
+  const legacyDefault = legacyBowlingTypeFaced(review.bowlerType);
   const deliveries = Array.isArray(candidate.deliveries)
-    ? candidate.deliveries.map((delivery) => ({
-        ...delivery,
-        shotFootwork: shotFootworkFor(delivery),
-        ...normalizeDeliveryShotMetadata(delivery),
-      }))
+    ? candidate.deliveries.map((delivery) => {
+        return {
+          ...delivery,
+          ...normalizeDeliveryBowlingTypeFaced(delivery, legacyDefault),
+          shotFootwork: shotFootworkFor(delivery),
+          ...normalizeDeliveryShotMetadata(delivery),
+        };
+      })
     : [];
   const labels = Array.isArray(candidate.labels)
     ? candidate.labels.map((label) => {
@@ -417,7 +476,6 @@ function hydrateDocument(value: unknown, fps?: number): AnnotationDocument {
         };
       })
     : [];
-  const review = { ...fallback.review, ...(candidate.review ?? {}) };
   return {
     schemaVersion: "amp-labels-long-v1",
     deliveries,
@@ -440,6 +498,9 @@ async function sha256(file: File) {
 export function LabelLab({ onExit }: { onExit?: () => void | Promise<void> }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const deleteDialogRef = useRef<HTMLDialogElement>(null);
+  const deleteConfirmationRef = useRef<HTMLInputElement>(null);
+  const deleteInFlightRef = useRef(false);
   const [projects, setProjects] = useState<VideoProject[]>([]);
   const [project, setProject] = useState<VideoProject | null>(null);
   const [document, setDocument] = useState<AnnotationDocument>(emptyDocument);
@@ -457,6 +518,11 @@ export function LabelLab({ onExit }: { onExit?: () => void | Promise<void> }) {
   const [isLoading, setIsLoading] = useState(true);
   const [isUploading, setIsUploading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [retryingDeletionId, setRetryingDeletionId] = useState("");
+  const [reportPendingDeletion, setReportPendingDeletion] = useState<VideoProject | null>(null);
+  const [deleteConfirmation, setDeleteConfirmation] = useState("");
+  const [deleteError, setDeleteError] = useState("");
   const [dirty, setDirty] = useState(false);
   const [notice, setNotice] = useState("");
   const [error, setError] = useState("");
@@ -466,6 +532,11 @@ export function LabelLab({ onExit }: { onExit?: () => void | Promise<void> }) {
     message: string;
   } | null>(null);
 
+  const selectedDelivery =
+    document.deliveries.find((delivery) => delivery.id === selectedDeliveryId) ??
+    document.deliveries[0];
+  const activeDeliveryId = selectedDelivery?.id ?? "";
+  const activeBattingMode = bowlingTypeFacedFor(selectedDelivery);
   const rubric = useMemo(
     () => getRubric(
       project?.discipline ?? uploadForm.discipline,
@@ -473,7 +544,7 @@ export function LabelLab({ onExit }: { onExit?: () => void | Promise<void> }) {
       {
         ageGroup: project?.ageGroup ?? uploadForm.ageGroup,
         battingMode: project
-          ? document.review.bowlerType || "pace"
+          ? activeBattingMode ?? "pace"
           : uploadForm.battingMode,
         tier: project
           ? ["foundation", "development", "performance"].includes(document.review.rubricTier)
@@ -484,8 +555,8 @@ export function LabelLab({ onExit }: { onExit?: () => void | Promise<void> }) {
       },
     ),
     [
-      document.review.bowlerType,
       document.review.rubricTier,
+      activeBattingMode,
       project,
       uploadForm.ageGroup,
       uploadForm.battingMode,
@@ -494,13 +565,21 @@ export function LabelLab({ onExit }: { onExit?: () => void | Promise<void> }) {
       uploadForm.sex,
     ],
   );
+  const rubricRouting = useMemo(
+    () => project?.discipline === "batting"
+      ? battingRubricRouting(project.sex, {
+          ageGroup: project.ageGroup,
+          tier: ["foundation", "development", "performance"].includes(document.review.rubricTier)
+            ? document.review.rubricTier as KpiTier
+            : undefined,
+          rubricVersion: project.rubricVersion,
+        })
+      : undefined,
+    [document.review.rubricTier, project],
+  );
   const supportedKpis = rubric.kpis.filter((kpi) =>
     supportsAngle(kpi, project?.cameraAngle ?? uploadForm.cameraAngle),
   );
-  const selectedDelivery =
-    document.deliveries.find((delivery) => delivery.id === selectedDeliveryId) ??
-    document.deliveries[0];
-  const activeDeliveryId = selectedDelivery?.id ?? "";
   const selectedKpi =
     supportedKpis.find((kpi) => kpi.id === selectedKpiId) ??
     supportedKpis[0] ??
@@ -525,9 +604,9 @@ export function LabelLab({ onExit }: { onExit?: () => void | Promise<void> }) {
   const score = useMemo(
     () =>
       project
-        ? scoreDocument(document, rubric, project.cameraAngle)
+        ? scoreDocument(document, rubric, project.cameraAngle, rubricRouting)
         : { score10: null, score100: null, coveragePct: 0, visibleCells: 0, expectedCells: 0, activeWeight: 0 },
-    [document, project, rubric],
+    [document, project, rubric, rubricRouting],
   );
   const issues = useMemo(
     () =>
@@ -538,10 +617,10 @@ export function LabelLab({ onExit }: { onExit?: () => void | Promise<void> }) {
             project.cameraAngle,
             project.durationMs,
             project.fps,
-            project.discipline,
+            rubricRouting ?? project.discipline,
           )
         : [],
-    [document, project, rubric],
+    [document, project, rubric, rubricRouting],
   );
   const blockers = issues.filter((issue) => issue.severity === "blocker");
   const warnings = issues.filter((issue) => issue.severity === "warning");
@@ -624,6 +703,17 @@ export function LabelLab({ onExit }: { onExit?: () => void | Promise<void> }) {
     return () => window.removeEventListener("keydown", handler);
   }, [project]);
 
+  useEffect(() => {
+    const dialog = deleteDialogRef.current;
+    if (!reportPendingDeletion || !dialog) return;
+    if (!dialog.open) dialog.showModal();
+    deleteConfirmationRef.current?.focus();
+
+    return () => {
+      if (dialog.open) dialog.close();
+    };
+  }, [reportPendingDeletion]);
+
   const loadProject = useCallback(
     async (id: string) => {
       if (dirty && !window.confirm("Discard unsaved changes and open another project?")) return;
@@ -643,9 +733,10 @@ export function LabelLab({ onExit }: { onExit?: () => void | Promise<void> }) {
         );
         setDocument(nextDocument);
         setSelectedDeliveryId(nextDocument.deliveries[0]?.id ?? "");
+        const firstDeliveryMode = bowlingTypeFacedFor(nextDocument.deliveries[0]);
         const nextRubric = getRubric(payload.video.discipline, payload.video.sex, {
           ageGroup: payload.video.ageGroup,
-          battingMode: nextDocument.review.bowlerType || "pace",
+          battingMode: firstDeliveryMode ?? legacyBowlingTypeFaced(nextDocument.review.bowlerType) ?? "pace",
           tier: ["foundation", "development", "performance"].includes(nextDocument.review.rubricTier)
             ? nextDocument.review.rubricTier as KpiTier
             : undefined,
@@ -686,6 +777,131 @@ export function LabelLab({ onExit }: { onExit?: () => void | Promise<void> }) {
   function exitLab() {
     if (dirty && !window.confirm("Leave Label Lab with unsaved changes?")) return;
     void onExit?.();
+  }
+
+  function requestReportDeletion() {
+    if (!project || isSaving || isDeleting) return;
+    setDeleteConfirmation("");
+    setDeleteError("");
+    setReportPendingDeletion(project);
+  }
+
+  async function retryPendingDeletion(target: VideoProject) {
+    if (retryingDeletionId || isDeleting) return;
+    setRetryingDeletionId(target.id);
+    setError("");
+    try {
+      const response = await fetch(
+        `/labelling/api/videos/${encodeURIComponent(target.id)}`,
+        {
+          method: "DELETE",
+          headers: { "X-AMP-Lab-CSRF": "1" },
+        },
+      );
+      const payload = (await response.json().catch(() => null)) as {
+        ok?: boolean;
+        error?: string;
+        detail?: string;
+      } | null;
+      if (!response.ok || (response.status !== 204 && payload?.ok !== true)) {
+        throw new Error(
+          payload?.error ?? payload?.detail ?? "Could not finish deleting this report.",
+        );
+      }
+      setProjects((current) => current.filter((item) => item.id !== target.id));
+      setNotice("Pending report deletion completed.");
+    } catch (caught) {
+      try {
+        await fetchProjects();
+      } catch {
+        // Keep the pending card already in memory when list refresh also fails.
+      }
+      setError(
+        caught instanceof Error
+          ? caught.message
+          : "Could not finish deleting this report.",
+      );
+    } finally {
+      setRetryingDeletionId("");
+    }
+  }
+
+  function cancelReportDeletion() {
+    if (deleteInFlightRef.current) return;
+    setReportPendingDeletion(null);
+    setDeleteConfirmation("");
+    setDeleteError("");
+  }
+
+  async function deleteReport() {
+    const target = reportPendingDeletion;
+    if (
+      !target ||
+      deleteInFlightRef.current ||
+      deleteConfirmation !== DELETE_REPORT_CONFIRMATION
+    ) return;
+
+    deleteInFlightRef.current = true;
+    setIsDeleting(true);
+    setDeleteError("");
+    try {
+      const response = await fetch(
+        `/labelling/api/videos/${encodeURIComponent(target.id)}`,
+        {
+          method: "DELETE",
+          headers: { "X-AMP-Lab-CSRF": "1" },
+        },
+      );
+      const payload = (await response.json().catch(() => null)) as {
+        ok?: boolean;
+        deleted?: boolean;
+        error?: string;
+        detail?: string;
+      } | null;
+      if (
+        !response.ok ||
+        (response.status !== 204 && payload?.ok !== true)
+      ) {
+        throw new Error(
+          payload?.error ?? payload?.detail ?? "Could not delete this report.",
+        );
+      }
+
+      const video = videoRef.current;
+      if (video) {
+        video.pause();
+        video.removeAttribute("src");
+        video.load();
+      }
+      setProjects((current) => current.filter((item) => item.id !== target.id));
+      setProject(null);
+      setDocument(emptyDocument());
+      setStep("setup");
+      setSelectedDeliveryId("");
+      setSelectedKpiId("");
+      setKpiSearch("");
+      setCurrentMs(0);
+      setPrecisionAnchorMs(0);
+      setTimecodeDraft(null);
+      setEvidenceCaptureError(null);
+      setDirty(false);
+      setError("");
+      setNotice("Report deleted. Choose another report from the project list or create a new one.");
+      setReportPendingDeletion(null);
+      setDeleteConfirmation("");
+    } catch (caught) {
+      setDeleteError(
+        caught instanceof Error ? caught.message : "Could not delete this report.",
+      );
+      try {
+        await fetchProjects();
+      } catch {
+        // Keep the deletion error visible; a later reload can retry the list.
+      }
+    } finally {
+      deleteInFlightRef.current = false;
+      setIsDeleting(false);
+    }
   }
 
   function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
@@ -818,6 +1034,7 @@ export function LabelLab({ onExit }: { onExit?: () => void | Promise<void> }) {
       endMs: Math.min(project.durationMs, Math.round(anchor + 1200)),
       outcome: "",
       note: "",
+      bowlingTypeFaced: project.discipline === "batting" ? null : undefined,
       shotType: null,
       shotTypeOther: "",
     };
@@ -859,6 +1076,25 @@ export function LabelLab({ onExit }: { onExit?: () => void | Promise<void> }) {
           : delivery,
       ),
     }));
+  }
+
+  function updateDeliveryBowlingType(id: string, bowlingTypeFaced: BattingMode | null) {
+    updateDelivery(id, {
+      bowlingTypeFaced,
+      bowlingTypeFacedSource: bowlingTypeFaced ? "delivery" : undefined,
+    });
+    if (!project) return;
+    const nextRubric = getRubric(project.discipline, project.sex, {
+      ageGroup: project.ageGroup,
+      battingMode: bowlingTypeFaced ?? "pace",
+      tier: ["foundation", "development", "performance"].includes(document.review.rubricTier)
+        ? document.review.rubricTier as KpiTier
+        : undefined,
+      rubricVersion: project.rubricVersion,
+    });
+    setSelectedKpiId(
+      nextRubric.kpis.find((kpi) => supportsAngle(kpi, project.cameraAngle))?.id ?? "",
+    );
   }
 
   function removeDelivery(delivery: Delivery) {
@@ -1069,7 +1305,7 @@ export function LabelLab({ onExit }: { onExit?: () => void | Promise<void> }) {
       setStep("review");
       return;
     }
-    const csv = buildLabelsCsv(project, document, rubric);
+    const csv = buildLabelsCsv(project, document, rubric, rubricRouting);
     const blob = new Blob(["\uFEFF", csv], { type: "text/csv;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const anchor = window.document.createElement("a");
@@ -1265,18 +1501,6 @@ export function LabelLab({ onExit }: { onExit?: () => void | Promise<void> }) {
               <option value="legspin">Leg-spin bowling</option>
             </select>
           </label>
-          {uploadForm.discipline === "batting" && (
-            <label className="field">
-              <span>Bowling faced</span>
-              <select
-                value={uploadForm.battingMode}
-                onChange={(event) => setUploadForm({ ...uploadForm, battingMode: event.target.value as BattingMode })}
-              >
-                <option value="pace">Pace</option>
-                <option value="spin">Spin</option>
-              </select>
-            </label>
-          )}
           <label className="field">
             <span>Camera angle</span>
             <select
@@ -1374,18 +1598,6 @@ export function LabelLab({ onExit }: { onExit?: () => void | Promise<void> }) {
               {project.discipline === "spin" && <option value="spin">Spin bowling · legacy</option>}
             </select>
           </label>
-          {project.discipline === "batting" && (
-            <label className="field">
-              <span>Bowling faced</span>
-              <select
-                value={document.review.bowlerType || "pace"}
-                onChange={(event) => updateReview("bowlerType", event.target.value)}
-              >
-                <option value="pace">Pace</option>
-                <option value="spin">Spin</option>
-              </select>
-            </label>
-          )}
           <label className="field">
             <span>Camera angle</span>
             <select value={project.cameraAngle} onChange={(event) => updateProject("cameraAngle", event.target.value as CameraAngle)}>
@@ -1502,6 +1714,11 @@ export function LabelLab({ onExit }: { onExit?: () => void | Promise<void> }) {
                   <strong>{formatTime(delivery.startMs)} → {formatTime(delivery.endMs)}</strong>
                   <small>{eventName(project.discipline)} at {formatTime(delivery.eventMs)}</small>
                   {project.discipline === "batting" && (
+                    <small className={bowlingTypeFacedFor(delivery) ? "bowling-faced-recorded" : "bowling-faced-missing"}>
+                      Bowling: {bowlingTypeFacedFor(delivery) === "pace" ? "Pace" : bowlingTypeFacedFor(delivery) === "spin" ? "Spin" : "Not selected"}
+                    </small>
+                  )}
+                  {project.discipline === "batting" && (
                     <small className={shotTypeFor(delivery) ? "shot-type-recorded" : "shot-type-missing"}>
                       Shot: {shotTypeLabel(shotTypeFor(delivery))}
                     </small>
@@ -1531,6 +1748,12 @@ export function LabelLab({ onExit }: { onExit?: () => void | Promise<void> }) {
                 <button type="button" className="seek-button" onClick={() => seek(selectedDelivery[field])}>↗</button>
               </div>
             ))}
+            {project.discipline === "batting" && (
+              <BowlingTypeFacedField
+                delivery={selectedDelivery}
+                onChange={(value) => updateDeliveryBowlingType(selectedDelivery.id, value)}
+              />
+            )}
             {project.discipline === "batting" && (
               <ShotTypeField
                 delivery={selectedDelivery}
@@ -1574,6 +1797,13 @@ export function LabelLab({ onExit }: { onExit?: () => void | Promise<void> }) {
           <button type="button" className="edit-segments" onClick={() => setStep("segment")}>Edit</button>
         </div>
         {selectedDelivery && project.discipline === "batting" && (
+          <BowlingTypeFacedField
+            delivery={selectedDelivery}
+            compact
+            onChange={(value) => updateDeliveryBowlingType(selectedDelivery.id, value)}
+          />
+        )}
+        {selectedDelivery && project.discipline === "batting" && (
           <ShotTypeField
             delivery={selectedDelivery}
             compact
@@ -1601,6 +1831,11 @@ export function LabelLab({ onExit }: { onExit?: () => void | Promise<void> }) {
         <div className="kpi-browser-heading">
           <span className="section-number">{rubric.label}</span>
           <h3>Observable KPIs</h3>
+          {selectedDelivery && project.discipline === "batting" && (
+            <p className={`delivery-route-chip ${activeBattingMode ? "" : "delivery-route-chip--missing"}`}>
+              D{selectedDelivery.index} route · {activeBattingMode === "pace" ? "Pace" : activeBattingMode === "spin" ? "Spin" : "Choose bowling faced"}
+            </p>
+          )}
           {selectedDelivery && rubricHasFootworkSpecificKpis && (
             <p className="kpi-applicability-summary">
               <strong>{assessableKpiCount}</strong> of {supportedKpis.length} assessable for D{selectedDelivery.index} · {shotFootworkLabel(shotFootworkFor(selectedDelivery))}
@@ -1658,7 +1893,7 @@ export function LabelLab({ onExit }: { onExit?: () => void | Promise<void> }) {
               <div className="kpi-meta"><span>{selectedKpi.group}</span><span>{selectedKpi.weight}% weight</span><span>{selectedKpi.evidenceType.replaceAll("_", " ")}</span></div>
             </div>
             {selectedKpi.scope === "clip" && (
-              <div className="clip-scope-note"><strong>Clip-level comparison</strong><span>Use all {document.deliveries.length} deliveries. This score is exported once, not copied onto every ball.</span></div>
+              <div className="clip-scope-note"><strong>Clip-level comparison</strong><span>Use at least three same-mode deliveries ({activeBattingMode ?? "the selected route"}). This score exports once for that Pace or Spin route.</span></div>
             )}
             {!selectedKpiAssessability.assessable && (
               <div className="applicability-callout" role="status">
@@ -1821,7 +2056,7 @@ export function LabelLab({ onExit }: { onExit?: () => void | Promise<void> }) {
           <div className="metric-card metric-card--hero"><span>Derived technique score</span><strong>{score.activeWeight >= MIN_RATING_WEIGHT_PCT && score.score10 !== null ? score.score10.toFixed(2) : "Suppressed"}</strong><small>{score.activeWeight >= MIN_RATING_WEIGHT_PCT ? "out of 10 · deterministic weighted mean" : "low-confidence coverage below workbook threshold"}</small></div>
           <div className="metric-card"><span>Label coverage</span><strong>{score.coveragePct.toFixed(0)}%</strong><small>{score.visibleCells} of {score.expectedCells} cells assessed</small></div>
           <div className="metric-card"><span>Observable weight</span><strong>{score.activeWeight}%</strong><small>after visibility decisions</small></div>
-          <div className="metric-card"><span>Deliveries</span><strong>{document.deliveries.length}</strong><small>{document.deliveries.length >= 3 ? "consistency eligible" : "minimum 3 for consistency"}</small></div>
+          <div className="metric-card"><span>Deliveries</span><strong>{document.deliveries.length}</strong><small>clip KPIs require 3 same-mode deliveries</small></div>
         </div>
         <div className="qa-card">
           <div className="qa-heading"><div><span className="section-number">Dataset gates</span><h3>{issues.length ? "Items that need attention" : "All checks passed"}</h3></div><div className="qa-counts"><span>{blockers.length} blockers</span><span>{warnings.length} warnings</span></div></div>
@@ -1854,6 +2089,19 @@ export function LabelLab({ onExit }: { onExit?: () => void | Promise<void> }) {
           <button className="primary-button primary-button--full primary-button--light" type="button" onClick={() => exportCsv(false)} disabled={Boolean(blockers.length)}>Export validated CSV</button>
         </div>
         <div className="safety-note"><strong>Not a medical diagnosis</strong><span>Injury markers belong in a separate dual-reviewed screen and must never be interpreted as clearance to play.</span></div>
+        <div className="report-management">
+          <span>Report management</span>
+          <strong>Delete this report</strong>
+          <p>Permanently removes the stored video, deliveries and every saved label.</p>
+          <button
+            className="danger-button"
+            type="button"
+            onClick={requestReportDeletion}
+            disabled={isSaving || isDeleting}
+          >
+            Delete report…
+          </button>
+        </div>
       </aside>
     </section>
   );
@@ -1875,7 +2123,24 @@ export function LabelLab({ onExit }: { onExit?: () => void | Promise<void> }) {
           <div className="project-list">
             {isLoading && projects.length === 0 && <div className="rail-loading">Loading projects…</div>}
             {!isLoading && projects.length === 0 && <div className="rail-empty">Your uploaded clips will appear here.</div>}
-            {projects.map((item) => (
+            {projects.map((item) => item.status === "deleting" ? (
+              <div className="project-card project-card--deleting" key={item.id}>
+                <span className="project-thumb"><i>…</i></span>
+                <span>
+                  <strong>{item.playerRef}</strong>
+                  <small>{item.filename}</small>
+                  <em>Deletion pending</em>
+                  <button
+                    type="button"
+                    className="retry-delete-button"
+                    onClick={() => void retryPendingDeletion(item)}
+                    disabled={Boolean(retryingDeletionId)}
+                  >
+                    {retryingDeletionId === item.id ? "Retrying…" : "Retry deletion"}
+                  </button>
+                </span>
+              </div>
+            ) : (
               <button type="button" key={item.id} className={`project-card ${project?.id === item.id ? "project-card--active" : ""}`} onClick={() => void loadProject(item.id)}>
                 <span className="project-thumb"><i>{item.discipline === "batting" ? "BT" : item.discipline === "pace" ? "PC" : item.discipline === "legspin" ? "LS" : item.discipline === "offspin" ? "OS" : "SP"}</i></span>
                 <span><strong>{item.playerRef}</strong><small>{item.filename}</small><em>{item.cameraAngle} · {item.status}</em></span>
@@ -1906,6 +2171,67 @@ export function LabelLab({ onExit }: { onExit?: () => void | Promise<void> }) {
           {project && step === "review" && reviewView}
         </main>
       </div>
+      {reportPendingDeletion && (
+        <dialog
+          ref={deleteDialogRef}
+          className="delete-report-dialog"
+          aria-labelledby="delete-report-title"
+          aria-describedby="delete-report-description"
+          aria-modal="true"
+          onCancel={(event) => {
+            event.preventDefault();
+            cancelReportDeletion();
+          }}
+        >
+          <form
+            className="delete-report-form"
+            onSubmit={(event) => {
+              event.preventDefault();
+              void deleteReport();
+            }}
+          >
+            <span className="delete-report-eyebrow">Permanent action</span>
+            <h2 id="delete-report-title">Delete this report?</h2>
+            <p id="delete-report-description">
+              This permanently deletes <strong>{reportPendingDeletion.playerRef} — {reportPendingDeletion.filename}</strong>, its stored video and all labels. It cannot be undone.
+            </p>
+            {dirty && (
+              <p className="delete-unsaved-warning">
+                This report also has unsaved changes. They will be discarded with the saved report.
+              </p>
+            )}
+            <label className="field delete-confirmation-field">
+              <span>Type <code>{DELETE_REPORT_CONFIRMATION}</code> to confirm</span>
+              <input
+                ref={deleteConfirmationRef}
+                value={deleteConfirmation}
+                onChange={(event) => setDeleteConfirmation(event.target.value)}
+                autoComplete="off"
+                spellCheck={false}
+                disabled={isDeleting}
+              />
+            </label>
+            {deleteError && <p className="delete-report-error" role="alert">{deleteError}</p>}
+            <div className="delete-report-actions">
+              <button
+                className="secondary-button"
+                type="button"
+                onClick={cancelReportDeletion}
+                disabled={isDeleting}
+              >
+                Keep report
+              </button>
+              <button
+                className="danger-button danger-button--confirm"
+                type="submit"
+                disabled={isDeleting || deleteConfirmation !== DELETE_REPORT_CONFIRMATION}
+              >
+                {isDeleting ? "Deleting…" : "Permanently delete"}
+              </button>
+            </div>
+          </form>
+        </dialog>
+      )}
     </div>
   );
 }

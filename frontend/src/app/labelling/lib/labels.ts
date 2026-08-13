@@ -1,9 +1,13 @@
 import {
+  type AthleteSex,
+  type BattingMode,
+  type BattingModeRubrics,
   type CameraAngle,
   type Discipline,
   type KpiDefinition,
   type Rubric,
   eventName,
+  getBattingModeRubrics,
   supportsAngle,
 } from "./rubric";
 import {
@@ -55,6 +59,9 @@ export type {
 };
 
 export type Visibility = "visible" | "occluded" | "low_quality" | "uncertain" | "not_applicable";
+export const BOWLING_TYPE_FACED_VALUES = ["pace", "spin"] as const;
+export type BowlingTypeFaced = BattingMode;
+export type BowlingTypeFacedSource = "delivery" | "legacy_review_fallback";
 
 export interface DeliveryLabel {
   id: string;
@@ -81,8 +88,15 @@ export interface Delivery {
   outcome: string;
   note: string;
   shotFootwork?: ShotFootwork | null;
+  bowlingTypeFaced?: BowlingTypeFaced | null;
+  bowlingTypeFacedSource?: BowlingTypeFacedSource;
   shotType?: ShotType | null;
   shotTypeOther?: string;
+}
+
+export interface LabelRubricRouting {
+  discipline?: Discipline;
+  battingRubrics?: Partial<BattingModeRubrics>;
 }
 
 export interface ReviewState {
@@ -168,7 +182,122 @@ export function getLabel(
   );
 }
 
-export function scoreDocument(
+export function normalizeBowlingTypeFaced(value: unknown): BowlingTypeFaced | null {
+  return BOWLING_TYPE_FACED_VALUES.includes(value as BowlingTypeFaced)
+    ? (value as BowlingTypeFaced)
+    : null;
+}
+
+export function normalizeDeliveryBowlingTypeFaced(
+  delivery: Pick<Delivery, "bowlingTypeFaced" | "bowlingTypeFacedSource">,
+  legacyReviewValue?: unknown,
+) {
+  const hasExplicitValue = Object.prototype.hasOwnProperty.call(
+    delivery,
+    "bowlingTypeFaced",
+  );
+  const bowlingTypeFaced = hasExplicitValue
+    ? normalizeBowlingTypeFaced(delivery.bowlingTypeFaced)
+    : normalizeBowlingTypeFaced(legacyReviewValue);
+  return {
+    bowlingTypeFaced,
+    bowlingTypeFacedSource: bowlingTypeFaced
+      ? delivery.bowlingTypeFacedSource === "legacy_review_fallback"
+        ? "legacy_review_fallback" as const
+        : hasExplicitValue
+          ? "delivery" as const
+          : "legacy_review_fallback" as const
+      : undefined,
+  };
+}
+
+interface RoutedRubricContext {
+  rubric: Rubric;
+  bowlingTypeFaced: BowlingTypeFaced | null;
+  deliveries: Delivery[];
+  includeClip: boolean;
+  unresolvedBowlingType: boolean;
+}
+
+function routedRubricContexts(
+  document: AnnotationDocument,
+  fallbackRubric: Rubric,
+  routing?: LabelRubricRouting,
+): RoutedRubricContext[] {
+  if (routing?.discipline !== "batting" || !routing.battingRubrics) {
+    return [
+      {
+        rubric: fallbackRubric,
+        bowlingTypeFaced: null,
+        deliveries: document.deliveries,
+        includeClip: true,
+        unresolvedBowlingType: false,
+      },
+    ];
+  }
+
+  const paceRubric = routing.battingRubrics.pace;
+  const spinRubric = routing.battingRubrics.spin;
+  const sharedRubric =
+    paceRubric && spinRubric && paceRubric.id === spinRubric.id
+      ? paceRubric
+      : null;
+  const unresolvedDeliveries = document.deliveries.filter(
+    (delivery) => !normalizeBowlingTypeFaced(delivery.bowlingTypeFaced),
+  );
+
+  // Foundation, Development and legacy projects genuinely share one route for
+  // both pace and spin. One active Performance mode is not evidence of a shared route.
+  if (sharedRubric) {
+    return [
+      {
+        rubric: sharedRubric,
+        bowlingTypeFaced: null,
+        deliveries: document.deliveries,
+        includeClip: true,
+        unresolvedBowlingType: false,
+      },
+    ];
+  }
+
+  const activeModes = BOWLING_TYPE_FACED_VALUES.filter((mode) =>
+    document.deliveries.some((delivery) => delivery.bowlingTypeFaced === mode),
+  );
+  const selected = activeModes
+    .map((mode) => ({ mode, rubric: routing.battingRubrics?.[mode] }))
+    .filter(
+      (entry): entry is { mode: BowlingTypeFaced; rubric: Rubric } => Boolean(entry.rubric),
+    );
+  const contexts: RoutedRubricContext[] = selected.map(({ mode, rubric }) => ({
+    rubric,
+    bowlingTypeFaced: mode,
+    deliveries: document.deliveries.filter((delivery) => delivery.bowlingTypeFaced === mode),
+    includeClip: true,
+    unresolvedBowlingType: false,
+  }));
+  if (unresolvedDeliveries.length > 0) {
+    contexts.push({
+      rubric: fallbackRubric,
+      bowlingTypeFaced: null,
+      deliveries: unresolvedDeliveries,
+      includeClip: false,
+      unresolvedBowlingType: true,
+    });
+  }
+  return contexts;
+}
+
+export function battingRubricRouting(
+  sex: AthleteSex,
+  options: Parameters<typeof getBattingModeRubrics>[1] = {},
+): LabelRubricRouting {
+  return {
+    discipline: "batting",
+    battingRubrics: getBattingModeRubrics(sex, options),
+  };
+}
+
+function scoreSingleRubric(
   document: AnnotationDocument,
   rubric: Rubric,
   angle: CameraAngle,
@@ -215,13 +344,104 @@ export function scoreDocument(
   };
 }
 
-export function validateDocument(
+export function scoreDocument(
+  document: AnnotationDocument,
+  rubric: Rubric,
+  angle: CameraAngle,
+  routing?: LabelRubricRouting,
+): ScoreSummary {
+  const contexts = routedRubricContexts(document, rubric, routing);
+  if (
+    contexts.length === 1 &&
+    contexts[0].bowlingTypeFaced === null &&
+    !contexts[0].unresolvedBowlingType
+  ) {
+    const resolvedDeliveries = routing?.discipline === "batting"
+      ? document.deliveries.filter((delivery) => delivery.bowlingTypeFaced)
+      : document.deliveries;
+    const clipKpiIds = new Set(
+      contexts[0].rubric.kpis
+        .filter((kpi) => kpi.scope === "clip")
+        .map((kpi) => kpi.id),
+    );
+    const resolvedDocument = {
+      ...document,
+      deliveries: resolvedDeliveries,
+      labels:
+        routing?.discipline === "batting" && resolvedDeliveries.length < 3
+          ? document.labels.filter((label) => !clipKpiIds.has(label.kpiId))
+          : document.labels,
+    };
+    return scoreSingleRubric(resolvedDocument, contexts[0].rubric, angle);
+  }
+
+  const scoringContexts = contexts.filter(
+    (context) => !context.unresolvedBowlingType,
+  );
+  const summaries = scoringContexts.map((context) =>
+    scoreSingleRubric(
+      {
+        ...document,
+        deliveries: context.deliveries,
+        labels:
+          context.deliveries.length < 3
+            ? document.labels.filter(
+                (label) =>
+                  !context.rubric.kpis.some(
+                    (kpi) => kpi.scope === "clip" && kpi.id === label.kpiId,
+                  ),
+              )
+            : document.labels,
+      },
+      context.rubric,
+      angle,
+    ),
+  );
+  const summedActiveWeight = summaries.reduce(
+    (total, summary) => total + summary.activeWeight,
+    0,
+  );
+  const expectedCells = summaries.reduce(
+    (total, summary) => total + summary.expectedCells,
+    0,
+  );
+  const visibleCells = summaries.reduce(
+    (total, summary) => total + summary.visibleCells,
+    0,
+  );
+  const weightedScore = summaries.reduce(
+    (total, summary) =>
+      total +
+      (summary.score10 === null ? 0 : summary.score10 * summary.activeWeight),
+    0,
+  );
+  const mixedModes = scoringContexts.length > 1;
+  const activeWeight = mixedModes
+    ? summedActiveWeight / scoringContexts.length
+    : summedActiveWeight;
+  const score10 =
+    mixedModes || !summedActiveWeight
+      ? null
+      : weightedScore / summedActiveWeight;
+  return {
+    score10,
+    score100: score10 === null ? null : score10 * 10,
+    coveragePct: expectedCells ? (visibleCells / expectedCells) * 100 : 0,
+    visibleCells,
+    expectedCells,
+    activeWeight,
+  };
+}
+
+function validateSingleRubric(
   document: AnnotationDocument,
   rubric: Rubric,
   angle: CameraAngle,
   durationMs: number,
   fps?: number,
   discipline?: Discipline,
+  clipEvidenceDeliveries?: Delivery[],
+  bowlingTypeFaced?: BowlingTypeFaced | null,
 ): QualityIssue[] {
   const issues: QualityIssue[] = [];
   if (!document.review.annotator.trim()) {
@@ -264,9 +484,13 @@ export function validateDocument(
   }
   if (document.deliveries.length < 3 && rubric.kpis.some((kpi) => kpi.scope === "clip")) {
     issues.push({
-      id: "consistency-minimum",
+      id: bowlingTypeFaced
+        ? `consistency-minimum-${bowlingTypeFaced}`
+        : "consistency-minimum",
       severity: "blocker",
-      message: "Add at least three deliveries before scoring consistency KPIs.",
+      message: bowlingTypeFaced
+        ? `Add at least three ${bowlingTypeFaced} deliveries before scoring ${bowlingTypeFaced} consistency KPIs.`
+        : "Add at least three deliveries before scoring consistency KPIs.",
     });
   }
 
@@ -393,10 +617,15 @@ export function validateDocument(
             kpiId: kpi.id,
           });
         } else if (
-          evidenceTimestamps.some(
-            (timestampMs) =>
-              timestampMs < target.startMs || timestampMs > target.endMs,
-          )
+          evidenceTimestamps.some((timestampMs) => {
+            if (kpi.scope === "clip" && clipEvidenceDeliveries) {
+              return !clipEvidenceDeliveries.some(
+                (delivery) =>
+                  timestampMs >= delivery.startMs && timestampMs <= delivery.endMs,
+              );
+            }
+            return timestampMs < target.startMs || timestampMs > target.endMs;
+          })
         ) {
           issues.push({
             id: `evidence-range-${target.id}-${kpi.id}`,
@@ -435,7 +664,7 @@ export function validateDocument(
     }
   }
 
-  const score = scoreDocument(document, rubric, angle);
+  const score = scoreSingleRubric(document, rubric, angle);
   if (score.activeWeight < MIN_RATING_WEIGHT_PCT) {
     issues.push({
       id: "coverage-policy",
@@ -445,6 +674,65 @@ export function validateDocument(
   }
 
   return issues;
+}
+
+export function validateDocument(
+  document: AnnotationDocument,
+  rubric: Rubric,
+  angle: CameraAngle,
+  durationMs: number,
+  fps?: number,
+  disciplineOrRouting?: Discipline | LabelRubricRouting,
+): QualityIssue[] {
+  const routing = typeof disciplineOrRouting === "object" ? disciplineOrRouting : undefined;
+  const discipline = typeof disciplineOrRouting === "string"
+    ? disciplineOrRouting
+    : routing?.discipline;
+  const bowlingTypeIssues = discipline === "batting"
+    ? document.deliveries
+        .filter((delivery) => !normalizeBowlingTypeFaced(delivery.bowlingTypeFaced))
+        .map((delivery): QualityIssue => ({
+          id: `bowling-type-faced-${delivery.id}`,
+          severity: "blocker",
+          message: `Delivery ${delivery.index} needs a human Pace or Spin bowling-faced choice.`,
+          deliveryId: delivery.id,
+        }))
+    : [];
+  const contexts = routedRubricContexts(document, rubric, routing);
+  if (
+    contexts.length === 1 &&
+    contexts[0].bowlingTypeFaced === null &&
+    !contexts[0].unresolvedBowlingType
+  ) {
+    return [
+      ...bowlingTypeIssues,
+      ...validateSingleRubric(
+        document,
+        contexts[0]?.rubric ?? rubric,
+        angle,
+        durationMs,
+        fps,
+        discipline,
+      ),
+    ];
+  }
+  const routedIssues = contexts
+    .filter((context) => !context.unresolvedBowlingType)
+    .flatMap((context) =>
+      validateSingleRubric(
+        { ...document, deliveries: context.deliveries },
+        context.rubric,
+        angle,
+        durationMs,
+        fps,
+        discipline,
+        context.deliveries,
+        context.bowlingTypeFaced,
+      ),
+    );
+  return [
+    ...new Map([...bowlingTypeIssues, ...routedIssues].map((issue) => [issue.id, issue])).values(),
+  ];
 }
 
 export const LABELS_CSV_SCHEMA_VERSION = "amp-training-labels-long-v2";
@@ -553,6 +841,8 @@ export const LABELS_CSV_COLUMNS = [
   "human_subject_focus_description",
   "human_shot_type",
   "human_shot_type_other",
+  "human_bowling_type_faced",
+  "bowling_type_faced_source",
 ] as const;
 
 type LabelsCsvColumn = (typeof LABELS_CSV_COLUMNS)[number];
@@ -636,7 +926,8 @@ export interface CsvProject {
 export function buildLabelsCsv(
   project: CsvProject,
   document: AnnotationDocument,
-  rubric: Rubric,
+  fallbackRubric: Rubric,
+  routing?: LabelRubricRouting,
 ) {
   const canonicalLabelKeys = [
     ...new Set(document.labels.map((label) => labelKey(label.deliveryId, label.kpiId))),
@@ -649,41 +940,47 @@ export function buildLabelsCsv(
     .filter((label): label is DeliveryLabel => Boolean(label));
   const summary = scoreDocument(
     { ...document, labels: canonicalLabels },
-    rubric,
+    fallbackRubric,
     project.cameraAngle,
+    routing,
   );
   const rows: LabelsCsvRow[] = [];
-  const deliveries = [...document.deliveries].sort(
-    (left, right) =>
-      left.index - right.index ||
-      left.startMs - right.startMs ||
-      left.id.localeCompare(right.id),
-  );
   const datasetGroupKey = [project.playerRef, document.review.captureSession]
     .filter(Boolean)
     .join("::");
   const subjectFocus = normalizeSubjectFocusMetadata(document.review);
   const subjectFocusComplete = isSubjectFocusComplete(document.review);
 
-  for (const kpi of rubric.kpis) {
-    const supported = supportsAngle(kpi, project.cameraAngle);
-    const targets =
-      kpi.scope === "clip"
-        ? [{
-            id: "clip",
-            index: "" as const,
-            startMs: "" as const,
-            eventMs: "" as const,
-            endMs: "" as const,
-            outcome: "",
-            note: "",
-            shotFootwork: null,
-            shotType: null,
-            shotTypeOther: "",
-          }]
-        : deliveries;
+  const contexts = routedRubricContexts(document, fallbackRubric, routing);
+  for (const context of contexts) {
+    const rubric = context.rubric;
+    for (const kpi of rubric.kpis) {
+      if (kpi.scope === "clip" && !context.includeClip) continue;
+      const supported = supportsAngle(kpi, project.cameraAngle);
+      const targets =
+        kpi.scope === "clip"
+          ? [{
+              id: "clip",
+              index: "" as const,
+              startMs: "" as const,
+              eventMs: "" as const,
+              endMs: "" as const,
+              outcome: "",
+              note: "",
+              shotFootwork: null,
+              bowlingTypeFaced: context.bowlingTypeFaced,
+              bowlingTypeFacedSource: "delivery" as const,
+              shotType: null,
+              shotTypeOther: "",
+            }]
+          : [...context.deliveries].sort(
+              (left, right) =>
+                left.index - right.index ||
+                left.startMs - right.startMs ||
+                left.id.localeCompare(right.id),
+            );
 
-    for (const target of targets) {
+      for (const target of targets) {
       const label = exportLabel(document.labels, target.id, kpi.id);
       const shot = normalizeDeliveryShotMetadata(target);
       const deliveryShotComplete = isDeliveryShotComplete(
@@ -695,8 +992,16 @@ export function buildLabelsCsv(
         (kpi.scope !== "delivery" || deliveryShotComplete);
       const footworkState = footworkApplicability(kpi, target.shotFootwork);
       const footworkApplicable = isFootworkApplicableForScoring(footworkState);
-      const humanLabelApplicable = supported && footworkApplicable;
-      const visibility = !supported
+      const bowlingTypeMissing = Boolean(
+        routing?.discipline === "batting" &&
+          kpi.scope === "delivery" &&
+          !target.bowlingTypeFaced,
+      );
+      const humanLabelApplicable =
+        supported && footworkApplicable && !bowlingTypeMissing;
+      const visibility = bowlingTypeMissing
+        ? "bowling_type_faced_missing"
+        : !supported
         ? "wrong_angle"
         : footworkState === "excluded_mismatch"
           ? "footwork_mismatch"
@@ -705,8 +1010,9 @@ export function buildLabelsCsv(
             : footworkState === "unresolved_missing"
               ? "footwork_missing"
               : label?.visibility ?? "not_assessed";
-      const nullReason =
-        !supported
+      const nullReason = bowlingTypeMissing
+        ? "Bowling type faced is missing; choose pace or spin before this batting delivery can be routed."
+        : !supported
           ? `Selected ${project.cameraAngle} view is not among the normalized source views: ${kpi.angles.join("|")}`
           : !footworkApplicable
             ? footworkExclusionReason(kpi, footworkState, target.shotFootwork)
@@ -731,17 +1037,33 @@ export function buildLabelsCsv(
         project.fps,
       );
       const humanEvidenceMs = humanEvidenceTimestamps[0] ?? "";
+      const resolvedContextDeliveries = context.deliveries.filter(
+        (delivery) => delivery.bowlingTypeFaced,
+      );
       const evidenceWithinTarget =
-        kpi.scope !== "delivery" ||
-        (typeof target.startMs === "number" &&
-          typeof target.endMs === "number" &&
-          humanEvidenceTimestamps.every(
-            (timestampMs) =>
-              timestampMs >= target.startMs && timestampMs <= target.endMs,
-          ));
+        kpi.scope === "delivery"
+          ? typeof target.startMs === "number" &&
+            typeof target.endMs === "number" &&
+            humanEvidenceTimestamps.every(
+              (timestampMs) =>
+                timestampMs >= target.startMs && timestampMs <= target.endMs,
+            )
+          : routing?.discipline === "batting"
+            ? humanEvidenceTimestamps.every((timestampMs) =>
+                resolvedContextDeliveries.some(
+                  (delivery) =>
+                    timestampMs >= delivery.startMs && timestampMs <= delivery.endMs,
+                ),
+              )
+            : true;
+      const hasClipDeliveryMinimum =
+        kpi.scope !== "clip" ||
+        routing?.discipline !== "batting" ||
+        resolvedContextDeliveries.length >= 3;
       const trainingScoreEligible = Boolean(
         rowContextComplete &&
         humanLabelApplicable &&
+        hasClipDeliveryMinimum &&
         humanScore !== null &&
         humanScore >= 0 &&
         humanScore <= 10 &&
@@ -755,7 +1077,9 @@ export function buildLabelsCsv(
         humanScore !== null && modelScore !== null
           ? Math.abs(humanScore - modelScore)
           : "";
-      const humanLabelState = !supported
+      const humanLabelState = bowlingTypeMissing
+        ? "unresolved_bowling_type_faced"
+        : !supported
         ? "excluded_wrong_angle"
         : footworkState === "excluded_mismatch"
           ? "excluded_footwork_mismatch"
@@ -770,7 +1094,13 @@ export function buildLabelsCsv(
                     ? "human_scored"
                     : "human_score_missing"
                   : "human_null";
-      const trainingRowStatus = !rowContextComplete
+      const trainingRowStatus = bowlingTypeMissing
+        ? "exclude_bowling_type_faced_missing"
+        : kpi.scope === "clip" && !hasClipDeliveryMinimum
+          ? "exclude_insufficient_mode_deliveries"
+          : kpi.scope === "clip" && humanEvidenceTimestamps.length > 0 && !evidenceWithinTarget
+            ? "exclude_evidence_outside_mode_deliveries"
+        : !rowContextComplete
         ? "exclude_incomplete"
         : !supported
           ? "exclude_wrong_angle"
@@ -791,18 +1121,28 @@ export function buildLabelsCsv(
         annotation_schema_version: document.schemaVersion,
         record_id: `${project.id}::${target.id}::${kpi.id}`,
         label_id: label?.id ?? "",
-        rubric_id: rubric.id,
+        rubric_id: context.unresolvedBowlingType ? "" : rubric.id,
         rubric_version: project.rubricVersion,
-        rubric_source: rubric.source,
-        catalog_version: rubric.catalogVersion ?? "",
-        rubric_tier: rubric.tier ?? "",
-        rubric_variant: rubric.variant ?? "",
-        route_key: rubric.routeKey ?? "",
-        source_workbook: kpi.sourceWorkbook ?? rubric.sourceWorkbook ?? "",
+        rubric_source: context.unresolvedBowlingType ? "" : rubric.source,
+        catalog_version: context.unresolvedBowlingType
+          ? ""
+          : rubric.catalogVersion ?? "",
+        rubric_tier: context.unresolvedBowlingType ? "" : rubric.tier ?? "",
+        rubric_variant: context.unresolvedBowlingType
+          ? ""
+          : rubric.variant ?? "",
+        route_key: context.unresolvedBowlingType ? "" : rubric.routeKey ?? "",
+        source_workbook: context.unresolvedBowlingType
+          ? ""
+          : kpi.sourceWorkbook ?? rubric.sourceWorkbook ?? "",
         source_workbook_sha256:
-          kpi.sourceWorkbookSha256 ?? rubric.sourceWorkbookSha256 ?? "",
-        source_sheet: kpi.sourceSheet ?? rubric.sourceSheet ?? "",
-        source_row: kpi.sourceRow ?? "",
+          context.unresolvedBowlingType
+            ? ""
+            : kpi.sourceWorkbookSha256 ?? rubric.sourceWorkbookSha256 ?? "",
+        source_sheet: context.unresolvedBowlingType
+          ? ""
+          : kpi.sourceSheet ?? rubric.sourceSheet ?? "",
+        source_row: context.unresolvedBowlingType ? "" : kpi.sourceRow ?? "",
         video_id: project.id,
         video_sha256: project.sha256,
         filename: project.filename,
@@ -903,8 +1243,19 @@ export function buildLabelsCsv(
           shot.shotType === "other"
             ? shot.shotTypeOther
             : "",
+        human_bowling_type_faced:
+          kpi.scope === "delivery"
+            ? target.bowlingTypeFaced ?? ""
+            : context.bowlingTypeFaced ?? "",
+        bowling_type_faced_source:
+          kpi.scope === "delivery"
+            ? target.bowlingTypeFacedSource ?? (target.bowlingTypeFaced ? "delivery" : "")
+            : context.bowlingTypeFaced
+              ? "delivery_mode_group"
+              : "",
       });
     }
+  }
   }
 
   return [
