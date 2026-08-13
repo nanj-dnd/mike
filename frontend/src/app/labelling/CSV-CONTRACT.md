@@ -68,6 +68,14 @@ Every batting delivery requires an explicit `human_shot_type`. This follows the 
 
 `unclear` is a valid explicit human choice and remains training-eligible when the rest of the row is complete. `other` requires a non-empty `human_shot_type_other` description; the custom field is blank for every other code. Missing shot type, or missing custom text for `other`, blocks review and makes every KPI row for that delivery `exclude_incomplete`. Clip-scoped and non-batting rows leave both shot fields blank. Legacy batting deliveries without shot type still export safely, but remain incomplete until a human labels them. Legacy callers of validation that do not supply a discipline retain the earlier validation behavior.
 
+## Bowling type faced and batting rubric routing
+
+Every batting delivery requires an explicit `human_bowling_type_faced` value of `pace` or `spin`. At Performance tier that choice routes the delivery to the matching source workbook KPI set; a mixed clip therefore exports pace deliveries against the pace route and spin deliveries against the spin route. A mixed-route project does not produce one combined derived video score because those routes have different KPI identities.
+
+Clip-scoped Performance KPIs are also route-specific. A Pace or Spin clip row needs at least three deliveries of that same mode, and every evidence frame must fall inside one of those same-mode delivery segments. Draft rows that fail these checks are retained with `exclude_insufficient_mode_deliveries` or `exclude_evidence_outside_mode_deliveries`, but are not training-score eligible. Unresolved deliveries remain in the CSV without a guessed rubric or route and are excluded until a human chooses Pace or Spin.
+
+`bowling_type_faced_source=delivery` means a human selected the delivery value. During backward-compatible hydration only, a legacy annotation whose delivery does not contain the field may copy a valid session-level `review.bowlerType`; those rows are marked `legacy_review_fallback`. An explicit `null` is preserved as unresolved and is never replaced by the legacy value. Missing bowling type blocks review. The old `bowler_type` column remains in its original position for compatibility but is not authoritative for new delivery labels.
+
 ## Null and uncertainty semantics
 
 - `visibility_status=visible` requires `human_score_0_10`, `human_confidence_1_5`, and evidence time/frame.
@@ -99,4 +107,4 @@ The catalog has nine male routes and 131 unique KPI IDs. Foundation uses explici
 
 ## File format
 
-The browser download is UTF-8 with a BOM for spreadsheet compatibility. Records use RFC-4180 quoting and CRLF row endings; embedded commas, quotes, and line breaks are escaped. Column order is version-locked in `LABELS_CSV_COLUMNS` for v2. The five shot-footwork/multi-evidence fields and the five subject-focus/shot-type fields were appended after the original v2 columns, so every pre-existing column retains its name and ordinal position.
+The browser download is UTF-8 with a BOM for spreadsheet compatibility. Records use RFC-4180 quoting and CRLF row endings; embedded commas, quotes, and line breaks are escaped. Column order is version-locked in `LABELS_CSV_COLUMNS` for v2. The shot-footwork/multi-evidence, subject-focus/shot-type, and bowling-faced routing fields were appended after the original v2 columns, so every pre-existing column retains its name and ordinal position.
