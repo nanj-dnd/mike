@@ -963,8 +963,21 @@ test("clip labels require three same-mode deliveries and same-mode evidence", ()
         paceClipRow.training_row_status,
         "exclude_evidence_outside_mode_deliveries",
     );
+    const outsideModeScore = labels.scoreDocument(
+        document,
+        paceRubric,
+        "side",
+        routing,
+        25,
+    );
+    assert.equal(outsideModeScore.score10, null);
+    assert.equal(outsideModeScore.activeWeight, 0);
 
-    document.labels = [label("clip", paceClipKpi.id, 3500)];
+    document.deliveries = document.deliveries.filter(
+        (delivery) => delivery.id !== "d-both",
+    );
+    thirdPace.startMs = 3040;
+    document.labels = [label("clip", paceClipKpi.id, 3021)];
     const resolvedIssues = labels.validateDocument(
         document,
         paceRubric,
@@ -980,4 +993,19 @@ test("clip labels require three same-mode deliveries and same-mode evidence", ()
     ).find((record) => record.kpi_id === paceClipKpi.id);
     assert.equal(paceClipRow.training_score_eligible, "true");
     assert.equal(paceClipRow.training_row_status, "ready_scored_label");
+    assert.equal(paceClipRow.derived_video_score_0_10, "8");
+    assert.equal(paceClipRow.derived_scored_weight_pct, "100");
+    const frameCanonicalScore = labels.scoreDocument(
+        document,
+        paceRubric,
+        "side",
+        routing,
+        25,
+    );
+    assert.equal(frameCanonicalScore.score10, 8);
+    assert.equal(frameCanonicalScore.activeWeight, 100);
+    assert.equal(
+        labels.scoreDocument(document, paceRubric, "side", routing).activeWeight,
+        0,
+    );
 });

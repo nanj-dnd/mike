@@ -301,6 +301,8 @@ function scoreSingleRubric(
   document: AnnotationDocument,
   rubric: Rubric,
   angle: CameraAngle,
+  clipEvidenceDeliveries?: Delivery[],
+  fps = 0,
 ): ScoreSummary {
   let weightedScore = 0;
   let activeWeight = 0;
@@ -321,7 +323,24 @@ function scoreSingleRubric(
       expectedCells += 1;
       const label = getLabel(document.labels, target.id, kpi.id);
       if (label) visibleCells += 1;
-      if (label?.visibility === "visible" && label.score !== null) {
+      const evidenceTimestamps = label
+        ? canonicalEvidenceTimestamps(label, fps)
+        : [];
+      const clipEvidenceEligible =
+        kpi.scope !== "clip" ||
+        !clipEvidenceDeliveries ||
+        (evidenceTimestamps.length > 0 &&
+          evidenceTimestamps.every((timestampMs) =>
+            clipEvidenceDeliveries.some(
+              (delivery) =>
+                timestampMs >= delivery.startMs && timestampMs <= delivery.endMs,
+            ),
+          ));
+      if (
+        label?.visibility === "visible" &&
+        label.score !== null &&
+        clipEvidenceEligible
+      ) {
         scores.push(label.score);
       }
     }
@@ -349,6 +368,7 @@ export function scoreDocument(
   rubric: Rubric,
   angle: CameraAngle,
   routing?: LabelRubricRouting,
+  fps = 0,
 ): ScoreSummary {
   const contexts = routedRubricContexts(document, rubric, routing);
   if (
@@ -372,7 +392,13 @@ export function scoreDocument(
           ? document.labels.filter((label) => !clipKpiIds.has(label.kpiId))
           : document.labels,
     };
-    return scoreSingleRubric(resolvedDocument, contexts[0].rubric, angle);
+    return scoreSingleRubric(
+      resolvedDocument,
+      contexts[0].rubric,
+      angle,
+      routing?.discipline === "batting" ? resolvedDeliveries : undefined,
+      fps,
+    );
   }
 
   const scoringContexts = contexts.filter(
@@ -395,6 +421,8 @@ export function scoreDocument(
       },
       context.rubric,
       angle,
+      context.deliveries,
+      fps,
     ),
   );
   const summedActiveWeight = summaries.reduce(
@@ -664,7 +692,13 @@ function validateSingleRubric(
     }
   }
 
-  const score = scoreSingleRubric(document, rubric, angle);
+  const score = scoreSingleRubric(
+    document,
+    rubric,
+    angle,
+    clipEvidenceDeliveries,
+    fps,
+  );
   if (score.activeWeight < MIN_RATING_WEIGHT_PCT) {
     issues.push({
       id: "coverage-policy",
@@ -943,6 +977,7 @@ export function buildLabelsCsv(
     fallbackRubric,
     project.cameraAngle,
     routing,
+    project.fps,
   );
   const rows: LabelsCsvRow[] = [];
   const datasetGroupKey = [project.playerRef, document.review.captureSession]
