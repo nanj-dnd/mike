@@ -136,6 +136,10 @@ test("batting routing is selected per delivery and pending deletions are retry-o
     assert.match(component, /normalizeDeliveryBowlingTypeFaced\(delivery, legacyDefault\)/);
     assert.match(component, /const activeBattingMode = bowlingTypeFacedFor\(selectedDelivery\)/);
     assert.match(component, /battingMode:\s*project[\s\S]*?activeBattingMode \?\? "pace"/);
+    assert.match(
+        component,
+        /scoreDocument\(\s*document,\s*rubric,\s*project\.cameraAngle,\s*rubricRouting,\s*project\.fps,\s*\)/,
+    );
     assert.match(component, /<BowlingTypeFacedField[\s\S]*?delivery=\{selectedDelivery\}/);
     assert.match(component, /D\{selectedDelivery\.index\} route/);
     assert.doesNotMatch(component, /<span>Bowling faced<\/span>\s*<select/);

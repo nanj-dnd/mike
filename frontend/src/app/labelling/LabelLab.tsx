@@ -604,7 +604,13 @@ export function LabelLab({ onExit }: { onExit?: () => void | Promise<void> }) {
   const score = useMemo(
     () =>
       project
-        ? scoreDocument(document, rubric, project.cameraAngle, rubricRouting)
+        ? scoreDocument(
+            document,
+            rubric,
+            project.cameraAngle,
+            rubricRouting,
+            project.fps,
+          )
         : { score10: null, score100: null, coveragePct: 0, visibleCells: 0, expectedCells: 0, activeWeight: 0 },
     [document, project, rubric, rubricRouting],
   );
