@@ -417,6 +417,8 @@ test("CSV appends compatible footwork and multi-evidence fields while preserving
             "human_shot_type_other",
             "human_bowling_type_faced",
             "bowling_type_faced_source",
+            "human_handedness",
+            "handedness_source",
         ],
     );
 
@@ -887,7 +889,7 @@ test("shared batting routes do not duplicate delivery rows", () => {
     );
 });
 
-test("clip labels require three same-mode deliveries and same-mode evidence", () => {
+test("clip labels need same-mode evidence but no delivery-count minimum", () => {
     const paceClipKpi = {
         ...unrestricted,
         id: "pace-clip",
@@ -928,8 +930,13 @@ test("clip labels require three same-mode deliveries and same-mode evidence", ()
         25,
         routing,
     );
+    // Two pace deliveries is no longer a blocker -- the delivery-count
+    // minimum was removed -- so the only issue left is the evidence that
+    // falls outside a pace delivery.
     assert.ok(
-        underMinimumIssues.some((issue) => issue.id === "consistency-minimum-pace"),
+        !underMinimumIssues.some((issue) =>
+            issue.id.startsWith("consistency-minimum"),
+        ),
     );
     assert.ok(
         underMinimumIssues.some((issue) => issue.id === "evidence-range-clip-pace-clip"),
@@ -940,7 +947,7 @@ test("clip labels require three same-mode deliveries and same-mode evidence", ()
     assert.equal(paceClipRow.training_score_eligible, "false");
     assert.equal(
         paceClipRow.training_row_status,
-        "exclude_insufficient_mode_deliveries",
+        "exclude_evidence_outside_mode_deliveries",
     );
     assert.equal(labels.scoreDocument(document, paceRubric, "side", routing).activeWeight, 0);
 
@@ -986,7 +993,9 @@ test("clip labels require three same-mode deliveries and same-mode evidence", ()
         25,
         routing,
     );
-    assert.ok(!resolvedIssues.some((issue) => issue.id === "consistency-minimum-pace"));
+    assert.ok(
+        !resolvedIssues.some((issue) => issue.id.startsWith("consistency-minimum")),
+    );
     assert.ok(!resolvedIssues.some((issue) => issue.id === "evidence-range-clip-pace-clip"));
     paceClipRow = csvRecords(
         labels.buildLabelsCsv(project, document, paceRubric, routing),
@@ -1008,4 +1017,165 @@ test("clip labels require three same-mode deliveries and same-mode evidence", ()
         labels.scoreDocument(document, paceRubric, "side", routing).activeWeight,
         0,
     );
+});
+
+test("handedness is chosen per delivery and falls back to the session default", () => {
+    // Per-delivery handedness exists so one clip can carry more than one
+    // player. It routes nothing, so an unset delivery must inherit the session
+    // value rather than block review the way bowling type faced does.
+    assert.equal(labels.normalizeHandedness("right"), "right");
+    assert.equal(labels.normalizeHandedness("left"), "left");
+    assert.equal(labels.normalizeHandedness("switch"), null);
+    assert.equal(labels.normalizeHandedness(undefined), null);
+
+    const explicit = labels.normalizeDeliveryHandedness(
+        { handedness: "left" },
+        "right",
+    );
+    assert.equal(explicit.handedness, "left");
+    assert.equal(explicit.handednessSource, "delivery");
+
+    const inherited = labels.normalizeDeliveryHandedness({}, "right");
+    assert.equal(inherited.handedness, "right");
+    assert.equal(inherited.handednessSource, "session_default");
+
+    // An explicit null is a human clearing the field, not an absent field, so
+    // it must never be silently refilled from the session value.
+    const cleared = labels.normalizeDeliveryHandedness(
+        { handedness: null },
+        "right",
+    );
+    assert.equal(cleared.handedness, null);
+    assert.equal(cleared.handednessSource, undefined);
+
+    const unknownSession = labels.normalizeDeliveryHandedness({}, "");
+    assert.equal(unknownSession.handedness, null);
+    assert.equal(unknownSession.handednessSource, undefined);
+});
+
+test("CSV carries per-delivery handedness and marks mixed clips explicitly", () => {
+    const document = documentForTest();
+    document.review.handedness = "right";
+    document.deliveries = document.deliveries.slice(0, 2).map((delivery) => ({
+        ...delivery,
+        bowlingTypeFaced: "pace",
+        bowlingTypeFacedSource: "delivery",
+    }));
+    document.deliveries[0].handedness = "left";
+    document.deliveries[0].handednessSource = "delivery";
+    document.deliveries[1].handedness = "right";
+    document.deliveries[1].handednessSource = "session_default";
+
+    const records = csvRecords(labels.buildLabelsCsv(project, document, rubric));
+    const front = records.find((record) => record.delivery_id === "d-front");
+    const back = records.find((record) => record.delivery_id === "d-back");
+
+    assert.equal(front.human_handedness, "left");
+    assert.equal(front.handedness_source, "delivery");
+    assert.equal(back.human_handedness, "right");
+    assert.equal(back.handedness_source, "session_default");
+
+    // The session-level column keeps its original meaning and position so
+    // existing consumers are untouched by the new per-delivery fields.
+    assert.equal(front.handedness, "right");
+    assert.equal(back.handedness, "right");
+});
+
+test("clip handedness is unanimous-or-mixed, never a guess", () => {
+    const clipKpi = { ...unrestricted, id: "clip-kpi", scope: "clip" };
+    const clipRubric = { ...rubric, id: "clip-rubric", kpis: [clipKpi] };
+    const document = documentForTest();
+    document.deliveries = document.deliveries.slice(0, 2);
+    document.deliveries[0].handedness = "left";
+    document.deliveries[1].handedness = "left";
+    document.labels = [label("clip", clipKpi.id, 500)];
+
+    let clipRow = csvRecords(
+        labels.buildLabelsCsv(project, document, clipRubric),
+    ).find((record) => record.target_scope === "clip");
+    assert.equal(clipRow.human_handedness, "left");
+    assert.equal(clipRow.handedness_source, "delivery_group");
+
+    document.deliveries[1].handedness = "right";
+    clipRow = csvRecords(
+        labels.buildLabelsCsv(project, document, clipRubric),
+    ).find((record) => record.target_scope === "clip");
+    assert.equal(clipRow.human_handedness, "");
+    assert.equal(clipRow.handedness_source, "mixed");
+
+    document.deliveries[0].handedness = null;
+    document.deliveries[1].handedness = null;
+    clipRow = csvRecords(
+        labels.buildLabelsCsv(project, document, clipRubric),
+    ).find((record) => record.target_scope === "clip");
+    assert.equal(clipRow.human_handedness, "");
+    assert.equal(clipRow.handedness_source, "");
+});
+
+test("a single-delivery clip KPI scores without any delivery-count minimum", () => {
+    const clipKpi = { ...unrestricted, id: "solo-clip", scope: "clip" };
+    const clipRubric = { ...rubric, id: "solo-rubric", kpis: [clipKpi] };
+    const document = documentForTest();
+    document.deliveries = document.deliveries.slice(0, 1);
+    document.labels = [label("clip", clipKpi.id, 500)];
+
+    const issues = labels.validateDocument(document, clipRubric, "side", 5000, 25);
+    assert.ok(!issues.some((issue) => issue.id.startsWith("consistency-minimum")));
+
+    const clipRow = csvRecords(
+        labels.buildLabelsCsv(project, document, clipRubric),
+    ).find((record) => record.target_scope === "clip");
+    assert.equal(clipRow.training_score_eligible, "true");
+    assert.equal(clipRow.training_row_status, "ready_scored_label");
+
+    // The score is produced rather than suppressed, which is the whole point
+    // of removing the minimum.
+    const summary = labels.scoreDocument(document, clipRubric, "side", undefined, 25);
+    assert.equal(summary.score10, 8);
+    assert.equal(summary.activeWeight, 50);
+});
+
+test("no CSV row is ever marked exclude_insufficient_mode_deliveries", () => {
+    const paceClipKpi = {
+        ...unrestricted,
+        id: "pace-clip-min",
+        scope: "clip",
+        variant: "pace",
+    };
+    const spinKpi = { ...unrestricted, id: "spin-min", variant: "spin" };
+    const paceRubric = {
+        ...rubric,
+        id: "pace-min-route",
+        routeKey: "batting.performance.pace",
+        kpis: [paceClipKpi],
+    };
+    const routing = {
+        discipline: "batting",
+        battingRubrics: {
+            pace: paceRubric,
+            spin: {
+                ...rubric,
+                id: "spin-min-route",
+                routeKey: "batting.performance.spin",
+                kpis: [spinKpi],
+            },
+        },
+    };
+    const document = documentForTest();
+    document.deliveries = document.deliveries.slice(0, 1);
+    document.deliveries[0].bowlingTypeFaced = "pace";
+    document.deliveries[0].bowlingTypeFacedSource = "delivery";
+    document.labels = [label("clip", paceClipKpi.id, 500)];
+
+    const records = csvRecords(
+        labels.buildLabelsCsv(project, document, paceRubric, routing),
+    );
+    assert.ok(
+        records.every(
+            (record) =>
+                record.training_row_status !== "exclude_insufficient_mode_deliveries",
+        ),
+    );
+    const clipRow = records.find((record) => record.target_scope === "clip");
+    assert.equal(clipRow.training_score_eligible, "true");
 });

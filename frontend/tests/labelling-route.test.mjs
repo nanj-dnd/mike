@@ -151,8 +151,12 @@ test("batting routing is selected per delivery and pending deletions are retry-o
         component,
         /catch \(caught\) \{[\s\S]*?await fetchProjects\(\)[\s\S]*?Could not finish deleting this report\./,
     );
-    assert.match(component, /Use at least three same-mode deliveries/);
-    assert.match(component, /clip KPIs require 3 same-mode deliveries/);
+    // The delivery-count minimum was removed, so no surface may tell an
+    // annotator that clip KPIs need three deliveries.
+    assert.doesNotMatch(component, /at least three same-mode deliveries/);
+    assert.doesNotMatch(component, /require 3 same-mode deliveries/);
+    assert.match(component, /every evidence point must fall inside one of them/);
     assert.match(styles, /\.amp-labelling \.bowling-faced-field\s*\{/);
+    assert.match(styles, /\.amp-labelling \.handedness-field\s*\{/);
     assert.match(styles, /\.amp-labelling \.project-card--deleting\s*\{/);
 });

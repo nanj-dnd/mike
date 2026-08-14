@@ -72,9 +72,24 @@ Every batting delivery requires an explicit `human_shot_type`. This follows the 
 
 Every batting delivery requires an explicit `human_bowling_type_faced` value of `pace` or `spin`. At Performance tier that choice routes the delivery to the matching source workbook KPI set; a mixed clip therefore exports pace deliveries against the pace route and spin deliveries against the spin route. A mixed-route project does not produce one combined derived video score because those routes have different KPI identities.
 
-Clip-scoped Performance KPIs are also route-specific. A Pace or Spin clip row needs at least three deliveries of that same mode, and every evidence frame must fall inside one of those same-mode delivery segments. Draft rows that fail these checks are retained with `exclude_insufficient_mode_deliveries` or `exclude_evidence_outside_mode_deliveries`, but are not training-score eligible. Unresolved deliveries remain in the CSV without a guessed rubric or route and are excluded until a human chooses Pace or Spin.
+Clip-scoped Performance KPIs are also route-specific. Every evidence frame on a Pace or Spin clip row must fall inside one of those same-mode delivery segments; rows that fail are retained with `exclude_evidence_outside_mode_deliveries` and are not training-score eligible. Unresolved deliveries remain in the CSV without a guessed rubric or route and are excluded until a human chooses Pace or Spin.
+
+There is **no delivery-count minimum**. A clip KPI scores against however many same-mode deliveries the clip contains, including one. The earlier three-delivery rule and its `exclude_insufficient_mode_deliveries` status have been removed: no row carries that status any more, and consumers should treat it as a historical value appearing only in CSVs exported before this change. Sample size is therefore no longer enforced at export — count deliveries per `video_id` if a thin clip should be down-weighted in training.
 
 `bowling_type_faced_source=delivery` means a human selected the delivery value. During backward-compatible hydration only, a legacy annotation whose delivery does not contain the field may copy a valid session-level `review.bowlerType`; those rows are marked `legacy_review_fallback`. An explicit `null` is preserved as unresolved and is never replaced by the legacy value. Missing bowling type blocks review. The old `bowler_type` column remains in its original position for compatibility but is not authoritative for new delivery labels.
+
+## Human handedness
+
+Handedness is recorded per delivery so a single clip can carry more than one player. Delivery rows export the delivery's own value in `human_handedness`, with `handedness_source` one of:
+
+- `delivery` — a human chose it for this delivery; or
+- `session_default` — the delivery has no value of its own and inherited the session-level `review.handedness`.
+
+Unlike bowling type faced, handedness routes nothing, so an unset delivery is **not** a review blocker — it simply inherits. An explicit `null` on a delivery is preserved as unrecorded and is never refilled from the session value; those rows export blank for both fields.
+
+Clip-scoped rows span many deliveries, so they carry a handedness only when every delivery agrees: `handedness_source=delivery_group` with the shared value. When deliveries disagree the value is blank and the source is the explicit `mixed`, so a consumer can tell "several players in this clip" apart from "nobody recorded it". Blank value with blank source means unrecorded.
+
+The original session-level `handedness` column keeps its name, position, and meaning, so consumers written before this change are unaffected.
 
 ## Null and uncertainty semantics
 
@@ -107,4 +122,4 @@ The catalog has nine male routes and 131 unique KPI IDs. Foundation uses explici
 
 ## File format
 
-The browser download is UTF-8 with a BOM for spreadsheet compatibility. Records use RFC-4180 quoting and CRLF row endings; embedded commas, quotes, and line breaks are escaped. Column order is version-locked in `LABELS_CSV_COLUMNS` for v2. The shot-footwork/multi-evidence, subject-focus/shot-type, and bowling-faced routing fields were appended after the original v2 columns, so every pre-existing column retains its name and ordinal position.
+The browser download is UTF-8 with a BOM for spreadsheet compatibility. Records use RFC-4180 quoting and CRLF row endings; embedded commas, quotes, and line breaks are escaped. Column order is version-locked in `LABELS_CSV_COLUMNS` for v2. The shot-footwork/multi-evidence, subject-focus/shot-type, bowling-faced routing, and per-delivery handedness fields were appended after the original v2 columns, so every pre-existing column retains its name and ordinal position.
