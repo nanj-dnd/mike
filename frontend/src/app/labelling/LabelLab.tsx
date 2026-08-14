@@ -19,11 +19,15 @@ import {
   makeLabel,
   normalizeBowlingTypeFaced,
   normalizeDeliveryBowlingTypeFaced,
+  normalizeDeliveryHandedness,
+  normalizeHandedness,
   scoreDocument,
   validateDocument,
+  HANDEDNESS_VALUES,
   type AnnotationDocument,
   type BowlingTypeFaced,
   type Delivery,
+  type Handedness,
   type DeliveryLabel,
   type ReviewState,
   type Visibility,
@@ -168,6 +172,56 @@ function BowlingTypeFacedField({
       </div>
       {!compact && (
         <small>Choose for this delivery from the footage; this selects its KPI route.</small>
+      )}
+    </fieldset>
+  );
+}
+
+function handednessFor(delivery?: Delivery): Handedness | null {
+  return normalizeHandedness(delivery?.handedness);
+}
+
+function handednessLabel(value: Handedness | null) {
+  return value === "right" ? "Right" : value === "left" ? "Left" : "Not selected";
+}
+
+function HandednessField({
+  delivery,
+  sessionHandedness,
+  compact = false,
+  onChange,
+}: {
+  delivery: Delivery;
+  sessionHandedness: string;
+  compact?: boolean;
+  onChange: (value: Handedness | null) => void;
+}) {
+  const value = handednessFor(delivery);
+  const inherited = delivery.handednessSource === "session_default";
+  return (
+    <fieldset className={`handedness-field ${compact ? "handedness-field--compact" : ""}`}>
+      <legend>Handedness <em>human selected</em></legend>
+      <div className="handedness-options">
+        {HANDEDNESS_VALUES.map((option) => (
+          <button
+            type="button"
+            key={option}
+            className={value === option ? "active" : ""}
+            aria-pressed={value === option}
+            onClick={() => onChange(value === option ? null : option)}
+          >
+            {handednessLabel(option)}
+          </button>
+        ))}
+      </div>
+      {!compact && (
+        <small>
+          {inherited
+            ? `Inherited from the session default (${handednessLabel(value)}). Choose here to record it for this delivery.`
+            : sessionHandedness && !value
+              ? "Not set for this delivery; the session default applies."
+              : "Choose for this delivery when the clip contains more than one player."}
+        </small>
       )}
     </fieldset>
   );
@@ -461,6 +515,7 @@ function hydrateDocument(value: unknown, fps?: number): AnnotationDocument {
         return {
           ...delivery,
           ...normalizeDeliveryBowlingTypeFaced(delivery, legacyDefault),
+          ...normalizeDeliveryHandedness(delivery, review.handedness),
           shotFootwork: shotFootworkFor(delivery),
           ...normalizeDeliveryShotMetadata(delivery),
         };
@@ -1043,6 +1098,7 @@ export function LabelLab({ onExit }: { onExit?: () => void | Promise<void> }) {
       bowlingTypeFaced: project.discipline === "batting" ? null : undefined,
       shotType: null,
       shotTypeOther: "",
+      ...normalizeDeliveryHandedness({}, document.review.handedness),
     };
     updateDocument((current) => ({
       ...current,
@@ -1101,6 +1157,13 @@ export function LabelLab({ onExit }: { onExit?: () => void | Promise<void> }) {
     setSelectedKpiId(
       nextRubric.kpis.find((kpi) => supportsAngle(kpi, project.cameraAngle))?.id ?? "",
     );
+  }
+
+  function updateDeliveryHandedness(id: string, handedness: Handedness | null) {
+    updateDelivery(id, {
+      handedness,
+      handednessSource: handedness ? "delivery" : undefined,
+    });
   }
 
   function removeDelivery(delivery: Delivery) {
@@ -1639,12 +1702,13 @@ export function LabelLab({ onExit }: { onExit?: () => void | Promise<void> }) {
             </label>
           )}
           <label className="field">
-            <span>Handedness</span>
+            <span>Handedness <em>session default</em></span>
             <select value={document.review.handedness} onChange={(event) => updateReview("handedness", event.target.value)}>
               <option value="">Select</option>
               <option value="right">Right</option>
               <option value="left">Left</option>
             </select>
+            <small>Applies to every delivery that has no handedness of its own. Override per delivery when the clip contains more than one player.</small>
           </label>
           <label className="field">
             <span>PHV stage <em>record only</em></span>
@@ -1729,6 +1793,16 @@ export function LabelLab({ onExit }: { onExit?: () => void | Promise<void> }) {
                       Shot: {shotTypeLabel(shotTypeFor(delivery))}
                     </small>
                   )}
+                  <small
+                    className={
+                      delivery.handednessSource === "delivery"
+                        ? "handedness-recorded"
+                        : "handedness-inherited"
+                    }
+                  >
+                    Handedness: {handednessLabel(handednessFor(delivery))}
+                    {delivery.handednessSource === "session_default" ? " (session)" : ""}
+                  </small>
                   {project.discipline === "batting" && rubricHasFootworkSpecificKpis && (
                     <small className={shotFootworkFor(delivery) ? "footwork-recorded" : "footwork-missing"}>
                       Footwork: {shotFootworkLabel(shotFootworkFor(delivery))}
@@ -1775,6 +1849,11 @@ export function LabelLab({ onExit }: { onExit?: () => void | Promise<void> }) {
                 onChange={(value) => updateDeliveryShotFootwork(selectedDelivery.id, value)}
               />
             )}
+            <HandednessField
+              delivery={selectedDelivery}
+              sessionHandedness={document.review.handedness}
+              onChange={(value) => updateDeliveryHandedness(selectedDelivery.id, value)}
+            />
             <label className="field"><span>Outcome / delivery note</span><input value={selectedDelivery.outcome} onChange={(event) => updateDelivery(selectedDelivery.id, { outcome: event.target.value })} placeholder="e.g. boundary, beaten, miscued" /></label>
           </div>
         ) : null}
@@ -1824,6 +1903,14 @@ export function LabelLab({ onExit }: { onExit?: () => void | Promise<void> }) {
             delivery={selectedDelivery}
             compact
             onChange={(value) => updateDeliveryShotFootwork(selectedDelivery.id, value)}
+          />
+        )}
+        {selectedDelivery && (
+          <HandednessField
+            delivery={selectedDelivery}
+            sessionHandedness={document.review.handedness}
+            compact
+            onChange={(value) => updateDeliveryHandedness(selectedDelivery.id, value)}
           />
         )}
         <div className="score-summary-card">
@@ -1899,7 +1986,7 @@ export function LabelLab({ onExit }: { onExit?: () => void | Promise<void> }) {
               <div className="kpi-meta"><span>{selectedKpi.group}</span><span>{selectedKpi.weight}% weight</span><span>{selectedKpi.evidenceType.replaceAll("_", " ")}</span></div>
             </div>
             {selectedKpi.scope === "clip" && (
-              <div className="clip-scope-note"><strong>Clip-level comparison</strong><span>Use at least three same-mode deliveries ({activeBattingMode ?? "the selected route"}). This score exports once for that Pace or Spin route.</span></div>
+              <div className="clip-scope-note"><strong>Clip-level comparison</strong><span>Judged across the {activeBattingMode ?? "selected"} deliveries in this clip; every evidence point must fall inside one of them. This score exports once for that Pace or Spin route.</span></div>
             )}
             {!selectedKpiAssessability.assessable && (
               <div className="applicability-callout" role="status">
@@ -2062,7 +2149,7 @@ export function LabelLab({ onExit }: { onExit?: () => void | Promise<void> }) {
           <div className="metric-card metric-card--hero"><span>Derived technique score</span><strong>{score.activeWeight >= MIN_RATING_WEIGHT_PCT && score.score10 !== null ? score.score10.toFixed(2) : "Suppressed"}</strong><small>{score.activeWeight >= MIN_RATING_WEIGHT_PCT ? "out of 10 · deterministic weighted mean" : "low-confidence coverage below workbook threshold"}</small></div>
           <div className="metric-card"><span>Label coverage</span><strong>{score.coveragePct.toFixed(0)}%</strong><small>{score.visibleCells} of {score.expectedCells} cells assessed</small></div>
           <div className="metric-card"><span>Observable weight</span><strong>{score.activeWeight}%</strong><small>after visibility decisions</small></div>
-          <div className="metric-card"><span>Deliveries</span><strong>{document.deliveries.length}</strong><small>clip KPIs require 3 same-mode deliveries</small></div>
+          <div className="metric-card"><span>Deliveries</span><strong>{document.deliveries.length}</strong><small>clip KPIs score across the same-mode deliveries</small></div>
         </div>
         <div className="qa-card">
           <div className="qa-heading"><div><span className="section-number">Dataset gates</span><h3>{issues.length ? "Items that need attention" : "All checks passed"}</h3></div><div className="qa-counts"><span>{blockers.length} blockers</span><span>{warnings.length} warnings</span></div></div>

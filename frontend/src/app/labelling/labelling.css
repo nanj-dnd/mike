@@ -1679,6 +1679,87 @@
   font-weight: 750;
 }
 
+.amp-labelling .handedness-field {
+  min-width: 0;
+  padding: 12px 0 0;
+  margin: 14px 0 0;
+  border: 0;
+  border-top: 1px solid var(--line);
+}
+
+.amp-labelling .handedness-field legend {
+  padding: 0;
+  color: var(--ink);
+  font-size: 9px;
+  font-weight: 750;
+}
+
+.amp-labelling .handedness-field legend em {
+  margin-left: 5px;
+  color: var(--green-deep);
+  font-size: 7px;
+  font-style: normal;
+  font-weight: 650;
+  text-transform: uppercase;
+}
+
+.amp-labelling .handedness-options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.amp-labelling .handedness-options button {
+  min-height: 32px;
+  color: var(--muted);
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  font-size: 8px;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.amp-labelling .handedness-options button.active {
+  color: var(--ink);
+  background: var(--green);
+  border-color: var(--green-deep);
+}
+
+.amp-labelling .handedness-field > small {
+  display: block;
+  margin-top: 7px;
+  color: var(--muted);
+  font-size: 7px;
+  line-height: 1.45;
+}
+
+.amp-labelling .handedness-field--compact {
+  padding: 10px 11px;
+  margin: 0 0 12px;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.amp-labelling .handedness-field--compact .handedness-options {
+  margin-top: 6px;
+}
+
+.amp-labelling .handedness-recorded {
+  color: var(--green-deep) !important;
+}
+
+/*
+ * Inherited handedness is muted rather than red: unlike bowling type faced, an
+ * unset delivery is not an error -- it falls back to the session value, so it
+ * must not read as a blocker in the delivery list.
+ */
+.amp-labelling .handedness-inherited {
+  color: var(--muted) !important;
+}
+
 .amp-labelling .footwork-field legend {
   padding: 0;
   color: var(--ink);

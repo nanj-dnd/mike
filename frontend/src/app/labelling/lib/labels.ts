@@ -62,6 +62,15 @@ export type Visibility = "visible" | "occluded" | "low_quality" | "uncertain" | 
 export const BOWLING_TYPE_FACED_VALUES = ["pace", "spin"] as const;
 export type BowlingTypeFaced = BattingMode;
 export type BowlingTypeFacedSource = "delivery" | "legacy_review_fallback";
+export const HANDEDNESS_VALUES = ["right", "left"] as const;
+export type Handedness = (typeof HANDEDNESS_VALUES)[number];
+/**
+ * `session_default` rather than `legacy_review_fallback`: per-delivery
+ * handedness is new, so no saved annotation carries the field yet and every
+ * existing delivery inherits the session value. The name describes what the
+ * inheritance actually is instead of implying a legacy migration path.
+ */
+export type HandednessSource = "delivery" | "session_default";
 
 export interface DeliveryLabel {
   id: string;
@@ -92,6 +101,8 @@ export interface Delivery {
   bowlingTypeFacedSource?: BowlingTypeFacedSource;
   shotType?: ShotType | null;
   shotTypeOther?: string;
+  handedness?: Handedness | null;
+  handednessSource?: HandednessSource;
 }
 
 export interface LabelRubricRouting {
@@ -208,6 +219,58 @@ export function normalizeDeliveryBowlingTypeFaced(
           ? "delivery" as const
           : "legacy_review_fallback" as const
       : undefined,
+  };
+}
+
+export function normalizeHandedness(value: unknown): Handedness | null {
+  return HANDEDNESS_VALUES.includes(value as Handedness)
+    ? (value as Handedness)
+    : null;
+}
+
+/**
+ * Handedness is recorded per delivery so one clip can carry more than one
+ * batter or bowler. It is deliberately not a review blocker: unlike bowling
+ * type faced, handedness routes nothing, so an unset delivery inherits the
+ * session-level `review.handedness` rather than stopping the annotator. Rows
+ * that inherit are marked `session_default` so a consumer can tell a human
+ * per-delivery judgement apart from a carried-over session value.
+ */
+export function normalizeDeliveryHandedness(
+  delivery: Pick<Delivery, "handedness" | "handednessSource">,
+  legacyReviewValue?: unknown,
+) {
+  const hasExplicitValue = Object.prototype.hasOwnProperty.call(
+    delivery,
+    "handedness",
+  );
+  const handedness = hasExplicitValue
+    ? normalizeHandedness(delivery.handedness)
+    : normalizeHandedness(legacyReviewValue);
+  return {
+    handedness,
+    handednessSource: handedness
+      ? delivery.handednessSource === "session_default"
+        ? "session_default" as const
+        : hasExplicitValue
+          ? "delivery" as const
+          : "session_default" as const
+      : undefined,
+  };
+}
+
+function clipHandednessFor(deliveries: Delivery[]) {
+  const distinct = new Set(
+    deliveries
+      .map((delivery) => normalizeHandedness(delivery.handedness))
+      .filter((value): value is Handedness => value !== null),
+  );
+  if (distinct.size === 1) {
+    return { handedness: [...distinct][0], source: "delivery_group" as const };
+  }
+  return {
+    handedness: null,
+    source: distinct.size > 1 ? ("mixed" as const) : ("" as const),
   };
 }
 
@@ -379,18 +442,10 @@ export function scoreDocument(
     const resolvedDeliveries = routing?.discipline === "batting"
       ? document.deliveries.filter((delivery) => delivery.bowlingTypeFaced)
       : document.deliveries;
-    const clipKpiIds = new Set(
-      contexts[0].rubric.kpis
-        .filter((kpi) => kpi.scope === "clip")
-        .map((kpi) => kpi.id),
-    );
     const resolvedDocument = {
       ...document,
       deliveries: resolvedDeliveries,
-      labels:
-        routing?.discipline === "batting" && resolvedDeliveries.length < 3
-          ? document.labels.filter((label) => !clipKpiIds.has(label.kpiId))
-          : document.labels,
+      labels: document.labels,
     };
     return scoreSingleRubric(
       resolvedDocument,
@@ -409,15 +464,7 @@ export function scoreDocument(
       {
         ...document,
         deliveries: context.deliveries,
-        labels:
-          context.deliveries.length < 3
-            ? document.labels.filter(
-                (label) =>
-                  !context.rubric.kpis.some(
-                    (kpi) => kpi.scope === "clip" && kpi.id === label.kpiId,
-                  ),
-              )
-            : document.labels,
+        labels: document.labels,
       },
       context.rubric,
       angle,
@@ -469,7 +516,6 @@ function validateSingleRubric(
   fps?: number,
   discipline?: Discipline,
   clipEvidenceDeliveries?: Delivery[],
-  bowlingTypeFaced?: BowlingTypeFaced | null,
 ): QualityIssue[] {
   const issues: QualityIssue[] = [];
   if (!document.review.annotator.trim()) {
@@ -508,17 +554,6 @@ function validateSingleRubric(
       id: "delivery-required",
       severity: "blocker",
       message: "Mark at least one complete delivery.",
-    });
-  }
-  if (document.deliveries.length < 3 && rubric.kpis.some((kpi) => kpi.scope === "clip")) {
-    issues.push({
-      id: bowlingTypeFaced
-        ? `consistency-minimum-${bowlingTypeFaced}`
-        : "consistency-minimum",
-      severity: "blocker",
-      message: bowlingTypeFaced
-        ? `Add at least three ${bowlingTypeFaced} deliveries before scoring ${bowlingTypeFaced} consistency KPIs.`
-        : "Add at least three deliveries before scoring consistency KPIs.",
     });
   }
 
@@ -761,7 +796,6 @@ export function validateDocument(
         fps,
         discipline,
         context.deliveries,
-        context.bowlingTypeFaced,
       ),
     );
   return [
@@ -877,6 +911,8 @@ export const LABELS_CSV_COLUMNS = [
   "human_shot_type_other",
   "human_bowling_type_faced",
   "bowling_type_faced_source",
+  "human_handedness",
+  "handedness_source",
 ] as const;
 
 type LabelsCsvColumn = (typeof LABELS_CSV_COLUMNS)[number];
@@ -1007,6 +1043,8 @@ export function buildLabelsCsv(
               bowlingTypeFacedSource: "delivery" as const,
               shotType: null,
               shotTypeOther: "",
+              handedness: null,
+              handednessSource: undefined as HandednessSource | undefined,
             }]
           : [...context.deliveries].sort(
               (left, right) =>
@@ -1075,6 +1113,11 @@ export function buildLabelsCsv(
       const resolvedContextDeliveries = context.deliveries.filter(
         (delivery) => delivery.bowlingTypeFaced,
       );
+      // A clip row spans many deliveries, so it can only carry a handedness
+      // when they all agree. Disagreement is reported as an explicit `mixed`
+      // source rather than a blank, so a consumer can tell "several batters in
+      // this clip" apart from "nobody recorded it".
+      const clipHandedness = clipHandednessFor(context.deliveries);
       const evidenceWithinTarget =
         kpi.scope === "delivery"
           ? typeof target.startMs === "number" &&
@@ -1091,14 +1134,9 @@ export function buildLabelsCsv(
                 ),
               )
             : true;
-      const hasClipDeliveryMinimum =
-        kpi.scope !== "clip" ||
-        routing?.discipline !== "batting" ||
-        resolvedContextDeliveries.length >= 3;
       const trainingScoreEligible = Boolean(
         rowContextComplete &&
         humanLabelApplicable &&
-        hasClipDeliveryMinimum &&
         humanScore !== null &&
         humanScore >= 0 &&
         humanScore <= 10 &&
@@ -1131,10 +1169,8 @@ export function buildLabelsCsv(
                   : "human_null";
       const trainingRowStatus = bowlingTypeMissing
         ? "exclude_bowling_type_faced_missing"
-        : kpi.scope === "clip" && !hasClipDeliveryMinimum
-          ? "exclude_insufficient_mode_deliveries"
-          : kpi.scope === "clip" && humanEvidenceTimestamps.length > 0 && !evidenceWithinTarget
-            ? "exclude_evidence_outside_mode_deliveries"
+        : kpi.scope === "clip" && humanEvidenceTimestamps.length > 0 && !evidenceWithinTarget
+          ? "exclude_evidence_outside_mode_deliveries"
         : !rowContextComplete
         ? "exclude_incomplete"
         : !supported
@@ -1288,6 +1324,14 @@ export function buildLabelsCsv(
             : context.bowlingTypeFaced
               ? "delivery_mode_group"
               : "",
+        human_handedness:
+          kpi.scope === "delivery"
+            ? target.handedness ?? ""
+            : clipHandedness.handedness ?? "",
+        handedness_source:
+          kpi.scope === "delivery"
+            ? target.handednessSource ?? (target.handedness ? "delivery" : "")
+            : clipHandedness.source,
       });
     }
   }
